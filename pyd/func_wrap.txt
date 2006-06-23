@@ -1,0 +1,211 @@
+        } else static if (ARGS == 1) {
+            static if (is(RetType : void)) {
+                fn(
+                    d_type!(ArgType!(typeof(fn), 1))(PyTuple_GET_ITEM(args, 0))
+                );
+                Py_INCREF(Py_None);
+                ret = Py_None;
+            } else {
+                return _py( fn(
+                    d_type!(ArgType!(typeof(fn), 1))(PyTuple_GET_ITEM(args, 0))
+                ) );
+            }
+        } else static if (ARGS == 2) {
+            static if (is(RetType : void)) {
+                fn(
+                    d_type!(ArgType!(typeof(fn), 1))(PyTuple_GET_ITEM(args, 0)),
+                    d_type!(ArgType!(typeof(fn), 2))(PyTuple_GET_ITEM(args, 1))
+                );
+                Py_INCREF(Py_None);
+                ret = Py_None;
+            } else {
+                return _py( fn(
+                    d_type!(ArgType!(typeof(fn), 1))(PyTuple_GET_ITEM(args, 0)),
+                    d_type!(ArgType!(typeof(fn), 2))(PyTuple_GET_ITEM(args, 1))
+                ) );
+            }
+        } else static if (ARGS == 3) {
+            static if (is(RetType : void)) {
+                fn(
+                    d_type!(ArgType!(typeof(fn), 1))(PyTuple_GET_ITEM(args, 0)),
+                    d_type!(ArgType!(typeof(fn), 2))(PyTuple_GET_ITEM(args, 1)),
+                    d_type!(ArgType!(typeof(fn), 3))(PyTuple_GET_ITEM(args, 2))
+                );
+                Py_INCREF(Py_None);
+                ret = Py_None;
+            } else {
+                return _py( fn(
+                    d_type!(ArgType!(typeof(fn), 1))(PyTuple_GET_ITEM(args, 0)),
+                    d_type!(ArgType!(typeof(fn), 2))(PyTuple_GET_ITEM(args, 1)),
+                    d_type!(ArgType!(typeof(fn), 3))(PyTuple_GET_ITEM(args, 2))
+                ) );
+            }
+        } else static if (ARGS == 4) {
+            static if (is(RetType : void)) {
+                fn(
+                    d_type!(ArgType!(typeof(fn), 1))(PyTuple_GET_ITEM(args, 0)),
+                    d_type!(ArgType!(typeof(fn), 2))(PyTuple_GET_ITEM(args, 1)),
+                    d_type!(ArgType!(typeof(fn), 3))(PyTuple_GET_ITEM(args, 2)),
+                    d_type!(ArgType!(typeof(fn), 4))(PyTuple_GET_ITEM(args, 3))
+                );
+                Py_INCREF(Py_None);
+                ret = Py_None;
+            } else {
+                return _py( fn(
+                    d_type!(ArgType!(typeof(fn), 1))(PyTuple_GET_ITEM(args, 0)),
+                    d_type!(ArgType!(typeof(fn), 2))(PyTuple_GET_ITEM(args, 1)),
+                    d_type!(ArgType!(typeof(fn), 3))(PyTuple_GET_ITEM(args, 2)),
+                    d_type!(ArgType!(typeof(fn), 4))(PyTuple_GET_ITEM(args, 3))
+                ) );
+            }
+        } else static if (ARGS == 5) {
+            static if (is(RetType : void)) {
+                fn(
+                    d_type!(ArgType!(typeof(fn), 1))(PyTuple_GET_ITEM(args, 0)),
+                    d_type!(ArgType!(typeof(fn), 2))(PyTuple_GET_ITEM(args, 1)),
+                    d_type!(ArgType!(typeof(fn), 3))(PyTuple_GET_ITEM(args, 2)),
+                    d_type!(ArgType!(typeof(fn), 4))(PyTuple_GET_ITEM(args, 3)),
+                    d_type!(ArgType!(typeof(fn), 5))(PyTuple_GET_ITEM(args, 4))
+                );
+                Py_INCREF(Py_None);
+                ret = Py_None;
+            } else {
+                return _py( fn(
+                    d_type!(ArgType!(typeof(fn), 1))(PyTuple_GET_ITEM(args, 0)),
+                    d_type!(ArgType!(typeof(fn), 2))(PyTuple_GET_ITEM(args, 1)),
+                    d_type!(ArgType!(typeof(fn), 3))(PyTuple_GET_ITEM(args, 2)),
+                    d_type!(ArgType!(typeof(fn), 4))(PyTuple_GET_ITEM(args, 3)),
+                    d_type!(ArgType!(typeof(fn), 5))(PyTuple_GET_ITEM(args, 4))
+                ) );
+            }
+        } else static if (ARGS == 6) {
+            static if (is(RetType : void)) {
+                fn(
+                    d_type!(ArgType!(typeof(fn), 1))(PyTuple_GET_ITEM(args, 0)),
+                    d_type!(ArgType!(typeof(fn), 2))(PyTuple_GET_ITEM(args, 1)),
+                    d_type!(ArgType!(typeof(fn), 3))(PyTuple_GET_ITEM(args, 2)),
+                    d_type!(ArgType!(typeof(fn), 4))(PyTuple_GET_ITEM(args, 3)),
+                    d_type!(ArgType!(typeof(fn), 5))(PyTuple_GET_ITEM(args, 4)),
+                    d_type!(ArgType!(typeof(fn), 6))(PyTuple_GET_ITEM(args, 5))
+                );
+                Py_INCREF(Py_None);
+                ret = Py_None;
+            } else {
+                return _py( fn(
+                    d_type!(ArgType!(typeof(fn), 1))(PyTuple_GET_ITEM(args, 0)),
+                    d_type!(ArgType!(typeof(fn), 2))(PyTuple_GET_ITEM(args, 1)),
+                    d_type!(ArgType!(typeof(fn), 3))(PyTuple_GET_ITEM(args, 2)),
+                    d_type!(ArgType!(typeof(fn), 4))(PyTuple_GET_ITEM(args, 3)),
+                    d_type!(ArgType!(typeof(fn), 5))(PyTuple_GET_ITEM(args, 4)),
+                    d_type!(ArgType!(typeof(fn), 6))(PyTuple_GET_ITEM(args, 5))
+                ) );
+            }
+        } else static if (ARGS == 7) {
+            static if (is(RetType : void)) {
+                fn(
+                    d_type!(ArgType!(typeof(fn), 1))(PyTuple_GET_ITEM(args, 0)),
+                    d_type!(ArgType!(typeof(fn), 2))(PyTuple_GET_ITEM(args, 1)),
+                    d_type!(ArgType!(typeof(fn), 3))(PyTuple_GET_ITEM(args, 2)),
+                    d_type!(ArgType!(typeof(fn), 4))(PyTuple_GET_ITEM(args, 3)),
+                    d_type!(ArgType!(typeof(fn), 5))(PyTuple_GET_ITEM(args, 4)),
+                    d_type!(ArgType!(typeof(fn), 6))(PyTuple_GET_ITEM(args, 5)),
+                    d_type!(ArgType!(typeof(fn), 7))(PyTuple_GET_ITEM(args, 6))
+                );
+                Py_INCREF(Py_None);
+                ret = Py_None;
+            } else {
+                return _py( fn(
+                    d_type!(ArgType!(typeof(fn), 1))(PyTuple_GET_ITEM(args, 0)),
+                    d_type!(ArgType!(typeof(fn), 2))(PyTuple_GET_ITEM(args, 1)),
+                    d_type!(ArgType!(typeof(fn), 3))(PyTuple_GET_ITEM(args, 2)),
+                    d_type!(ArgType!(typeof(fn), 4))(PyTuple_GET_ITEM(args, 3)),
+                    d_type!(ArgType!(typeof(fn), 5))(PyTuple_GET_ITEM(args, 4)),
+                    d_type!(ArgType!(typeof(fn), 6))(PyTuple_GET_ITEM(args, 5)),
+                    d_type!(ArgType!(typeof(fn), 7))(PyTuple_GET_ITEM(args, 6))
+                ) );
+            }
+        } else static if (ARGS == 8) {
+            static if (is(RetType : void)) {
+                fn(
+                    d_type!(ArgType!(typeof(fn), 1))(PyTuple_GET_ITEM(args, 0)),
+                    d_type!(ArgType!(typeof(fn), 2))(PyTuple_GET_ITEM(args, 1)),
+                    d_type!(ArgType!(typeof(fn), 3))(PyTuple_GET_ITEM(args, 2)),
+                    d_type!(ArgType!(typeof(fn), 4))(PyTuple_GET_ITEM(args, 3)),
+                    d_type!(ArgType!(typeof(fn), 5))(PyTuple_GET_ITEM(args, 4)),
+                    d_type!(ArgType!(typeof(fn), 6))(PyTuple_GET_ITEM(args, 5)),
+                    d_type!(ArgType!(typeof(fn), 7))(PyTuple_GET_ITEM(args, 6)),
+                    d_type!(ArgType!(typeof(fn), 8))(PyTuple_GET_ITEM(args, 7))
+                );
+                Py_INCREF(Py_None);
+                ret = Py_None;
+            } else {
+                return _py( fn(
+                    d_type!(ArgType!(typeof(fn), 1))(PyTuple_GET_ITEM(args, 0)),
+                    d_type!(ArgType!(typeof(fn), 2))(PyTuple_GET_ITEM(args, 1)),
+                    d_type!(ArgType!(typeof(fn), 3))(PyTuple_GET_ITEM(args, 2)),
+                    d_type!(ArgType!(typeof(fn), 4))(PyTuple_GET_ITEM(args, 3)),
+                    d_type!(ArgType!(typeof(fn), 5))(PyTuple_GET_ITEM(args, 4)),
+                    d_type!(ArgType!(typeof(fn), 6))(PyTuple_GET_ITEM(args, 5)),
+                    d_type!(ArgType!(typeof(fn), 7))(PyTuple_GET_ITEM(args, 6)),
+                    d_type!(ArgType!(typeof(fn), 8))(PyTuple_GET_ITEM(args, 7))
+                ) );
+            }
+        } else static if (ARGS == 9) {
+            static if (is(RetType : void)) {
+                fn(
+                    d_type!(ArgType!(typeof(fn), 1))(PyTuple_GET_ITEM(args, 0)),
+                    d_type!(ArgType!(typeof(fn), 2))(PyTuple_GET_ITEM(args, 1)),
+                    d_type!(ArgType!(typeof(fn), 3))(PyTuple_GET_ITEM(args, 2)),
+                    d_type!(ArgType!(typeof(fn), 4))(PyTuple_GET_ITEM(args, 3)),
+                    d_type!(ArgType!(typeof(fn), 5))(PyTuple_GET_ITEM(args, 4)),
+                    d_type!(ArgType!(typeof(fn), 6))(PyTuple_GET_ITEM(args, 5)),
+                    d_type!(ArgType!(typeof(fn), 7))(PyTuple_GET_ITEM(args, 6)),
+                    d_type!(ArgType!(typeof(fn), 8))(PyTuple_GET_ITEM(args, 7)),
+                    d_type!(ArgType!(typeof(fn), 9))(PyTuple_GET_ITEM(args, 8))
+                );
+                Py_INCREF(Py_None);
+                ret = Py_None;
+            } else {
+                return _py( fn(
+                    d_type!(ArgType!(typeof(fn), 1))(PyTuple_GET_ITEM(args, 0)),
+                    d_type!(ArgType!(typeof(fn), 2))(PyTuple_GET_ITEM(args, 1)),
+                    d_type!(ArgType!(typeof(fn), 3))(PyTuple_GET_ITEM(args, 2)),
+                    d_type!(ArgType!(typeof(fn), 4))(PyTuple_GET_ITEM(args, 3)),
+                    d_type!(ArgType!(typeof(fn), 5))(PyTuple_GET_ITEM(args, 4)),
+                    d_type!(ArgType!(typeof(fn), 6))(PyTuple_GET_ITEM(args, 5)),
+                    d_type!(ArgType!(typeof(fn), 7))(PyTuple_GET_ITEM(args, 6)),
+                    d_type!(ArgType!(typeof(fn), 8))(PyTuple_GET_ITEM(args, 7)),
+                    d_type!(ArgType!(typeof(fn), 9))(PyTuple_GET_ITEM(args, 8))
+                ) );
+            }
+        } else static if (ARGS == 10) {
+            static if (is(RetType : void)) {
+                fn(
+                    d_type!(ArgType!(typeof(fn), 1))(PyTuple_GET_ITEM(args, 0)),
+                    d_type!(ArgType!(typeof(fn), 2))(PyTuple_GET_ITEM(args, 1)),
+                    d_type!(ArgType!(typeof(fn), 3))(PyTuple_GET_ITEM(args, 2)),
+                    d_type!(ArgType!(typeof(fn), 4))(PyTuple_GET_ITEM(args, 3)),
+                    d_type!(ArgType!(typeof(fn), 5))(PyTuple_GET_ITEM(args, 4)),
+                    d_type!(ArgType!(typeof(fn), 6))(PyTuple_GET_ITEM(args, 5)),
+                    d_type!(ArgType!(typeof(fn), 7))(PyTuple_GET_ITEM(args, 6)),
+                    d_type!(ArgType!(typeof(fn), 8))(PyTuple_GET_ITEM(args, 7)),
+                    d_type!(ArgType!(typeof(fn), 9))(PyTuple_GET_ITEM(args, 8)),
+                    d_type!(ArgType!(typeof(fn), 10))(PyTuple_GET_ITEM(args, 9))
+                );
+                Py_INCREF(Py_None);
+                ret = Py_None;
+            } else {
+                return _py( fn(
+                    d_type!(ArgType!(typeof(fn), 1))(PyTuple_GET_ITEM(args, 0)),
+                    d_type!(ArgType!(typeof(fn), 2))(PyTuple_GET_ITEM(args, 1)),
+                    d_type!(ArgType!(typeof(fn), 3))(PyTuple_GET_ITEM(args, 2)),
+                    d_type!(ArgType!(typeof(fn), 4))(PyTuple_GET_ITEM(args, 3)),
+                    d_type!(ArgType!(typeof(fn), 5))(PyTuple_GET_ITEM(args, 4)),
+                    d_type!(ArgType!(typeof(fn), 6))(PyTuple_GET_ITEM(args, 5)),
+                    d_type!(ArgType!(typeof(fn), 7))(PyTuple_GET_ITEM(args, 6)),
+                    d_type!(ArgType!(typeof(fn), 8))(PyTuple_GET_ITEM(args, 7)),
+                    d_type!(ArgType!(typeof(fn), 9))(PyTuple_GET_ITEM(args, 8)),
+                    d_type!(ArgType!(typeof(fn), 10))(PyTuple_GET_ITEM(args, 9))
+                ) );
+            }
+        }
