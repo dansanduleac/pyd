@@ -127,6 +127,7 @@ PyObject* _py(T) (T t) {
                 return null;
             }
         }
+        return dict;
     } else static if (is(T : DPyObject)) {
         PyObject* temp = t.ptr();
         Py_INCREF(temp);
