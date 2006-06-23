@@ -30,11 +30,9 @@ SOFTWARE.
  *
  * The former is handled by d_type, the latter by __py. The py function is
  * provided as a convenience to directly convert a D type into an instance of
- * object.
+ * DPyObject.
  */
 module pyd.make_object;
-
-private import std.stdio;
 
 private import python;
 private import std.string;
@@ -146,10 +144,10 @@ PyObject* _py(T) (T t) {
 /**
  * Constructs an object based on the type of the argument passed in.
  *
- * For example, calling py(10) would return an object holding the value 10.
+ * For example, calling py(10) would return a DPyObject holding the value 10.
  *
- * Calling this with an object will return back a reference to the very same
- * object.
+ * Calling this with a DPyObject will return back a reference to the very same
+ * DPyObject.
  *
  * Calling this with a PyObject* will "steal" the reference.
  */

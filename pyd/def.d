@@ -26,7 +26,7 @@ private import pyd.make_object;
 private import pyd.object;
 private import pyd.ftype;
 private import pyd.exception;
-private import std.string, std.stdio;
+private import std.string;
 
 private
 PyMethodDef module_global_methods[] = [
@@ -130,8 +130,6 @@ template func_wrap(alias fn) {
                 Py_INCREF(Py_None);
                 ret = Py_None;
             } else {
-                writefln("function type = %s", typeid(typeof(&fn)));
-                writefln("ArgType!(fn_t, 1) = %s", typeid(ArgType!(fn_t, 1)));
                 // Capture return value
                 ret = _py( fn(
                     d_type!(ArgType!(fn_t, 1))(PyTuple_GET_ITEM(args, 0))

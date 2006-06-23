@@ -21,6 +21,12 @@ SOFTWARE.
 */
 module pyd.type;
 
+/*
+This file is not currently used. It is from a previous version (DPyObject used
+to be called just "object", I changed it as it was too similar to D's Object),
+and I have yet to update it.
+*/
+
 private import python;
 private import pyd.object;
 private import pyd.lazy_load;
