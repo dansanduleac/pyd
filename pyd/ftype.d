@@ -159,6 +159,8 @@ public
 template ReturnType(T) {
     static if (is(Deref!(T) U == function)) {
         alias U ReturnType;
+    } else static if (is(Deref!(T) U == delegate)) {
+        alias ReturnType!(U) ReturnType;
     } else static assert (false);
 }
 
