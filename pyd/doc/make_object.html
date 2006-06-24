@@ -24,7 +24,7 @@ PyObject* -&gt; D type
 
  The former is handled by d_type, the latter by _py. The py function is
  provided as a convenience to directly convert a D type into an instance of
- object.
+ DPyObject.
  
 <br><br>
 
@@ -57,8 +57,11 @@ PyObject* -&gt; D type
 <dd>Returns a new (owned) reference to a Python object based on the passed
  argument. If the passed argument is a PyObject*, this "steals" the
  reference. (In other words, it returns the PyObject* without changing its
- reference count.) If the passed argument is an object, this returns a new
- reference to whatever the object holds a reference to.
+ reference count.) If the passed argument is a DPyObject, this returns a new
+ reference to whatever the DPyObject holds a reference to.
+<br><br>
+If the passed argument can'<span class="funcparam">t</span> be converted to a PyObject, a Python
+ RuntimeError will be raised and this function will return <b>null</b>.
  
 <br><br>
 
@@ -83,7 +86,7 @@ PyObject* -&gt; D type
 <script>explorer.outline.incSymbolLevel();</script>
 <dl>
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">py</span>
 <script>explorer.outline.addDecl('py');</script>
 
@@ -98,11 +101,11 @@ For example, calling
 <span class="currsymbol">py</span>
 <script>explorer.outline.addDecl('py');</script>
 
-(10) would return an object holding the value 10.
+(10) would return a DPyObject holding the value 10.
 <br><br>
 
- Calling this with an object will return back a reference to the very same
- object.
+ Calling this with a DPyObject will return back a reference to the very same
+ DPyObject.
 <br><br>
 
  Calling this with a PyObject* will "steal" the reference.
@@ -111,6 +114,28 @@ For example, calling
 
 </dd>
 </dl>
+<script>explorer.outline.decSymbolLevel();</script>
+
+
+</dd>
+
+<script>explorer.outline.writeEnabled = true;</script>
+<dt><span class="decl">class 
+<span class="currsymbol">DPyConversionException</span>
+<script>explorer.outline.addDecl('DPyConversionException');</script>
+
+: object.Exception;
+</span></dt>
+<script>explorer.outline.writeEnabled = false;</script>
+
+
+<dd>An exception class used by d_type.
+ 
+<br><br>
+
+
+<script>explorer.outline.incSymbolLevel();</script>
+<dl></dl>
 <script>explorer.outline.decSymbolLevel();</script>
 
 
@@ -145,6 +170,10 @@ For example, calling
 <pre class="d_code">PyObject* i = PyInt_FromLong(20);
 int n = d_type!(int)(i);
 assert(n == 20);</pre>
+<br><br>
+
+ This throws a DPyConversionException if the PyObject can't be converted to
+ the given D type.
  
 <br><br>
 
@@ -162,7 +191,7 @@ assert(n == 20);</pre>
 		<tr><td id="docfooter">
 			Page was generated with
 			<img src="candydoc/img/candydoc.gif" style="vertical-align:middle; position:relative; top:-1px">
-			on Tue Jun 20 15:34:05 2006
+			on Fri Jun 23 16:58:36 2006
 
 		</td></tr>
 	</table>

@@ -60,6 +60,8 @@ private template isAA(T) {
     const bool isAA = is(typeof(T.init.values[0])[typeof(T.init.keys[0])] == T);
 }
 
+///
+template _py(T) {
 /**
  * Returns a new (owned) reference to a Python object based on the passed
  * argument. If the passed argument is a PyObject*, this "steals" the
@@ -70,7 +72,10 @@ private template isAA(T) {
  * If the passed argument can't be converted to a PyObject, a Python
  * RuntimeError will be raised and this function will return null.
  */
-PyObject* _py(T) (T t) {
+// I reverted these to the old-style function templates as ddoc can't seem to
+// handle the new style.
+//PyObject* _py(T) (T t) {
+PyObject* _py(T t) {
     static if (is(T : bool)) {
         PyObject* temp = (t) ? Py_True : Py_False;
         Py_INCREF(temp);
@@ -141,7 +146,10 @@ PyObject* _py(T) (T t) {
         return null;
     }
 }
+} /* end template _py */
 
+///
+template py(T) {
 /**
  * Constructs an object based on the type of the argument passed in.
  *
@@ -152,18 +160,27 @@ PyObject* _py(T) (T t) {
  *
  * Calling this with a PyObject* will "steal" the reference.
  */
-DPyObject py(T) (T t) {
+// I reverted these to the old-style function templates as ddoc can't seem to
+// handle the new style.
+//DPyObject py(T) (T t) {
+DPyObject py(T t) {
     static if(is(T : DPyObject)) {
         return t;
     } else {
         return new DPyObject(_py(t));
     }
 }
+} /* end template py */
 
+/**
+ * An exception class used by d_type.
+ */
 class DPyConversionException : Exception {
     this(char[] msg) { super(msg); }
 }
 
+///
+template d_type(T) {
 /**
  * This converts a PyObject* to a D type. The template argument is the type to
  * convert to. The function argument is the PyObject* to convert. For instance:
@@ -175,7 +192,10 @@ class DPyConversionException : Exception {
  * This throws a DPyConversionException if the PyObject can't be converted to
  * the given D type.
  */
-T d_type(T) (PyObject* o) {
+// I reverted these to the old-style function templates as ddoc can't seem to
+// handle the new style.
+//T d_type(T) (PyObject* o) {
+T d_type(PyObject* o) {
     // This ordering is very important. If the check for bool came first,
     // then all integral types would be converted to bools (they would be
     // 0 or 1), because bool can be implicitly converted to any integral
@@ -239,6 +259,7 @@ T d_type(T) (PyObject* o) {
         could_not_convert!(T)(o);
     }
 }
+} /* end template d_type */
 
 private
 void could_not_convert(T) (PyObject* o) {

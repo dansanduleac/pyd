@@ -19,8 +19,8 @@
 <dl>
 <script>explorer.outline.writeEnabled = true;</script>
 <dt><span class="decl">class 
-<span class="currsymbol">object</span>
-<script>explorer.outline.addDecl('object');</script>
+<span class="currsymbol">DPyObject</span>
+<script>explorer.outline.addDecl('DPyObject');</script>
 
 ;
 </span></dt>
@@ -66,7 +66,7 @@ June 18, 2006
 
                
 <td>Whether <span class="funcparam">o</span> is a borrowed reference. Instances
-                 of object always own their references.
+                 of DPyObject always own their references.
                  Therefore, Py_INCREF will be called if <span class="funcparam">borrowed</span> is
                  <font color=blue><b>true</b></font>.</td></tr>
 </table><br>
@@ -79,7 +79,7 @@ June 18, 2006
 <script>explorer.outline.writeEnabled = false;</script>
 
 
-<dd>The default constructor constructs an instance of the Py_None object.
+<dd>The default constructor constructs an instance of the Py_None DPyObject.
 <br><br>
 
 </dd>
@@ -120,7 +120,7 @@ June 18, 2006
 <span class="currsymbol">hasattr</span>
 <script>explorer.outline.addDecl('hasattr');</script>
 
-(object <span class="funcparam">attr_name</span>);
+(DPyObject <span class="funcparam">attr_name</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -131,7 +131,7 @@ June 18, 2006
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">getattr</span>
 <script>explorer.outline.addDecl('getattr');</script>
 
@@ -146,11 +146,11 @@ June 18, 2006
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">getattr</span>
 <script>explorer.outline.addDecl('getattr');</script>
 
-(object <span class="funcparam">attr_name</span>);
+(DPyObject <span class="funcparam">attr_name</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -165,7 +165,7 @@ June 18, 2006
 <span class="currsymbol">setattr</span>
 <script>explorer.outline.addDecl('setattr');</script>
 
-(char[] <span class="funcparam">attr_name</span>, object <span class="funcparam">v</span>);
+(char[] <span class="funcparam">attr_name</span>, DPyObject <span class="funcparam">v</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -181,7 +181,7 @@ June 18, 2006
 <span class="currsymbol">setattr</span>
 <script>explorer.outline.addDecl('setattr');</script>
 
-(object <span class="funcparam">attr_name</span>, object <span class="funcparam">v</span>);
+(DPyObject <span class="funcparam">attr_name</span>, DPyObject <span class="funcparam">v</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -213,7 +213,7 @@ June 18, 2006
 <span class="currsymbol">delattr</span>
 <script>explorer.outline.addDecl('delattr');</script>
 
-(object <span class="funcparam">attr_name</span>);
+(DPyObject <span class="funcparam">attr_name</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -229,7 +229,7 @@ June 18, 2006
 <span class="currsymbol">opCmp</span>
 <script>explorer.outline.addDecl('opCmp');</script>
 
-(object <span class="funcparam">rhs</span>);
+(DPyObject <span class="funcparam">rhs</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -245,7 +245,7 @@ June 18, 2006
 <span class="currsymbol">opEquals</span>
 <script>explorer.outline.addDecl('opEquals');</script>
 
-(object <span class="funcparam">rhs</span>);
+(DPyObject <span class="funcparam">rhs</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -257,7 +257,7 @@ June 18, 2006
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">repr</span>
 <script>explorer.outline.addDecl('repr');</script>
 
@@ -272,7 +272,7 @@ June 18, 2006
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">str</span>
 <script>explorer.outline.addDecl('str');</script>
 
@@ -296,13 +296,13 @@ June 18, 2006
 <script>explorer.outline.writeEnabled = false;</script>
 
 
-<dd>Allows use of object in writef via %s
+<dd>Allows use of DPyObject in writef via %s
 <br><br>
 
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">unicode</span>
 <script>explorer.outline.addDecl('unicode');</script>
 
@@ -321,7 +321,7 @@ June 18, 2006
 <span class="currsymbol">isInstance</span>
 <script>explorer.outline.addDecl('isInstance');</script>
 
-(object <span class="funcparam">cls</span>);
+(DPyObject <span class="funcparam">cls</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -336,7 +336,7 @@ June 18, 2006
 <span class="currsymbol">isSubclass</span>
 <script>explorer.outline.addDecl('isSubclass');</script>
 
-(object <span class="funcparam">cls</span>);
+(DPyObject <span class="funcparam">cls</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -362,70 +362,70 @@ June 18, 2006
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">opCall</span>
 <script>explorer.outline.addDecl('opCall');</script>
 
-(object <span class="funcparam">args</span> = cast(object)null);
+(DPyObject <span class="funcparam">args</span> = cast(DPyObject)null);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
 
-<dd>Calls the object.
+<dd>Calls the DPyObject.
 <br><br>
 <b>Params:</b><br>
 <table><tr>
-<td nowrap valign="top" style="padding-right: 8px">object <span class="funcparam">args</span></td>
+<td nowrap valign="top" style="padding-right: 8px">DPyObject <span class="funcparam">args</span></td>
 
                
 <td>Should be a DPyTuple of the arguments to pass. Omit to
              call with no arguments.</td></tr>
 </table><br>
 <b>Returns:</b><br>
-Whatever the function object returns.
+Whatever the function DPyObject returns.
      
 <br><br>
 
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">opCall</span>
 <script>explorer.outline.addDecl('opCall');</script>
 
-(object <span class="funcparam">args</span>, object <span class="funcparam">kw</span>);
+(DPyObject <span class="funcparam">args</span>, DPyObject <span class="funcparam">kw</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
 
-<dd>Calls the object with positional and keyword arguments.
+<dd>Calls the DPyObject with positional and keyword arguments.
 <br><br>
 <b>Params:</b><br>
 <table><tr>
-<td nowrap valign="top" style="padding-right: 8px">object <span class="funcparam">args</span></td>
+<td nowrap valign="top" style="padding-right: 8px">DPyObject <span class="funcparam">args</span></td>
 
                
 <td>Positional arguments. Should be a DPyTuple. Pass an empty
              DPyTuple for no positional arguments.</td></tr>
 <tr>
-<td nowrap valign="top" style="padding-right: 8px">object <span class="funcparam">kw</span></td>
+<td nowrap valign="top" style="padding-right: 8px">DPyObject <span class="funcparam">kw</span></td>
 
                
 <td>Keyword arguments. Should be a DPyDict.</td></tr>
 </table><br>
 <b>Returns:</b><br>
-Whatever the function object returns.
+Whatever the function DPyObject returns.
      
 <br><br>
 
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">method</span>
 <script>explorer.outline.addDecl('method');</script>
 
-(char[] <span class="funcparam">name</span>, object <span class="funcparam">args</span> = cast(object)null);
+(char[] <span class="funcparam">name</span>, DPyObject <span class="funcparam">args</span> = cast(DPyObject)null);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -479,7 +479,7 @@ Whatever the function object returns.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">type</span>
 <script>explorer.outline.addDecl('type');</script>
 
@@ -488,10 +488,10 @@ Whatever the function object returns.
 <script>explorer.outline.writeEnabled = false;</script>
 
 
-<dd>Gets the type of this object. Same as type(this) in Python.
+<dd>Gets the type of this DPyObject. Same as type(this) in Python.
 <br><br>
 <b>Returns:</b><br>
-The type object of this object.
+The type DPyObject of this DPyObject.
      
 <br><br>
 
@@ -507,7 +507,7 @@ The type object of this object.
 <script>explorer.outline.writeEnabled = false;</script>
 
 
-<dd>The length of this object. Same as len(this) in Python.
+<dd>The length of this DPyObject. Same as len(this) in Python.
      
 <br><br>
 
@@ -529,7 +529,7 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">dir</span>
 <script>explorer.outline.addDecl('dir');</script>
 
@@ -544,11 +544,11 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">opIndex</span>
 <script>explorer.outline.addDecl('opIndex');</script>
 
-(object <span class="funcparam">key</span>);
+(DPyObject <span class="funcparam">key</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -559,7 +559,7 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">opIndex</span>
 <script>explorer.outline.addDecl('opIndex');</script>
 
@@ -576,7 +576,7 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">opIndex</span>
 <script>explorer.outline.addDecl('opIndex');</script>
 
@@ -595,7 +595,7 @@ The type object of this object.
 <span class="currsymbol">opIndexAssign</span>
 <script>explorer.outline.addDecl('opIndexAssign');</script>
 
-(object <span class="funcparam">value</span>, object <span class="funcparam">key</span>);
+(DPyObject <span class="funcparam">value</span>, DPyObject <span class="funcparam">key</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -610,7 +610,7 @@ The type object of this object.
 <span class="currsymbol">opIndexAssign</span>
 <script>explorer.outline.addDecl('opIndexAssign');</script>
 
-(object <span class="funcparam">value</span>, char[] <span class="funcparam">key</span>);
+(DPyObject <span class="funcparam">value</span>, char[] <span class="funcparam">key</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -627,7 +627,7 @@ The type object of this object.
 <span class="currsymbol">opIndexAssign</span>
 <script>explorer.outline.addDecl('opIndexAssign');</script>
 
-(object <span class="funcparam">value</span>, int <span class="funcparam">i</span>);
+(DPyObject <span class="funcparam">value</span>, int <span class="funcparam">i</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -644,7 +644,7 @@ The type object of this object.
 <span class="currsymbol">delItem</span>
 <script>explorer.outline.addDecl('delItem');</script>
 
-(object <span class="funcparam">key</span>);
+(DPyObject <span class="funcparam">key</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -689,7 +689,7 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">opSlice</span>
 <script>explorer.outline.addDecl('opSlice');</script>
 
@@ -704,7 +704,7 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">opSlice</span>
 <script>explorer.outline.addDecl('opSlice');</script>
 
@@ -723,7 +723,7 @@ The type object of this object.
 <span class="currsymbol">opSliceAssign</span>
 <script>explorer.outline.addDecl('opSliceAssign');</script>
 
-(object <span class="funcparam">v</span>, int <span class="funcparam">i1</span>, int <span class="funcparam">i2</span>);
+(DPyObject <span class="funcparam">v</span>, int <span class="funcparam">i1</span>, int <span class="funcparam">i2</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -738,7 +738,7 @@ The type object of this object.
 <span class="currsymbol">opSliceAssign</span>
 <script>explorer.outline.addDecl('opSliceAssign');</script>
 
-(object <span class="funcparam">v</span>);
+(DPyObject <span class="funcparam">v</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -783,14 +783,14 @@ The type object of this object.
 <span class="currsymbol">opApply</span>
 <script>explorer.outline.addDecl('opApply');</script>
 
-(int delegate(inout object) <span class="funcparam">dg</span>);
+(int delegate(inout DPyObject) <span class="funcparam">dg</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
 
 <dd>Iterates over the items in a collection, be they the items in a
  sequence, keys in a dictionary, or some other iteration defined for the
- object's type.
+ DPyObject's type.
      
 <br><br>
 
@@ -801,12 +801,12 @@ The type object of this object.
 <span class="currsymbol">opApply</span>
 <script>explorer.outline.addDecl('opApply');</script>
 
-(int delegate(inout object, inout object) <span class="funcparam">dg</span>);
+(int delegate(inout DPyObject, inout DPyObject) <span class="funcparam">dg</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
 
-<dd>Iterate over (key, value) pairs in a dictionary. If the object is not
+<dd>Iterate over (key, value) pairs in a dictionary. If the DPyObject is not
  a dict, this simply does nothing. (It iterates over no items.) You
  should not attempt to modify the dictionary while iterating through it,
  with the exception of modifying values. Adding or removing items while
@@ -817,11 +817,11 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">opAdd</span>
 <script>explorer.outline.addDecl('opAdd');</script>
 
-(object <span class="funcparam">o</span>);
+(DPyObject <span class="funcparam">o</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -830,11 +830,11 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">opSub</span>
 <script>explorer.outline.addDecl('opSub');</script>
 
-(object <span class="funcparam">o</span>);
+(DPyObject <span class="funcparam">o</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -843,11 +843,11 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">opMul</span>
 <script>explorer.outline.addDecl('opMul');</script>
 
-(object <span class="funcparam">o</span>);
+(DPyObject <span class="funcparam">o</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -856,7 +856,7 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">opMul</span>
 <script>explorer.outline.addDecl('opMul');</script>
 
@@ -871,11 +871,11 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">opDiv</span>
 <script>explorer.outline.addDecl('opDiv');</script>
 
-(object <span class="funcparam">o</span>);
+(DPyObject <span class="funcparam">o</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -884,11 +884,11 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">floorDiv</span>
 <script>explorer.outline.addDecl('floorDiv');</script>
 
-(object <span class="funcparam">o</span>);
+(DPyObject <span class="funcparam">o</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -897,11 +897,11 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">opMod</span>
 <script>explorer.outline.addDecl('opMod');</script>
 
-(object <span class="funcparam">o</span>);
+(DPyObject <span class="funcparam">o</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -910,11 +910,11 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">divmod</span>
 <script>explorer.outline.addDecl('divmod');</script>
 
-(object <span class="funcparam">o</span>);
+(DPyObject <span class="funcparam">o</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -923,11 +923,11 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">pow</span>
 <script>explorer.outline.addDecl('pow');</script>
 
-(object <span class="funcparam">o1</span>, object <span class="funcparam">o2</span> = cast(object)null);
+(DPyObject <span class="funcparam">o1</span>, DPyObject <span class="funcparam">o2</span> = cast(DPyObject)null);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -936,7 +936,7 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">opPos</span>
 <script>explorer.outline.addDecl('opPos');</script>
 
@@ -949,7 +949,7 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">opNeg</span>
 <script>explorer.outline.addDecl('opNeg');</script>
 
@@ -962,7 +962,7 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">abs</span>
 <script>explorer.outline.addDecl('abs');</script>
 
@@ -975,7 +975,7 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">opCom</span>
 <script>explorer.outline.addDecl('opCom');</script>
 
@@ -988,11 +988,11 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">opShl</span>
 <script>explorer.outline.addDecl('opShl');</script>
 
-(object <span class="funcparam">o</span>);
+(DPyObject <span class="funcparam">o</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -1001,11 +1001,11 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">opShr</span>
 <script>explorer.outline.addDecl('opShr');</script>
 
-(object <span class="funcparam">o</span>);
+(DPyObject <span class="funcparam">o</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -1014,11 +1014,11 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">opAnd</span>
 <script>explorer.outline.addDecl('opAnd');</script>
 
-(object <span class="funcparam">o</span>);
+(DPyObject <span class="funcparam">o</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -1027,11 +1027,11 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">opXor</span>
 <script>explorer.outline.addDecl('opXor');</script>
 
-(object <span class="funcparam">o</span>);
+(DPyObject <span class="funcparam">o</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -1040,11 +1040,11 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">opOr</span>
 <script>explorer.outline.addDecl('opOr');</script>
 
-(object <span class="funcparam">o</span>);
+(DPyObject <span class="funcparam">o</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -1053,11 +1053,11 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">opAddAssign</span>
 <script>explorer.outline.addDecl('opAddAssign');</script>
 
-(object <span class="funcparam">o</span>);
+(DPyObject <span class="funcparam">o</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -1066,11 +1066,11 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">opSubAssign</span>
 <script>explorer.outline.addDecl('opSubAssign');</script>
 
-(object <span class="funcparam">o</span>);
+(DPyObject <span class="funcparam">o</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -1079,11 +1079,11 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">opMulAssign</span>
 <script>explorer.outline.addDecl('opMulAssign');</script>
 
-(object <span class="funcparam">o</span>);
+(DPyObject <span class="funcparam">o</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -1092,7 +1092,7 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">opMulAssign</span>
 <script>explorer.outline.addDecl('opMulAssign');</script>
 
@@ -1107,11 +1107,11 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">opDivAssign</span>
 <script>explorer.outline.addDecl('opDivAssign');</script>
 
-(object <span class="funcparam">o</span>);
+(DPyObject <span class="funcparam">o</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -1120,11 +1120,11 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">floorDivAssign</span>
 <script>explorer.outline.addDecl('floorDivAssign');</script>
 
-(object <span class="funcparam">o</span>);
+(DPyObject <span class="funcparam">o</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -1133,11 +1133,11 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">opModAssign</span>
 <script>explorer.outline.addDecl('opModAssign');</script>
 
-(object <span class="funcparam">o</span>);
+(DPyObject <span class="funcparam">o</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -1146,11 +1146,11 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">powAssign</span>
 <script>explorer.outline.addDecl('powAssign');</script>
 
-(object <span class="funcparam">o1</span>, object <span class="funcparam">o2</span> = cast(object)null);
+(DPyObject <span class="funcparam">o1</span>, DPyObject <span class="funcparam">o2</span> = cast(DPyObject)null);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -1159,11 +1159,11 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">opShlAssign</span>
 <script>explorer.outline.addDecl('opShlAssign');</script>
 
-(object <span class="funcparam">o</span>);
+(DPyObject <span class="funcparam">o</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -1172,11 +1172,11 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">opShrAssign</span>
 <script>explorer.outline.addDecl('opShrAssign');</script>
 
-(object <span class="funcparam">o</span>);
+(DPyObject <span class="funcparam">o</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -1185,11 +1185,11 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">opAndAssign</span>
 <script>explorer.outline.addDecl('opAndAssign');</script>
 
-(object <span class="funcparam">o</span>);
+(DPyObject <span class="funcparam">o</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -1198,11 +1198,11 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">opXorAssign</span>
 <script>explorer.outline.addDecl('opXorAssign');</script>
 
-(object <span class="funcparam">o</span>);
+(DPyObject <span class="funcparam">o</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -1211,11 +1211,11 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">opOrAssign</span>
 <script>explorer.outline.addDecl('opOrAssign');</script>
 
-(object <span class="funcparam">o</span>);
+(DPyObject <span class="funcparam">o</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -1224,7 +1224,7 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">asInt</span>
 <script>explorer.outline.addDecl('asInt');</script>
 
@@ -1237,7 +1237,7 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">asLong</span>
 <script>explorer.outline.addDecl('asLong');</script>
 
@@ -1250,7 +1250,7 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">asFloat</span>
 <script>explorer.outline.addDecl('asFloat');</script>
 
@@ -1315,11 +1315,11 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">opCat</span>
 <script>explorer.outline.addDecl('opCat');</script>
 
-(object <span class="funcparam">o</span>);
+(DPyObject <span class="funcparam">o</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -1330,11 +1330,11 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">opCatAssign</span>
 <script>explorer.outline.addDecl('opCatAssign');</script>
 
-(object <span class="funcparam">o</span>);
+(DPyObject <span class="funcparam">o</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -1349,7 +1349,7 @@ The type object of this object.
 <span class="currsymbol">count</span>
 <script>explorer.outline.addDecl('count');</script>
 
-(object <span class="funcparam">v</span>);
+(DPyObject <span class="funcparam">v</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -1362,7 +1362,7 @@ The type object of this object.
 <span class="currsymbol">index</span>
 <script>explorer.outline.addDecl('index');</script>
 
-(object <span class="funcparam">v</span>);
+(DPyObject <span class="funcparam">v</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -1371,7 +1371,7 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">asList</span>
 <script>explorer.outline.addDecl('asList');</script>
 
@@ -1380,13 +1380,13 @@ The type object of this object.
 <script>explorer.outline.writeEnabled = false;</script>
 
 
-<dd>Converts any iterable object to a list
+<dd>Converts any iterable DPyObject to a list
 <br><br>
 
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">asTuple</span>
 <script>explorer.outline.addDecl('asTuple');</script>
 
@@ -1395,7 +1395,7 @@ The type object of this object.
 <script>explorer.outline.writeEnabled = false;</script>
 
 
-<dd>Converts any iterable object to a tuple
+<dd>Converts any iterable DPyObject to a tuple
 <br><br>
 
 </dd>
@@ -1405,7 +1405,7 @@ The type object of this object.
 <span class="currsymbol">opIn_r</span>
 <script>explorer.outline.addDecl('opIn_r');</script>
 
-(object <span class="funcparam">v</span>);
+(DPyObject <span class="funcparam">v</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -1420,7 +1420,7 @@ The type object of this object.
 <span class="currsymbol">hasKey</span>
 <script>explorer.outline.addDecl('hasKey');</script>
 
-(object <span class="funcparam">key</span>);
+(DPyObject <span class="funcparam">key</span>);
 </span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
@@ -1461,7 +1461,7 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">keys</span>
 <script>explorer.outline.addDecl('keys');</script>
 
@@ -1474,7 +1474,7 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">values</span>
 <script>explorer.outline.addDecl('values');</script>
 
@@ -1487,7 +1487,7 @@ The type object of this object.
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">object 
+<dt><span class="decl">DPyObject 
 <span class="currsymbol">items</span>
 <script>explorer.outline.addDecl('items');</script>
 
@@ -1511,7 +1511,7 @@ The type object of this object.
 		<tr><td id="docfooter">
 			Page was generated with
 			<img src="candydoc/img/candydoc.gif" style="vertical-align:middle; position:relative; top:-1px">
-			on Tue Jun 20 15:34:05 2006
+			on Fri Jun 23 16:58:36 2006
 
 		</td></tr>
 	</table>
