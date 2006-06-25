@@ -19,10 +19,16 @@ void foo() {
     writefln("Py_None.repr() == %s", o);
 }
 
+void baz(int i=10, char[] s="moo") {
+    writefln("i = %s\ns = %s", i, s);
+}
+
 extern (C)
 export void inittestdll() {
     def!("bar", bar);
     def!("foo", foo);
+    // Minimum argument count.
+    def!("baz", baz, 0);
 
     module_init("testdll");
 }

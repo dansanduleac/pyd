@@ -18,6 +18,15 @@ testdll.foo()
 
 print
 
+print "testdll.baz():"
+testdll.baz()
+print "testdll.baz(20):"
+testdll.baz(20)
+print "testdll.baz(30, 'cat'):"
+testdll.baz(30, 'cat')
+
+print
+
 print '--------'
 print 'SUCCESS'
 print '--------'
