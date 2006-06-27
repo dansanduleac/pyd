@@ -33,6 +33,13 @@ PyMethodDef module_global_methods[] = [
     { null, null, 0, null }
 ];
 
+private
+PyObject* m_module;
+
+PyObject* DPy_Module_p() {
+    return m_module;
+}
+
 /**
  * Wraps a D function, making it callable from Python.
  *
@@ -79,9 +86,10 @@ template def(char[] name, alias fn, uint MIN_ARGS = NumberOfArgs!(typeof(&fn))) 
 /**
  * Module initialization function. Should be called after the last call to def.
  */
-void module_init(char[] name) {
+PyObject* module_init(char[] name) {
     //_loadPythonSupport();
-    Py_InitModule(name ~ \0, module_global_methods);
+    m_module = Py_InitModule(name ~ \0, module_global_methods);
+    return m_module;
 }
 
 template func_wrap(alias fn, uint MIN_ARGS) {
