@@ -26,6 +26,8 @@ private import pyd.make_object;
 private import pyd.object;
 private import pyd.ftype;
 private import pyd.exception;
+private import pyd.dg_convert;
+private import pyd.class_wrap;
 private import std.string;
 
 private
@@ -50,7 +52,7 @@ PyObject* DPy_Module_p() {
  *                 For use with functions with default arguments. Defaults to
  *                 the maximum number of arguments this function supports.
  *
- * For example:
+ * Examples:
  *$(D_CODE import pyd.pyd;
  *char[] foo(int i) {
  *    if (i > 10) {
@@ -64,9 +66,7 @@ PyObject* DPy_Module_p() {
  *    _def!("foo", foo);
  *    module_init("testdll");
  *})
- *
  * And in Python:
- *
  *$(D_CODE >>> import testdll
  *>>> print testdll.foo(20)
  *It's greater than 10!)
@@ -92,14 +92,31 @@ PyObject* module_init(char[] name) {
     return m_module;
 }
 
-template func_wrap(alias fn, uint MIN_ARGS) {
+template func_wrap(alias real_fn, uint MIN_ARGS, C=void) {
     //typeof(&r_fn) fn = &r_fn;
-    alias typeof(&fn) fn_t;
+    alias typeof(&real_fn) fn_t;
     const uint MAX_ARGS = NumberOfArgs!(fn_t);
     alias ReturnType!(fn_t) RetType;
     extern (C)
     PyObject* func(PyObject* self, PyObject* args) {
         PyObject* ret;
+
+        // If C is specified, then this is a method call. We need to pull out
+        // the object in self and turn the member function pointer in real_fn
+        // into a delegate. This conversion is done with a dirty hack; see
+        // dg_convert.d.
+        static if (!is(C == void)) {
+            // Didn't pass a "self" parameter! Ack!
+            if (self is null) {
+                PyErr_SetString(PyExc_TypeError, "Wrapped method didn't get a 'self' parameter.");
+                return null;
+            }
+            C instance = (cast(wrapped_class_object!(C)*)self).d_obj;
+            fn_to_dg!(fn_t) fn = dg_wrapper(instance, &real_fn);
+        // If C is not specified, then this is just a normal function call.
+        } else {
+            fn_t fn = &real_fn;
+        }
 
         // Sanity check!
         int ARGS = PyObject_Length(args);

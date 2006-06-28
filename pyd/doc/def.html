@@ -22,13 +22,32 @@
 <span class="currsymbol">def</span>
 <script>explorer.outline.addDecl('def');</script>
 
-(char[] name,alias fn)</span></dt>
+(char[] name,alias fn,uint MIN_ARGS = NumberOfArgs!(typeof(&amp;fn)))</span></dt>
 <script>explorer.outline.writeEnabled = false;</script>
 
 
 <dd>Wraps a D function, making it callable from Python.
 <br><br>
-For example:
+<b>Params:</b><br>
+<table><tr>
+<td nowrap valign="top" style="padding-right: 8px">name</td>
+
+               
+<td>The name of the function as it will appear in Python.</td></tr>
+<tr>
+<td nowrap valign="top" style="padding-right: 8px">fn</td>
+
+               
+<td>The function to wrap.</td></tr>
+<tr>
+<td nowrap valign="top" style="padding-right: 8px">MIN_ARGS</td>
+
+               
+<td>The minimum number of arguments this function can accept.
+                 For use with functions with default arguments. Defaults to
+                 the maximum number of arguments this function supports.</td></tr>
+</table><br>
+<b>Examples:</b><br>
 <pre class="d_code">import pyd.pyd;
 char[] foo(int i) {
     if (i &gt; 10) {
@@ -42,11 +61,7 @@ export void inittestdll() {
     def!("foo", foo);
     module_init("testdll");
 }</pre>
-<br><br>
-
  And in Python:
-<br><br>
-
 <pre class="d_code">&gt;&gt;&gt; import testdll
 &gt;&gt;&gt; print testdll.foo(20)
 It's greater than 10!</pre>
@@ -62,7 +77,7 @@ It's greater than 10!</pre>
 </dd>
 
 <script>explorer.outline.writeEnabled = true;</script>
-<dt><span class="decl">void 
+<dt><span class="decl">PyObject * 
 <span class="currsymbol">module_init</span>
 <script>explorer.outline.addDecl('module_init');</script>
 
@@ -84,7 +99,7 @@ It's greater than 10!</pre>
 		<tr><td id="docfooter">
 			Page was generated with
 			<img src="candydoc/img/candydoc.gif" style="vertical-align:middle; position:relative; top:-1px">
-			on Fri Jun 23 16:58:36 2006
+			on Wed Jun 28 02:50:24 2006
 
 		</td></tr>
 	</table>

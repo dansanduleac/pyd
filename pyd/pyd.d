@@ -28,6 +28,7 @@ module pyd.pyd;
 
 private import python;
 import pyd.def;
+import pyd.class_wrap;
 import pyd.exception;
 import pyd.make_object;
 // Base type
