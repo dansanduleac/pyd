@@ -23,7 +23,11 @@ void baz(int i=10, char[] s="moo") {
     writefln("i = %s\ns = %s", i, s);
 }
 
-class Foo { }
+class Foo {
+    void foo() {
+        writefln("Foo.foo()");
+    }
+}
 
 extern (C)
 export void inittestdll() {
@@ -34,6 +38,8 @@ export void inittestdll() {
 
     module_init("testdll");
 
-    wrap_class!("Foo", Foo);
+    auto Foo_ = wrap_class!("Foo", Foo)();
+    Foo_.def!("foo", Foo.foo);
+    finalize_class!("Foo", Foo);
 }
 

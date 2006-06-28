@@ -23,9 +23,11 @@ module pyd.class_wrap;
 
 private import python;
 private import pyd.def;
+private import pyd.ftype;
+private import pyd.make_object;
 private import std.string;
 
-// This is a big, big template with a bunch of stuff in it.
+// The class object, a subtype of PyObject
 template wrapped_class_object(T) {
     extern(C)
     struct wrapped_class_object {
@@ -34,6 +36,7 @@ template wrapped_class_object(T) {
     }
 }
 
+// The type object, an instance of PyType_Type
 template wrapped_class_type(char[] name, T) {
     static PyTypeObject wrapped_class_type = {
         1,
@@ -47,7 +50,7 @@ template wrapped_class_type(char[] name, T) {
         null,                         /*tp_getattr*/
         null,                         /*tp_setattr*/
         null,                         /*tp_compare*/
-        null,                         /*tp_repr*/
+        &wrapped_methods!(T).wrapped_repr, /*tp_repr*/
         null,                         /*tp_as_number*/
         null,                         /*tp_as_sequence*/
         null,                         /*tp_as_mapping*/
@@ -87,6 +90,7 @@ template wrapped_class_type(char[] name, T) {
     };
 }
 
+// Various wrapped methods
 template wrapped_methods(T) {
     alias wrapped_class_object!(T) wrap_object;
     extern(C)
@@ -114,23 +118,82 @@ template wrapped_methods(T) {
     void wrapped_dealloc(PyObject* _self) {
         wrap_object* self = cast(wrap_object*)_self;
         wrap_class_instances!(T).remove(self.d_obj);
-        self.ob_type.tp_free(cast(PyObject*)self);
+        self.ob_type.tp_free(self);
+    }
+
+    extern(C)
+    PyObject* wrapped_repr(PyObject* _self) {
+        wrap_object* self = cast(wrap_object*)_self;
+        char[] repr = self.d_obj.toString();
+        return _py(repr);
     }
 }
 
+// The set of all instances of this class that are passed into Python. Keeping
+// references here in D is needed to keep the GC happy.
+// XXX: This currently fails if the same reference is held by multiple Python
+// objects.
 template wrap_class_instances(T) {
     void*[T] wrap_class_instances;
 }
 
-void wrap_class(char[] name, T) () {
+// A useful check for whether a given class has been wrapped. Mainly used by
+// the conversion functions (see make_object.d), but possibly useful elsewhere.
+template is_wrapped(T) {
+    bool is_wrapped = false;
+}
+
+// The list of wrapped methods for this class.
+template wrapped_method_list(T) {
+    static PyMethodDef[] wrapped_method_list = [
+        { null, null, 0, null }
+    ];
+}
+
+// This struct is returned by wrap_class. Its member functions are the primary
+// way of wrapping the specific parts of the class. Note that the struct has no
+// members. The only information it carries are its template arguments.
+template wrapped_class(char[] classname, T) {
+    struct wrapped_class {
+        template def(char[] name, alias fn, uint MIN_ARGS = NumberOfArgs!(typeof(&fn))) {
+            void def() {
+                static PyMethodDef empty = { null, null, 0, null };
+                wrapped_method_list!(T)[length-1].ml_name = name ~ \0;
+                wrapped_method_list!(T)[length-1].ml_meth =
+                    cast(PyCFunction)&func_wrap!(fn, MIN_ARGS, T).func;
+                wrapped_method_list!(T)[length-1].ml_flags = METH_VARARGS;
+                wrapped_method_list!(T)[length-1].ml_doc = "";
+                wrapped_method_list!(T) ~= empty;
+                // It's possible that appending the empty item invalidated the
+                // pointer in the type struct, so we renew it here.
+                wrapped_class_type!(classname, T).tp_methods =
+                    wrapped_method_list!(T);
+            }
+        }
+    }
+}
+
+// This template function wraps a D class and exposes it to Python.
+wrapped_class!(name, T) wrap_class(char[] name, T) () {
     assert(DPy_Module_p !is null, "Must initialize module before wrapping classes.");
     char[] module_name = .toString(PyModule_GetName(DPy_Module_p));
     wrapped_class_type!(name, T).ob_type = PyType_Type_p;
     wrapped_class_type!(name, T).tp_new = &PyType_GenericNew;
+    wrapped_class_type!(name, T).tp_methods = wrapped_method_list!(T);
     wrapped_class_type!(name, T).tp_name =
         module_name ~ "." ~ name ~ \0;
-    if (PyType_Ready(&wrapped_class_type!(name, T)) < 0)
-        return;
+    
+    wrapped_class!(name, T) temp;
+    return temp;
+}
+
+void finalize_class(char[] name, T) () {
+    if (PyType_Ready(&wrapped_class_type!(name, T)) < 0) {
+        // XXX: This will probably crash the interpreter, as it isn't normally
+        // caught and translated.
+        throw new Exception("Couldn't ready wrapped type!");
+    }
     Py_INCREF(cast(PyObject*)&wrapped_class_type!(name, T));
     PyModule_AddObject(DPy_Module_p, name, cast(PyObject*)&wrapped_class_type!(name, T));
+    is_wrapped!(T) = true;
 }

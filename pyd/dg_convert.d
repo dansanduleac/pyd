@@ -75,7 +75,7 @@ template dg_union(Fn) {
  * This dirty hack of a template function converts a pointer to a member
  * function into a delegate.
  */
-fn_to_dg!(Fn) dg_wrapper(T : Object, Fn) (T t, Fn fn) {
+fn_to_dg!(Fn) dg_wrapper(T, Fn) (T t, Fn fn) {
     dg_union!(Fn) u;
     u.fake_dg.instance = t;
     u.fake_dg.fn = cast(void*)fn;
