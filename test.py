@@ -27,7 +27,7 @@ testdll.baz(30, 'cat')
 
 print
 
-a = testdll.Foo()
+a = testdll.Foo(10)
 a.foo()
 
 print

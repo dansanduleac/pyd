@@ -3,6 +3,7 @@ from celerid.support import setup, Extension
 projName = 'testdll'
 dpy_files = [
     'class_wrap.d',
+    'ctor_wrap.d',
     'def.d',
     'dg_convert.d',
     'exception.d',

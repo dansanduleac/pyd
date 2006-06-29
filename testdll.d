@@ -24,8 +24,11 @@ void baz(int i=10, char[] s="moo") {
 }
 
 class Foo {
+    int m_i;
+    this() { }
+    this(int i) { m_i = i; }
     void foo() {
-        writefln("Foo.foo()");
+        writefln("Foo.foo(): i = %s", m_i);
     }
 }
 
@@ -39,6 +42,7 @@ export void inittestdll() {
     module_init("testdll");
 
     auto Foo_ = wrap_class!("Foo", Foo)();
+    Foo_.init!(ctor!(int));
     Foo_.def!("foo", Foo.foo);
     finalize_class!("Foo", Foo);
 }

@@ -22,6 +22,7 @@ SOFTWARE.
 module pyd.class_wrap;
 
 private import python;
+private import pyd.ctor_wrap;
 private import pyd.def;
 private import pyd.ftype;
 private import pyd.make_object;
@@ -76,7 +77,7 @@ template wrapped_class_type(char[] name, T) {
         null,                         /* tp_descr_get */
         null,                         /* tp_descr_set */
         0,                            /* tp_dictoffset */
-        &wrapped_methods!(T).wrapped_init, /* tp_init */
+        null,                         /* tp_init */
         null,                         /* tp_alloc */
         &wrapped_methods!(T).wrapped_new, /* tp_new */
         null,                         /* tp_free */
@@ -106,15 +107,6 @@ template wrapped_methods(T) {
     }
 
     extern(C)
-    int wrapped_init(PyObject* self, PyObject* args, PyObject* kwds) {
-        // TODO: Provide better constructor support...
-        T t = new T;
-        (cast(wrap_object*)self).d_obj = t;
-        wrap_class_instances!(T)[t] = null;
-        return 0;
-    }
-
-    extern(C)
     void wrapped_dealloc(PyObject* _self) {
         wrap_object* self = cast(wrap_object*)_self;
         wrap_class_instances!(T).remove(self.d_obj);
@@ -126,6 +118,18 @@ template wrapped_methods(T) {
         wrap_object* self = cast(wrap_object*)_self;
         char[] repr = self.d_obj.toString();
         return _py(repr);
+    }
+}
+
+template wrapped_init(T) {
+    alias wrapped_class_object!(T) wrap_object;
+    extern(C)
+    int init(PyObject* self, PyObject* args, PyObject* kwds) {
+        // TODO: Provide better constructor support...
+        T t = new T;
+        (cast(wrap_object*)self).d_obj = t;
+        wrap_class_instances!(T)[t] = null;
+        return 0;
     }
 }
 
@@ -170,6 +174,13 @@ template wrapped_class(char[] classname, T) {
                     wrapped_method_list!(T);
             }
         }
+
+        template init(alias C1=undefined, alias C2=undefined, alias C3=undefined, alias C4=undefined, alias C5=undefined, alias C6=undefined, alias C7=undefined, alias C8=undefined, alias C9=undefined, alias C10=undefined) {
+            void init() {
+                wrapped_class_type!(classname, T).tp_init =
+                    &wrapped_ctors!(T, C1, C2, C3, C4, C5, C6, C7, C8, C9, C10).init;
+            }
+        }
     }
 }
 
@@ -192,6 +203,11 @@ void finalize_class(char[] name, T) () {
         // XXX: This will probably crash the interpreter, as it isn't normally
         // caught and translated.
         throw new Exception("Couldn't ready wrapped type!");
+    }
+    // If a ctor wasn't supplied, try the default.
+    if (wrapped_class_type!(name, T).tp_init is null) {
+        wrapped_class_type!(name, T).tp_init =
+            &wrapped_init!(T).init;
     }
     Py_INCREF(cast(PyObject*)&wrapped_class_type!(name, T));
     PyModule_AddObject(DPy_Module_p, name, cast(PyObject*)&wrapped_class_type!(name, T));
