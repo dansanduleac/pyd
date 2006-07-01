@@ -10,11 +10,11 @@ libDir = os.path.join('build', 'lib.%s-%s' % (
 sys.path.append(os.path.abspath(libDir))
 import testdll
 
-print testdll.bar(12)
+testdll.foo()
 
 print
 
-testdll.foo()
+print testdll.bar(12)
 
 print
 

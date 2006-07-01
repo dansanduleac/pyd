@@ -199,15 +199,15 @@ wrapped_class!(name, T) wrap_class(char[] name, T) () {
 }
 
 void finalize_class(char[] name, T) () {
-    if (PyType_Ready(&wrapped_class_type!(name, T)) < 0) {
-        // XXX: This will probably crash the interpreter, as it isn't normally
-        // caught and translated.
-        throw new Exception("Couldn't ready wrapped type!");
-    }
     // If a ctor wasn't supplied, try the default.
     if (wrapped_class_type!(name, T).tp_init is null) {
         wrapped_class_type!(name, T).tp_init =
             &wrapped_init!(T).init;
+    }
+    if (PyType_Ready(&wrapped_class_type!(name, T)) < 0) {
+        // XXX: This will probably crash the interpreter, as it isn't normally
+        // caught and translated.
+        throw new Exception("Couldn't ready wrapped type!");
     }
     Py_INCREF(cast(PyObject*)&wrapped_class_type!(name, T));
     PyModule_AddObject(DPy_Module_p, name, cast(PyObject*)&wrapped_class_type!(name, T));
