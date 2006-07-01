@@ -38,6 +38,13 @@ class Foo {
     void foo() {
         writefln("Foo.foo(): i = %s", m_i);
     }
+    int i() { return m_i; }
+}
+
+Foo spam(Foo f) {
+    f.foo();
+    Foo g = new Foo(f.i + 10);
+    return g;
 }
 
 extern (C)
@@ -46,12 +53,14 @@ export void inittestdll() {
     def!("bar", bar);
     // Minimum argument count.
     def!("baz", baz, 0);
+    def!("spam", spam);
 
     module_init("testdll");
 
     auto Foo_ = wrap_class!("Foo", Foo)();
     Foo_.init!(ctor!(int), ctor!(int, int));
     Foo_.def!("foo", Foo.foo);
-    finalize_class!("Foo", Foo);
+    Foo_.def!("i", Foo.i);
+    finalize_class(Foo_);
 }
 

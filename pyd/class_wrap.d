@@ -38,7 +38,7 @@ template wrapped_class_object(T) {
 }
 
 // The type object, an instance of PyType_Type
-template wrapped_class_type(char[] name, T) {
+template wrapped_class_type(T) {
     static PyTypeObject wrapped_class_type = {
         1,
         null,
@@ -62,7 +62,7 @@ template wrapped_class_type(char[] name, T) {
         null,                         /*tp_setattro*/
         null,                         /*tp_as_buffer*/
         Py_TPFLAGS_DEFAULT,           /*tp_flags*/
-        name ~ " objects" ~ \0,       /*tp_doc*/
+        null,                         /*tp_doc*/
         null,		              /* tp_traverse */
         null,		              /* tp_clear */
         null,		              /* tp_richcompare */
@@ -164,6 +164,8 @@ template wrapped_method_list(T) {
 // members. The only information it carries are its template arguments.
 template wrapped_class(char[] classname, T) {
     struct wrapped_class {
+        static const char[] _name = classname;
+        T t = null;
         template def(char[] name, alias fn, uint MIN_ARGS = NumberOfArgs!(typeof(&fn))) {
             void def() {
                 static PyMethodDef empty = { null, null, 0, null };
@@ -175,14 +177,14 @@ template wrapped_class(char[] classname, T) {
                 wrapped_method_list!(T) ~= empty;
                 // It's possible that appending the empty item invalidated the
                 // pointer in the type struct, so we renew it here.
-                wrapped_class_type!(classname, T).tp_methods =
+                wrapped_class_type!(T).tp_methods =
                     wrapped_method_list!(T);
             }
         }
 
         template init(alias C1=undefined, alias C2=undefined, alias C3=undefined, alias C4=undefined, alias C5=undefined, alias C6=undefined, alias C7=undefined, alias C8=undefined, alias C9=undefined, alias C10=undefined) {
             void init() {
-                wrapped_class_type!(classname, T).tp_init =
+                wrapped_class_type!(T).tp_init =
                     &wrapped_ctors!(T, C1, C2, C3, C4, C5, C6, C7, C8, C9, C10).init_func;
             }
         }
@@ -193,28 +195,31 @@ template wrapped_class(char[] classname, T) {
 wrapped_class!(name, T) wrap_class(char[] name, T) () {
     assert(DPy_Module_p !is null, "Must initialize module before wrapping classes.");
     char[] module_name = .toString(PyModule_GetName(DPy_Module_p));
-    wrapped_class_type!(name, T).ob_type = PyType_Type_p;
-    wrapped_class_type!(name, T).tp_new = &PyType_GenericNew;
-    wrapped_class_type!(name, T).tp_methods = wrapped_method_list!(T);
-    wrapped_class_type!(name, T).tp_name =
+    wrapped_class_type!(T).ob_type = PyType_Type_p;
+    wrapped_class_type!(T).tp_doc = name ~ " objects" ~ \0;
+    wrapped_class_type!(T).tp_new = &PyType_GenericNew;
+    wrapped_class_type!(T).tp_methods = wrapped_method_list!(T);
+    wrapped_class_type!(T).tp_name =
         module_name ~ "." ~ name ~ \0;
     
     wrapped_class!(name, T) temp;
     return temp;
 }
 
-void finalize_class(char[] name, T) () {
+void finalize_class(CLS) (CLS cls) {
+    alias typeof(cls.t) T;
+    const char[] name = CLS._name;
     // If a ctor wasn't supplied, try the default.
-    if (wrapped_class_type!(name, T).tp_init is null) {
-        wrapped_class_type!(name, T).tp_init =
+    if (wrapped_class_type!(T).tp_init is null) {
+        wrapped_class_type!(T).tp_init =
             &wrapped_init!(T).init;
     }
-    if (PyType_Ready(&wrapped_class_type!(name, T)) < 0) {
+    if (PyType_Ready(&wrapped_class_type!(T)) < 0) {
         // XXX: This will probably crash the interpreter, as it isn't normally
         // caught and translated.
         throw new Exception("Couldn't ready wrapped type!");
     }
-    Py_INCREF(cast(PyObject*)&wrapped_class_type!(name, T));
-    PyModule_AddObject(DPy_Module_p, name, cast(PyObject*)&wrapped_class_type!(name, T));
+    Py_INCREF(cast(PyObject*)&wrapped_class_type!(T));
+    PyModule_AddObject(DPy_Module_p, name, cast(PyObject*)&wrapped_class_type!(T));
     is_wrapped!(T) = true;
 }

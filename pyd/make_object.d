@@ -38,6 +38,7 @@ private import python;
 private import std.string;
 // Base type
 private import pyd.object;
+private import pyd.class_wrap;
 
 private import pyd.exception;
 
@@ -137,14 +138,31 @@ PyObject* _py(T t) {
         PyObject* temp = t.ptr();
         Py_INCREF(temp);
         return temp;
+    // Convert wrapped type of a PyObject*
+    } else static if (is(T == class)) {
+        // Put only if it actually is a wrapped type. :-)
+        if (is_wrapped!(T)) {
+            // Allocate the object
+            wrapped_class_object!(T)* obj =
+                cast(wrapped_class_object!(T)*)wrapped_class_type!(T).tp_new(&wrapped_class_type!(T), null, null);
+            obj.d_obj = t;
+            // Add the reference to the class's reference AA to help keep the
+            // GC happy.
+            if (t in wrap_class_instances!(T)) {
+                wrap_class_instances!(T)[t] = wrap_class_instances!(T)[t] + 1;
+            } else {
+                wrap_class_instances!(T)[t] = 1;
+            }
+            return cast(PyObject*)obj;
+        }
+        // If it's not a wrapped type, fall through to the exception.
     // This just passes the argument right back through without changing
     // its reference count.
     } else static if (is(T : PyObject*)) {
         return t;
-    } else {
-        PyErr_SetString(PyExc_RuntimeError, "D conversion function _py failed with type " ~ typeid(T).toString());
-        return null;
     }
+    PyErr_SetString(PyExc_RuntimeError, "D conversion function _py failed with type " ~ typeid(T).toString());
+    return null;
 }
 } /* end template _py */
 
@@ -210,6 +228,14 @@ T d_type(PyObject* o) {
         return o;
     } else static if (is(DPyObject : T)) {
         return new DPyObject(o);
+    } else static if (is(T == class)) {
+        // We can only convert to a class if it has been wrapped, and of course
+        // we can only convert the object if it is the wrapped type.
+        if (is_wrapped!(T) && PyObject_TypeCheck(o, &wrapped_class_type!(T))) {
+                return (cast(wrapped_class_object!(T)*)o).d_obj;
+        }
+        // Otherwise, throw up an exception.
+        could_not_convert!(T)(o);
     /+
     } else static if (is(wchar[] : T)) {
         wchar[] temp;
