@@ -65,13 +65,13 @@ export void inittestdll() {
 
     module_init("testdll");
 
-    wrapped_class!("Foo", Foo) Foo_;
+    wrapped_class!("Foo", Foo) f;
     // Constructor wrapping
-    Foo_.init!(ctor!(int), ctor!(int, int));
+    f.init!(ctor!(int), ctor!(int, int));
     // Member function wrapping
-    Foo_.def!("foo", Foo.foo);
+    f.def!("foo", Foo.foo);
     // Property wrapping
-    Foo_.prop!("i", Foo.i);
-    finalize_class(Foo_);
+    f.prop!("i", Foo.i);
+    finalize_class(f);
 }
 

@@ -173,7 +173,7 @@ template wrapped_set(T, alias Fn) {
         Py_INCREF(value);
         PyTuple_SetItem(temp_tuple, 0, value);
         PyObject* res = func_wrap!(Fn, 1, T, property_parts!(Fn).setter_type).func(self, temp_tuple);
-        // We should get Py_None back, and we need to DECREF it.
+        // We'll get something back, and need to DECREF it.
         Py_DECREF(res);
         Py_DECREF(temp_tuple);
         return 0;
