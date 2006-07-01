@@ -138,6 +138,48 @@ template wrapped_init(T) {
     }
 }
 
+// This template gets an alias to a property and derives the types of the
+// getter form and the setter form. It requires that the getter form return the
+// same type that the setter form accepts.
+template property_parts(alias p) {
+    // This may be either the getter or the setter
+    alias typeof(&p) p_t;
+    // This means it's the getter
+    static if (NumberOfArgs!(p_t) == 0) {
+        alias p_t getter_type;
+        // The setter may return void, or it may return the newly set attribute.
+        alias typeof(p(ReturnType!(p_t).init)) function(ReturnType!(p_t)) setter_type;
+    // This means it's the setter
+    } else {
+        alias p_t setter_type;
+        alias ArgType!(p_t, 1) function() getter_type;
+    }
+}
+
+template wrapped_get(T, alias Fn) {
+    extern(C)
+    PyObject* func(PyObject* self, void* closure) {
+        return func_wrap!(Fn, 0, T, property_parts!(Fn).getter_type).func(self, null);
+    }
+}
+
+private import std.stdio;
+
+template wrapped_set(T, alias Fn) {
+    extern(C)
+    int func(PyObject* self, PyObject* value, void* closure) {
+        PyObject* temp_tuple = PyTuple_New(1);
+        if (temp_tuple is null) return -1;
+        Py_INCREF(value);
+        PyTuple_SetItem(temp_tuple, 0, value);
+        PyObject* res = func_wrap!(Fn, 1, T, property_parts!(Fn).setter_type).func(self, temp_tuple);
+        // We should get Py_None back, and we need to DECREF it.
+        Py_DECREF(res);
+        Py_DECREF(temp_tuple);
+        return 0;
+    }
+}
+
 // The set of all instances of this class that are passed into Python. Keeping
 // references here in D is needed to keep the GC happy.
 // XXX: This currently fails if the same reference is held by multiple Python
@@ -159,6 +201,13 @@ template wrapped_method_list(T) {
     ];
 }
 
+// The list of wrapped properties for this class.
+template wrapped_prop_list(T) {
+    static PyGetSetDef[] wrapped_prop_list = [
+        { null, null, null, null, null }
+    ];
+}
+
 // This struct is returned by wrap_class. Its member functions are the primary
 // way of wrapping the specific parts of the class. Note that the struct has no
 // members. The only information it carries are its template arguments.
@@ -166,12 +215,12 @@ template wrapped_class(char[] classname, T) {
     struct wrapped_class {
         static const char[] _name = classname;
         T t = null;
-        template def(char[] name, alias fn, uint MIN_ARGS = NumberOfArgs!(typeof(&fn))) {
+        template def(char[] name, alias fn, uint MIN_ARGS = NumberOfArgs!(typeof(&fn)), fn_t=typeof(&fn)) {
             void def() {
                 static PyMethodDef empty = { null, null, 0, null };
                 wrapped_method_list!(T)[length-1].ml_name = name ~ \0;
                 wrapped_method_list!(T)[length-1].ml_meth =
-                    cast(PyCFunction)&func_wrap!(fn, MIN_ARGS, T).func;
+                    cast(PyCFunction)&func_wrap!(fn, MIN_ARGS, T, fn_t).func;
                 wrapped_method_list!(T)[length-1].ml_flags = METH_VARARGS;
                 wrapped_method_list!(T)[length-1].ml_doc = "";
                 wrapped_method_list!(T) ~= empty;
@@ -179,6 +228,26 @@ template wrapped_class(char[] classname, T) {
                 // pointer in the type struct, so we renew it here.
                 wrapped_class_type!(T).tp_methods =
                     wrapped_method_list!(T);
+            }
+        }
+
+        template prop(char[] name, alias fn, bool RO=false) {
+            void prop() {
+                static PyGetSetDef empty = { null, null, null, null, null };
+                wrapped_prop_list!(T)[length-1].name = name ~ \0;
+                wrapped_prop_list!(T)[length-1].get =
+                    &wrapped_get!(T, fn).func;
+                static if (!RO) {
+                    wrapped_prop_list!(T)[length-1].set =
+                        &wrapped_set!(T, fn).func;
+                }
+                wrapped_prop_list!(T)[length-1].doc = "";
+                wrapped_prop_list!(T)[length-1].closure = null;
+                wrapped_prop_list!(T) ~= empty;
+                // It's possible that appending the empty item invalidated the
+                // pointer in the type struct, so we renew it here.
+                wrapped_class_type!(T).tp_getset =
+                    wrapped_prop_list!(T);
             }
         }
 
@@ -191,24 +260,20 @@ template wrapped_class(char[] classname, T) {
     }
 }
 
-// This template function wraps a D class and exposes it to Python.
-wrapped_class!(name, T) wrap_class(char[] name, T) () {
+void finalize_class(CLS) (CLS cls) {
+    alias typeof(cls.t) T;
+    const char[] name = CLS._name;
+    
     assert(DPy_Module_p !is null, "Must initialize module before wrapping classes.");
     char[] module_name = .toString(PyModule_GetName(DPy_Module_p));
-    wrapped_class_type!(T).ob_type = PyType_Type_p;
-    wrapped_class_type!(T).tp_doc = name ~ " objects" ~ \0;
-    wrapped_class_type!(T).tp_new = &PyType_GenericNew;
+    
+    wrapped_class_type!(T).ob_type    = PyType_Type_p;
+    wrapped_class_type!(T).tp_doc     = name ~ " objects" ~ \0;
+    wrapped_class_type!(T).tp_new     = &PyType_GenericNew;
     wrapped_class_type!(T).tp_methods = wrapped_method_list!(T);
     wrapped_class_type!(T).tp_name =
         module_name ~ "." ~ name ~ \0;
     
-    wrapped_class!(name, T) temp;
-    return temp;
-}
-
-void finalize_class(CLS) (CLS cls) {
-    alias typeof(cls.t) T;
-    const char[] name = CLS._name;
     // If a ctor wasn't supplied, try the default.
     if (wrapped_class_type!(T).tp_init is null) {
         wrapped_class_type!(T).tp_init =

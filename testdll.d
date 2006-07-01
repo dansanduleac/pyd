@@ -18,6 +18,10 @@ void foo() {
     Py_DECREF(i);
 }
 
+void foo(int i) {
+    writefln("You entered %s", i);
+}
+
 char[] bar(int i) {
     if (i > 10) {
         return "It's greater than 10!";
@@ -39,6 +43,7 @@ class Foo {
         writefln("Foo.foo(): i = %s", m_i);
     }
     int i() { return m_i; }
+    void i(int j) { m_i = j; }
 }
 
 Foo spam(Foo f) {
@@ -50,6 +55,9 @@ Foo spam(Foo f) {
 extern (C)
 export void inittestdll() {
     def!("foo", foo);
+    // Python does not support function overloading. This allows us to wrap
+    // an overloading function under a different name.
+    def!("foo2", foo, 1, void function(int));
     def!("bar", bar);
     // Minimum argument count.
     def!("baz", baz, 0);
@@ -57,10 +65,13 @@ export void inittestdll() {
 
     module_init("testdll");
 
-    auto Foo_ = wrap_class!("Foo", Foo)();
+    wrapped_class!("Foo", Foo) Foo_;
+    // Constructor wrapping
     Foo_.init!(ctor!(int), ctor!(int, int));
+    // Member function wrapping
     Foo_.def!("foo", Foo.foo);
-    Foo_.def!("i", Foo.i);
+    // Property wrapping
+    Foo_.prop!("i", Foo.i);
     finalize_class(Foo_);
 }
 

@@ -71,12 +71,12 @@ PyObject* DPy_Module_p() {
  *>>> print testdll.foo(20)
  *It's greater than 10!)
  */
-template def(char[] name, alias fn, uint MIN_ARGS = NumberOfArgs!(typeof(&fn))) {
+template def(char[] name, alias fn, uint MIN_ARGS = NumberOfArgs!(typeof(&fn)), fn_t=typeof(&fn)) {
     void def() {
         static PyMethodDef empty = { null, null, 0, null };
         module_global_methods[length-1].ml_name = name ~ \0;
         module_global_methods[length-1].ml_meth =
-            cast(PyCFunction)&func_wrap!(fn, MIN_ARGS).func;
+            cast(PyCFunction)&func_wrap!(fn, MIN_ARGS, void, fn_t).func;
         module_global_methods[length-1].ml_flags = METH_VARARGS;
         module_global_methods[length-1].ml_doc = "";
         module_global_methods ~= empty;
@@ -92,9 +92,9 @@ PyObject* module_init(char[] name) {
     return m_module;
 }
 
-template func_wrap(alias real_fn, uint MIN_ARGS, C=void) {
+template func_wrap(alias real_fn, uint MIN_ARGS, C=void, fn_t=typeof(&real_fn)) {
     //typeof(&r_fn) fn = &r_fn;
-    alias typeof(&real_fn) fn_t;
+    //alias typeof(&real_fn) fn_t;
     const uint MAX_ARGS = NumberOfArgs!(fn_t);
     alias ReturnType!(fn_t) RetType;
     extern (C)
@@ -112,14 +112,17 @@ template func_wrap(alias real_fn, uint MIN_ARGS, C=void) {
                 return null;
             }
             C instance = (cast(wrapped_class_object!(C)*)self).d_obj;
-            fn_to_dg!(fn_t) fn = dg_wrapper(instance, &real_fn);
+            fn_to_dg!(fn_t) fn = dg_wrapper!(C, fn_t)(instance, &real_fn);
         // If C is not specified, then this is just a normal function call.
         } else {
             fn_t fn = &real_fn;
         }
 
         // Sanity check!
-        int ARGS = PyObject_Length(args);
+        int ARGS = 0;
+        // This can make it more convenient to call this with 0 args.
+        if (args !is null)
+            ARGS = PyObject_Length(args);
         if (ARGS < MIN_ARGS || ARGS > MAX_ARGS) {
             PyErr_SetString(PyExc_TypeError, "Wrong number of arguments. Got " ~ toString(ARGS) ~ ", expected between " ~ toString(MIN_ARGS) ~ "-" ~ toString(MAX_ARGS) ~ " args.");
             return null;
