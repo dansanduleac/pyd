@@ -69,9 +69,9 @@ alias ctor!(dummy) undefined;
 template wrapped_ctor(T, alias Ctor) {
     int wrapped_ctor(PyObject* self, PyObject* args, PyObject* kwds) {
         T t;
-        
+
         try { /* begin try */
-        
+
         static if (Ctor.ARGS == 1) {
             t = new T(
                 d_type!(Ctor.arg1)(PyTuple_GetItem(args, 0))
@@ -175,7 +175,7 @@ template wrapped_ctor(T, alias Ctor) {
         }
 
         (cast(wrapped_class_object!(T)*)self).d_obj = t;
-        wrap_class_instances!(T)[t] = null;
+        wrap_class_instances!(T)[t] = 1;
 
         return 0;
     }
@@ -207,14 +207,14 @@ template wrapped_ctors(T, alias C1, alias C2, alias C3, alias C4, alias C5, alia
     else
         const uint ARGS = 0;
     extern(C)
-    int init(PyObject* self, PyObject* args, PyObject* kwds) {
+    int init_func(PyObject* self, PyObject* args, PyObject* kwds) {
         int len = PyObject_Length(args);
         // Default ctor
         static if (is(typeof(new T))) {
             if (len == 0) {
                 T t = new T;
                 (cast(wrap_object*)self).d_obj = t;
-                wrap_class_instances!(T)[t] = null;
+                wrap_class_instances!(T)[t] = 1;
                 return 0;
             }
         }

@@ -248,10 +248,12 @@ T d_type(PyObject* o) {
         handle_exception();
         return res;
     } else static if (is(C_long : T)) {
+        if (!PyNumber_Check(o)) could_not_convert!(T)(o);
         C_long res = PyInt_AsLong(o);
         handle_exception();
         return res;
     } else static if (is(bool : T)) {
+        if (!PyNumber_Check(o)) could_not_convert!(T)(o);
         int res = PyObject_IsTrue(o);
         handle_exception();
         return res == 1;

@@ -109,7 +109,12 @@ template wrapped_methods(T) {
     extern(C)
     void wrapped_dealloc(PyObject* _self) {
         wrap_object* self = cast(wrap_object*)_self;
-        wrap_class_instances!(T).remove(self.d_obj);
+        if (self.d_obj !is null) {
+            wrap_class_instances!(T)[self.d_obj] = wrap_class_instances!(T)[self.d_obj] - 1;
+            if (wrap_class_instances!(T)[self.d_obj] == 0) {
+                wrap_class_instances!(T).remove(self.d_obj);
+            }
+        }
         self.ob_type.tp_free(self);
     }
 
@@ -128,7 +133,7 @@ template wrapped_init(T) {
         // TODO: Provide better constructor support...
         T t = new T;
         (cast(wrap_object*)self).d_obj = t;
-        wrap_class_instances!(T)[t] = null;
+        wrap_class_instances!(T)[t] = 1;
         return 0;
     }
 }
@@ -138,7 +143,7 @@ template wrapped_init(T) {
 // XXX: This currently fails if the same reference is held by multiple Python
 // objects.
 template wrap_class_instances(T) {
-    void*[T] wrap_class_instances;
+    int[T] wrap_class_instances;
 }
 
 // A useful check for whether a given class has been wrapped. Mainly used by
@@ -178,7 +183,7 @@ template wrapped_class(char[] classname, T) {
         template init(alias C1=undefined, alias C2=undefined, alias C3=undefined, alias C4=undefined, alias C5=undefined, alias C6=undefined, alias C7=undefined, alias C8=undefined, alias C9=undefined, alias C10=undefined) {
             void init() {
                 wrapped_class_type!(classname, T).tp_init =
-                    &wrapped_ctors!(T, C1, C2, C3, C4, C5, C6, C7, C8, C9, C10).init;
+                    &wrapped_ctors!(T, C1, C2, C3, C4, C5, C6, C7, C8, C9, C10).init_func;
             }
         }
     }
