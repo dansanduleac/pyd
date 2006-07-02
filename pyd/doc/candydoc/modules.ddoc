@@ -1,8 +1,0 @@
-MODULES = 
-	$(MODULE pyd.def)
-	$(MODULE pyd.exception)
-	$(MODULE pyd.ftype)
-	$(MODULE pyd.lazy_load)
-	$(MODULE pyd.make_object)
-	$(MODULE pyd.object)
-	$(MODULE pyd.pyd)
