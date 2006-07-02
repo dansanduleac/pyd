@@ -28,7 +28,7 @@ private import pyd.ftype;
 private import pyd.make_object;
 private import std.string;
 
-// The class object, a subtype of PyObject
+/// The class object, a subtype of PyObject
 template wrapped_class_object(T) {
     extern(C)
     struct wrapped_class_object {
@@ -37,8 +37,9 @@ template wrapped_class_object(T) {
     }
 }
 
-// The type object, an instance of PyType_Type
+///
 template wrapped_class_type(T) {
+/// The type object, an instance of PyType_Type
     static PyTypeObject wrapped_class_type = {
         1,
         null,
@@ -91,9 +92,10 @@ template wrapped_class_type(T) {
     };
 }
 
-// Various wrapped methods
+/// Various wrapped methods
 template wrapped_methods(T) {
     alias wrapped_class_object!(T) wrap_object;
+    /// The generic "__new__" method
     extern(C)
     PyObject* wrapped_new(PyTypeObject* type, PyObject* args, PyObject* kwds) {
         wrap_object* self;
@@ -106,6 +108,7 @@ template wrapped_methods(T) {
         return cast(PyObject*)self;
     }
 
+    /// The generic dealloc method.
     extern(C)
     void wrapped_dealloc(PyObject* _self) {
         wrap_object* self = cast(wrap_object*)_self;
@@ -118,6 +121,7 @@ template wrapped_methods(T) {
         self.ob_type.tp_free(self);
     }
 
+    /// The default repr method calls the class's toString.
     extern(C)
     PyObject* wrapped_repr(PyObject* _self) {
         wrap_object* self = cast(wrap_object*)_self;
@@ -126,8 +130,10 @@ template wrapped_methods(T) {
     }
 }
 
+///
 template wrapped_init(T) {
     alias wrapped_class_object!(T) wrap_object;
+    /// The default _init method calls the class's zero-argument constructor.
     extern(C)
     int init(PyObject* self, PyObject* args, PyObject* kwds) {
         // TODO: Provide better constructor support...
@@ -156,16 +162,18 @@ template property_parts(alias p) {
     }
 }
 
+///
 template wrapped_get(T, alias Fn) {
+    /// A generic wrapper around a "getter" property.
     extern(C)
     PyObject* func(PyObject* self, void* closure) {
         return func_wrap!(Fn, 0, T, property_parts!(Fn).getter_type).func(self, null);
     }
 }
 
-private import std.stdio;
-
+///
 template wrapped_set(T, alias Fn) {
+    /// A generic wrapper around a "setter" property.
     extern(C)
     int func(PyObject* self, PyObject* value, void* closure) {
         PyObject* temp_tuple = PyTuple_New(1);
@@ -188,8 +196,10 @@ template wrap_class_instances(T) {
     int[T] wrap_class_instances;
 }
 
-// A useful check for whether a given class has been wrapped. Mainly used by
-// the conversion functions (see make_object.d), but possibly useful elsewhere.
+/**
+ * A useful check for whether a given class has been wrapped. Mainly used by
+ * the conversion functions (see make_object.d), but possibly useful elsewhere.
+ */
 template is_wrapped(T) {
     bool is_wrapped = false;
 }
@@ -208,15 +218,26 @@ template wrapped_prop_list(T) {
     ];
 }
 
-// This struct is returned by wrap_class. Its member functions are the primary
-// way of wrapping the specific parts of the class. Note that the struct has no
-// members. The only information it carries are its template arguments.
+/**
+ * This struct wraps a D class. Its member functions are the primary way of
+ * wrapping the specific parts of the class.
+ */
 template wrapped_class(char[] classname, T) {
     struct wrapped_class {
         static const char[] _name = classname;
         T t = null;
+        /**
+         * Wraps a member function of the class.
+         *
+         * Params:
+         * name = The name of the function as it will appear in Python.
+         * fn = The member function to wrap.
+         * MIN_ARGS = The minimum number of arguments this function can accept.
+         * fn_t = The type of the function. It is only useful to specify this
+         *        if more than one function has the same name as this one.
+         */
         template def(char[] name, alias fn, uint MIN_ARGS = NumberOfArgs!(typeof(&fn)), fn_t=typeof(&fn)) {
-            void def() {
+            static void def() {
                 static PyMethodDef empty = { null, null, 0, null };
                 wrapped_method_list!(T)[length-1].ml_name = name ~ \0;
                 wrapped_method_list!(T)[length-1].ml_meth =
@@ -231,8 +252,16 @@ template wrapped_class(char[] classname, T) {
             }
         }
 
+        /**
+         * Wraps a property of the class.
+         *
+         * Params:
+         * name = The name of the property as it will appear in Python.
+         * fn = The property to wrap.
+         * RO = Whether this is a read-only property.
+         */
         template prop(char[] name, alias fn, bool RO=false) {
-            void prop() {
+            static void prop() {
                 static PyGetSetDef empty = { null, null, null, null, null };
                 wrapped_prop_list!(T)[length-1].name = name ~ \0;
                 wrapped_prop_list!(T)[length-1].get =
@@ -251,8 +280,20 @@ template wrapped_class(char[] classname, T) {
             }
         }
 
+        /**
+         * Wraps the constructors of the class.
+         *
+         * This template takes a series of specializations of the ctor template
+         * (see ctor_wrap.d), each of which describes a different constructor
+         * that the class supports. The default constructor need not be
+         * specified, and will always be available if the class supports it.
+         *
+         * Bugs:
+         * This currently does not support having multiple constructors with
+         * the same number of arguments.
+         */
         template init(alias C1=undefined, alias C2=undefined, alias C3=undefined, alias C4=undefined, alias C5=undefined, alias C6=undefined, alias C7=undefined, alias C8=undefined, alias C9=undefined, alias C10=undefined) {
-            void init() {
+            static void init() {
                 wrapped_class_type!(T).tp_init =
                     &wrapped_ctors!(T, C1, C2, C3, C4, C5, C6, C7, C8, C9, C10).init_func;
             }
@@ -260,6 +301,10 @@ template wrapped_class(char[] classname, T) {
     }
 }
 
+/**
+ * Finalize the wrapping of the class. It is neccessary to call this after all
+ * calls to the wrapped_class member functions.
+ */
 void finalize_class(CLS) (CLS cls) {
     alias typeof(cls.t) T;
     const char[] name = CLS._name;

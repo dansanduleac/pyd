@@ -51,6 +51,9 @@ PyObject* DPy_Module_p() {
  *      MIN_ARGS = The minimum number of arguments this function can accept.
  *                 For use with functions with default arguments. Defaults to
  *                 the maximum number of arguments this function supports.
+ *      fn_t = The function type of the function to wrap. This must be
+ *             specified if more than one function shares the same name,
+ *             otherwise the first one defined lexically will be used.
  *
  * Examples:
  *$(D_CODE import pyd.pyd;

@@ -26,7 +26,9 @@ private import pyd.class_wrap;
 private import pyd.exception;
 private import pyd.make_object;
 
-// This template defines the footprint of an individual constructor.
+/**
+ * This template defines the footprint of an individual constructor.
+ */
 template ctor(T1=void, T2=void, T3=void, T4=void, T5=void, T6=void, T7=void, T8=void, T9=void, T10=void) {
     static if (!is(T10 == void))
         const uint ARGS = 10;
@@ -181,7 +183,7 @@ template wrapped_ctor(T, alias Ctor) {
     }
 }
 
-// This template accepts a list of "ctor" templates and uses them to wrap a Pyhton __init__ function.
+// This template accepts a list of "ctor" templates and uses them to wrap a Python __init__ function.
 template wrapped_ctors(T, alias C1, alias C2, alias C3, alias C4, alias C5, alias C6, alias C7, alias C8, alias C9, alias C10) {
     alias wrapped_class_object!(T) wrap_object;
     static if (!is(C10.arg1 == dummy))

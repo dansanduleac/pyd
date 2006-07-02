@@ -19,6 +19,12 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
+
+/**
+ * This module contains some more or less dirty hacks for converting between
+ * function and delegate types. Its contents are strictly for internal use
+ * within Pyd.
+ */
 module pyd.dg_convert;
 
 private import pyd.ftype;
