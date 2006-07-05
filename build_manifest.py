@@ -5,6 +5,7 @@ FORBIDDEN_EXTENSIONS = [
     '.pyc', '.pyo', # Python bytecode
     '.marks', # jEdit bookmark files
     '.map', # Created automatically by the DMD compiler; needn't distribute.
+    '.swp', # Vim swap files
   ]
 
 FORBIDDEN_DIRECTORIES = [

@@ -39,6 +39,7 @@ private import std.string;
 // Base type
 private import pyd.object;
 private import pyd.class_wrap;
+private import pyd.func_wrap;
 
 private import pyd.exception;
 
@@ -134,6 +135,8 @@ PyObject* _py(T t) {
             }
         }
         return dict;
+    } else static if (is(T == delegate) || is(T == function)) {
+        return DPyFunc_FromDG!(T)(t);
     } else static if (is(T : DPyObject)) {
         PyObject* temp = t.ptr();
         Py_INCREF(temp);

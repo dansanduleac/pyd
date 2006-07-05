@@ -30,8 +30,10 @@ _pydFiles = [
     'dg_convert.d',
     'exception.d',
     'ftype.d',
+    'func_wrap.d',
     'make_object.d',
     'object.d',
+    'op_wrap.d',
     'pyd.d',
 ]
 

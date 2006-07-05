@@ -42,8 +42,39 @@ class Foo {
     void foo() {
         writefln("Foo.foo(): i = %s", m_i);
     }
+    Foo opAdd(Foo f) { return new Foo(m_i + f.m_i); }
     int i() { return m_i; }
     void i(int j) { m_i = j; }
+}
+
+void iter_test(PyObject* c) {
+    Bar b = new Bar(1, 2, 3, 4, 5);
+    PyObject* o, res;
+    foreach(i; b) {
+        o = _py(i);
+        res = PyObject_CallFunctionObjArgs(c, o, null);
+        Py_DECREF(res);
+        Py_DECREF(o);
+    }
+}
+
+void delegate() func_test() {
+    Foo f = new Foo(20);
+    return &f.foo;
+}
+
+class Bar {
+    int[] m_a;
+    this() { }
+    this(int[] i ...) { m_a = i; }
+    int opApply(int delegate(inout int) dg) {
+        int result = 0;
+        for (int i=0; i<m_a.length; ++i) {
+            result = dg(m_a[i]);
+            if (result) break;
+        }
+        return result;
+    }
 }
 
 Foo spam(Foo f) {
@@ -54,16 +85,18 @@ Foo spam(Foo f) {
 
 extern (C)
 export void inittestdll() {
+    module_init("testdll");
+
     def!("foo", foo);
     // Python does not support function overloading. This allows us to wrap
     // an overloading function under a different name.
     def!("foo2", foo, 1, void function(int));
     def!("bar", bar);
-    // Minimum argument count.
-    def!("baz", baz, 0);
+    // Default argument support - Now implicit!
+    def!("baz", baz);
     def!("spam", spam);
-
-    module_init("testdll");
+    def!("iter_test", iter_test);
+    def!("func_test", func_test);
 
     wrapped_class!("Foo", Foo) f;
     // Constructor wrapping
