@@ -63,6 +63,10 @@ void delegate() func_test() {
     return &f.foo;
 }
 
+void dg_test(void delegate() dg) {
+    dg();
+}
+
 class Bar {
     int[] m_a;
     this() { }
@@ -97,6 +101,7 @@ export void inittestdll() {
     def!("spam", spam);
     def!("iter_test", iter_test);
     def!("func_test", func_test);
+    def!("dg_test", dg_test);
 
     wrapped_class!("Foo", Foo) f;
     // Constructor wrapping

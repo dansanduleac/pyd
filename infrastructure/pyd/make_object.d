@@ -231,14 +231,22 @@ T d_type(PyObject* o) {
         return o;
     } else static if (is(DPyObject : T)) {
         return new DPyObject(o);
+    } else static if (is(T == void)) {
+        if (o != Py_None) could_not_convert!(T)(o);
+        Py_INCREF(Py_None);
+        return Py_None;
     } else static if (is(T == class)) {
         // We can only convert to a class if it has been wrapped, and of course
         // we can only convert the object if it is the wrapped type.
         if (is_wrapped!(T) && PyObject_TypeCheck(o, &wrapped_class_type!(T))) {
-                return (cast(wrapped_class_object!(T)*)o).d_obj;
+            return (cast(wrapped_class_object!(T)*)o).d_obj;
         }
         // Otherwise, throw up an exception.
         could_not_convert!(T)(o);
+    } else static if (is(T == delegate)) {
+        if (PyCallable_Check(o)) {
+            return DPyCallable_AsDelegate!(T)(o);
+        } else could_not_convert!(T)(o);
     /+
     } else static if (is(wchar[] : T)) {
         wchar[] temp;

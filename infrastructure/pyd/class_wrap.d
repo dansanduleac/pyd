@@ -32,6 +32,9 @@ private import pyd.op_wrap;
 
 private import std.string;
 
+bool[TypeInfo] wrapped_classes;
+
+// This is split out in case I ever want to make a subtype of a wrapped class.
 template DPyObject_HEAD(T) {
     mixin PyObject_HEAD;
     T d_obj;
@@ -345,4 +348,5 @@ void finalize_class(CLS) (CLS cls) {
     Py_INCREF(cast(PyObject*)&type);
     PyModule_AddObject(DPy_Module_p, name, cast(PyObject*)&type);
     is_wrapped!(T) = true;
+    wrapped_classes[typeid(T)] = true;
 }
