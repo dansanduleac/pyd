@@ -31,8 +31,10 @@ import pyd.def;
 import pyd.class_wrap;
 import pyd.ctor_wrap;
 import pyd.exception;
+import pyd.ftype;
 import pyd.func_wrap;
 import pyd.make_object;
+import pyd.tuples;
 // Base type
 import pyd.object;
 

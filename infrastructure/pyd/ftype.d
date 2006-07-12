@@ -148,6 +148,7 @@ template
 ReturnTypeT(Tf)
 {
     private Tf fptr;
+    //pragma(msg, Tf);
     static if( is( typeof(*Tf) U == function ) )
         alias U type;
     else static if( is( Tf U == delegate ) )
@@ -598,9 +599,11 @@ template MIN_ARGS_T(alias fn) {
 
 /**
  * This template will attempt to determine the minimum number of arguments a
- * function can accept. (Written by Kirk McDonald.) Note that this accepts an
- * alias parameter rather than a function pointer type, as the function and
- * delegate types contain no information about default arguments.
+ * function can accept. Note that this accepts an alias parameter rather than a
+ * function pointer type, as the function and delegate types contain no
+ * information about default arguments.
+ *
+ * (Written by Kirk McDonald.)
  */
 public
 template MIN_ARGS(alias fn) {

@@ -2,20 +2,29 @@ module testdll;
 
 import python;
 import pyd.pyd;
+//import pyd.ftype;
 import std.stdio;
 
-// d_type testing
+void apply_test(int i, char[] s) {
+    writefln("%s %s", i, s);
+}
+
 void foo() {
-    PyObject* s = PyString_FromString("blargh");
-    PyObject* i = PyInt_FromLong(20);
-
-    int a = d_type!(int)(i);
-    char[] b = d_type!(char[])(s);
-
-    writefln("%s\n%s", a, b);
-
-    Py_DECREF(s);
-    Py_DECREF(i);
+    alias tuple!(int, char[]) Tuple;
+//    alias dg_from_tuple!(void, Tuple) dg;
+    Tuple t;
+//    Tuple.TypeNo!(0) i = 20;
+//    typeof(Tuple.arg1) j = 30;
+    t.arg1 = 20;
+    t.arg2 = "Monkey";
+//    t.arg3 = 5.8;
+    apply_tuple_to_fn(t, &apply_test);
+    
+//    writefln(typeid(ArgType!(dg, 1)));
+//    writefln(typeid(TypeNo!(Tuple, 0)));
+//    writefln(typeid(Tuple.A1));
+//    writefln(typeid(dg));
+//    writefln(i, " ", j);
 }
 
 void foo(int i) {
@@ -89,27 +98,34 @@ Foo spam(Foo f) {
 
 extern (C)
 export void inittestdll() {
+    def!(foo, "foo");
+    // Python does not support function overloading. This allows us to wrap
+    // an overloading function under a different name. Note that if the
+    // overload accepts a different number of minimum arguments, that number
+    // must be specified.
+    def!(foo, "foo2", void function(int), 1);
+    def!(bar, "bar");
+    // Default argument support - Now implicit!
+    def!(baz, "baz");
+    def!(spam, "spam");
+    def!(iter_test, "iter_test");
+    def!(func_test, "func_test");
+    def!(dg_test, "dg_test");
+
     module_init("testdll");
 
-    def!("foo", foo);
-    // Python does not support function overloading. This allows us to wrap
-    // an overloading function under a different name.
-    def!("foo2", foo, 1, void function(int));
-    def!("bar", bar);
-    // Default argument support - Now implicit!
-    def!("baz", baz);
-    def!("spam", spam);
-    def!("iter_test", iter_test);
-    def!("func_test", func_test);
-    def!("dg_test", dg_test);
+    auto t = func_range!(foo, 0)();
+    alias typeof(t) Tu;
+    writefln(typeid(TypeNo!(Tu, 1)));
+    writefln(MIN_ARGS!(bar));
 
-    wrapped_class!("Foo", Foo) f;
+    wrapped_class!(Foo, "Foo") f;
     // Constructor wrapping
-    f.init!(ctor!(int), ctor!(int, int));
+    f.init!(tuple!(int), tuple!(int, int));
     // Member function wrapping
-    f.def!("foo", Foo.foo);
+    f.def!(Foo.foo, "foo");
     // Property wrapping
-    f.prop!("i", Foo.i);
+    f.prop!(Foo.i, "i");
     finalize_class(f);
 }
 

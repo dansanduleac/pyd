@@ -76,12 +76,17 @@ PyObject* DPy_Module_p() {
  *>>> print testdll.foo(20)
  *It's greater than 10!)
  */
-template def(char[] name, alias fn, uint MIN_ARGS = MIN_ARGS!(fn), fn_t=typeof(&fn)) {
+template def(alias fn, char[] name, fn_t=typeof(&fn), uint MIN_ARGS = MIN_ARGS!(fn)) {
+    pragma(msg, "def: " ~ name);
     void def() {
-        fn_t fptr = &fn;
-        PyObject* func = DPyFunc_FromDG!(fn_t, MIN_ARGS)(fptr);
-        PyObject_SetAttrString(DPy_Module_p, name ~ \0, func);
-        Py_DECREF(func);
+        PyMethodDef empty;
+        alias module_global_methods list;
+
+        list[length-1].ml_name = name ~ \0;
+        list[length-1].ml_meth = &func_wrap!(fn, MIN_ARGS, void, fn_t).func;
+        list[length-1].ml_flags = METH_VARARGS;
+        list[length-1].ml_doc = "";
+        list ~= empty;
     }
 }
 

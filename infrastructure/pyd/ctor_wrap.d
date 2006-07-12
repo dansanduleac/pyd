@@ -24,142 +24,164 @@ module pyd.ctor_wrap;
 private import python;
 private import pyd.class_wrap;
 private import pyd.exception;
+private import pyd.func_wrap;
 private import pyd.make_object;
+private import pyd.tuples;
 
-/**
- * This template defines the footprint of an individual constructor.
- */
-template ctor(T1=void, T2=void, T3=void, T4=void, T5=void, T6=void, T7=void, T8=void, T9=void, T10=void) {
-    static if (!is(T10 == void))
-        const uint ARGS = 10;
-    else static if(!is(T9 == void))
-        const uint ARGS = 9;
-    else static if(!is(T8 == void))
-        const uint ARGS = 8;
-    else static if(!is(T7 == void))
-        const uint ARGS = 7;
-    else static if(!is(T6 == void))
-        const uint ARGS = 6;
-    else static if(!is(T5 == void))
-        const uint ARGS = 5;
-    else static if(!is(T4 == void))
-        const uint ARGS = 4;
-    else static if(!is(T3 == void))
-        const uint ARGS = 3;
-    else static if(!is(T2 == void))
-        const uint ARGS = 2;
-    else static if(!is(T1 == void))
-        const uint ARGS = 1;
-    else
-        const uint ARGS = 0;
-    alias T1 arg1;
-    alias T2 arg2;
-    alias T3 arg3;
-    alias T4 arg4;
-    alias T5 arg5;
-    alias T6 arg6;
-    alias T7 arg7;
-    alias T8 arg8;
-    alias T9 arg9;
-    alias T10 arg10;
+template outer(T) {
+    T call_ctor()() {
+        return new T();
+    }
+    
+    T call_ctor(T1)(T1 t1) {
+        return new T(t1);
+    }
+    
+    T call_ctor(T1, T2)(T1 t1, T2 t2) {
+        return new T(t1, t2);
+    }
+    
+    T call_ctor(T1, T2, T3)(T1 t1, T2 t2, T3 t3) {
+        return new T(t1, t2, t3);
+    }
+    
+    T call_ctor(T1, T2, T3, T4)(T1 t1, T2 t2, T3 t3, T4 t4) {
+        return new T(t1, t2, t3, t4);
+    }
+    
+    T call_ctor(T1, T2, T3, T4, T5)(T1 t1, T2 t2, T3 t3, T4 t4, T5 t5) {
+        return new T(t1, t2, t3, t4, t5);
+    }
+    
+    T call_ctor(T1, T2, T3, T4, T5, T6)(T1 t1, T2 t2, T3 t3, T4 t4, T5 t5, T6 t6) {
+        return new T(t1, t2, t3, t4, t5, t6);
+    }
+    
+    T call_ctor(T1, T2, T3, T4, T5, T6, T7)(T1 t1, T2 t2, T3 t3, T4 t4, T5 t5, T6 t6, T7 t7) {
+        return new T(t1, t2, t3, t4, t5, t6, t7);
+    }
+    
+    T call_ctor(T1, T2, T3, T4, T5, T6, T7, T8)(T1 t1, T2 t2, T3 t3, T4 t4, T5 t5, T6 t6, T7 t7, T8 t8) {
+        return new T(t1, t2, t3, t4, t5, t6, t7, t8);
+    }
+    
+    T call_ctor(T1, T2, T3, T4, T5, T6, T7, T8, T9)(T1 t1, T2 t2, T3 t3, T4 t4, T5 t5, T6 t6, T7 t7, T8 t8, T9 t9) {
+        return new T(t1, t2, t3, t4, t5, t6, t7, t8, t9);
+    }
+    
+    T call_ctor(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)(T1 t1, T2 t2, T3 t3, T4 t4, T5 t5, T6 t6, T7 t7, T8 t8, T9 t9, T10 t10) {
+        return new T(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10);
+    }
 }
 
-struct dummy { }
-alias ctor!(dummy) undefined;
+// This template accepts a list of "ctor" templates and uses them to wrap a Python tp_init function.
+template wrapped_ctors(T, Tuple) {
+    alias wrapped_class_object!(T) wrap_object;
+    const uint ARGS = Tuple.length;
+    extern(C)
+    int init_func(PyObject* self, PyObject* args, PyObject* kwds) {
+        int len = PyObject_Length(args);
 
-// This template wraps an individual call to a constructor
-template wrapped_ctor(T, alias Ctor) {
-    int wrapped_ctor(PyObject* self, PyObject* args, PyObject* kwds) {
+        try {
+
         T t;
-
-        try { /* begin try */
-
-        static if (Ctor.ARGS == 1) {
-            t = new T(
-                d_type!(Ctor.arg1)(PyTuple_GetItem(args, 0))
-            );
-        } else static if (Ctor.ARGS == 2) {
-            t = new T(
-                d_type!(Ctor.arg1)(PyTuple_GetItem(args, 0)),
-                d_type!(Ctor.arg2)(PyTuple_GetItem(args, 1))
-            );
-        } else static if (Ctor.ARGS == 3) {
-            t = new T(
-                d_type!(Ctor.arg1)(PyTuple_GetItem(args, 0)),
-                d_type!(Ctor.arg2)(PyTuple_GetItem(args, 1)),
-                d_type!(Ctor.arg3)(PyTuple_GetItem(args, 2))
-            );
-        } else static if (Ctor.ARGS == 4) {
-            t = new T(
-                d_type!(Ctor.arg1)(PyTuple_GetItem(args, 0)),
-                d_type!(Ctor.arg2)(PyTuple_GetItem(args, 1)),
-                d_type!(Ctor.arg3)(PyTuple_GetItem(args, 2)),
-                d_type!(Ctor.arg4)(PyTuple_GetItem(args, 3))
-            );
-        } else static if (Ctor.ARGS == 5) {
-            t = new T(
-                d_type!(Ctor.arg1)(PyTuple_GetItem(args, 0)),
-                d_type!(Ctor.arg2)(PyTuple_GetItem(args, 1)),
-                d_type!(Ctor.arg3)(PyTuple_GetItem(args, 2)),
-                d_type!(Ctor.arg4)(PyTuple_GetItem(args, 3)),
-                d_type!(Ctor.arg5)(PyTuple_GetItem(args, 4))
-            );
-        } else static if (Ctor.ARGS == 6) {
-            t = new T(
-                d_type!(Ctor.arg1)(PyTuple_GetItem(args, 0)),
-                d_type!(Ctor.arg2)(PyTuple_GetItem(args, 1)),
-                d_type!(Ctor.arg3)(PyTuple_GetItem(args, 2)),
-                d_type!(Ctor.arg4)(PyTuple_GetItem(args, 3)),
-                d_type!(Ctor.arg5)(PyTuple_GetItem(args, 4)),
-                d_type!(Ctor.arg6)(PyTuple_GetItem(args, 5))
-            );
-        } else static if (Ctor.ARGS == 7) {
-            t = new T(
-                d_type!(Ctor.arg1)(PyTuple_GetItem(args, 0)),
-                d_type!(Ctor.arg2)(PyTuple_GetItem(args, 1)),
-                d_type!(Ctor.arg3)(PyTuple_GetItem(args, 2)),
-                d_type!(Ctor.arg4)(PyTuple_GetItem(args, 3)),
-                d_type!(Ctor.arg5)(PyTuple_GetItem(args, 4)),
-                d_type!(Ctor.arg6)(PyTuple_GetItem(args, 5)),
-                d_type!(Ctor.arg7)(PyTuple_GetItem(args, 6))
-            );
-        } else static if (Ctor.ARGS == 8) {
-            t = new T(
-                d_type!(Ctor.arg1)(PyTuple_GetItem(args, 0)),
-                d_type!(Ctor.arg2)(PyTuple_GetItem(args, 1)),
-                d_type!(Ctor.arg3)(PyTuple_GetItem(args, 2)),
-                d_type!(Ctor.arg4)(PyTuple_GetItem(args, 3)),
-                d_type!(Ctor.arg5)(PyTuple_GetItem(args, 4)),
-                d_type!(Ctor.arg6)(PyTuple_GetItem(args, 5)),
-                d_type!(Ctor.arg7)(PyTuple_GetItem(args, 6)),
-                d_type!(Ctor.arg8)(PyTuple_GetItem(args, 7))
-            );
-        } else static if (Ctor.ARGS == 9) {
-            t = new T(
-                d_type!(Ctor.arg1)(PyTuple_GetItem(args, 0)),
-                d_type!(Ctor.arg2)(PyTuple_GetItem(args, 1)),
-                d_type!(Ctor.arg3)(PyTuple_GetItem(args, 2)),
-                d_type!(Ctor.arg4)(PyTuple_GetItem(args, 3)),
-                d_type!(Ctor.arg5)(PyTuple_GetItem(args, 4)),
-                d_type!(Ctor.arg6)(PyTuple_GetItem(args, 5)),
-                d_type!(Ctor.arg7)(PyTuple_GetItem(args, 6)),
-                d_type!(Ctor.arg8)(PyTuple_GetItem(args, 7)),
-                d_type!(Ctor.arg9)(PyTuple_GetItem(args, 8))
-            );
-        } else static if (Ctor.ARGS == 10) {
-            t = new T(
-                d_type!(Ctor.arg1)(PyTuple_GetItem(args, 0)),
-                d_type!(Ctor.arg2)(PyTuple_GetItem(args, 1)),
-                d_type!(Ctor.arg3)(PyTuple_GetItem(args, 2)),
-                d_type!(Ctor.arg4)(PyTuple_GetItem(args, 3)),
-                d_type!(Ctor.arg5)(PyTuple_GetItem(args, 4)),
-                d_type!(Ctor.arg6)(PyTuple_GetItem(args, 5)),
-                d_type!(Ctor.arg7)(PyTuple_GetItem(args, 6)),
-                d_type!(Ctor.arg8)(PyTuple_GetItem(args, 7)),
-                d_type!(Ctor.arg9)(PyTuple_GetItem(args, 8)),
-                d_type!(Ctor.arg10)(PyTuple_GetItem(args, 9))
-            );
+        // Default ctor
+        static if (is(typeof(new T))) {
+            if (len == 0) {
+                t = new T;
+                goto Done;
+            }
         }
+        // We only match the first supplied ctor with the proper number of
+        // arguments. (Eventually, we'll do some more sophisticated matching,
+        // but this will do for now.)
+        static if (ARGS >= 1) {
+            if (len == TypeNo!(Tuple, 0).length) {
+                // This works thusly:
+                // 1) outer!(T).call_ctor is a series of template functions
+                //    that call a constructor with its passed arguments, and
+                //    return the new object.
+                // 2) instant_from_tuple is a template that instantiates a
+                //    template with the types in the passed tuple type. By
+                //    combining call_ctor with the selected tuple representing
+                //    the best match of constructor, we can get something like
+                //    a pointer to a constructor function.
+                // 3) This function pointer is sent off to py_call, which calls
+                //    it with the PyTuple that args points to.
+                alias instant_from_tuple!( outer!(T).call_ctor, TypeNo!(Tuple, 0) ) fn1;
+                t = py_call!(typeof(&fn1), PyObject) ( &fn1, args );
+                goto Done;
+            }
+        }
+        static if (ARGS >= 2) {
+            if (len == TypeNo!(Tuple, 1).length) {
+                alias instant_from_tuple!( outer!(T).call_ctor, TypeNo!(Tuple, 1) ) fn2;
+                t = py_call!(typeof(&fn2), PyObject) ( &fn2, args );
+                goto Done;
+            }
+        }
+        static if (ARGS >= 3) {
+            if (len == TypeNo!(Tuple, 2).length) {
+                alias instant_from_tuple!( outer!(T).call_ctor, TypeNo!(Tuple, 2) ) fn3;
+                t = py_call!(typeof(&fn3), PyObject) ( &fn3, args );
+                goto Done;
+            }
+        }
+        static if (ARGS >= 4) {
+            if (len == TypeNo!(Tuple, 3).length) {
+                alias instant_from_tuple!( outer!(T).call_ctor, TypeNo!(Tuple, 3) ) fn4;
+                t = py_call!(typeof(&fn4), PyObject) ( &fn4, args );
+                goto Done;
+            }
+        }
+        static if (ARGS >= 5) {
+            if (len == TypeNo!(Tuple, 4).length) {
+                alias instant_from_tuple!( outer!(T).call_ctor, TypeNo!(Tuple, 4) ) fn5;
+                t = py_call!(typeof(&fn5), PyObject) ( &fn5, args );
+                goto Done;
+            }
+        }
+        static if (ARGS >= 6) {
+            if (len == TypeNo!(Tuple, 5).length) {
+                alias instant_from_tuple!( outer!(T).call_ctor, TypeNo!(Tuple, 5) ) fn6;
+                t = py_call!(typeof(&fn6), PyObject) ( &fn6, args );
+                goto Done;
+            }
+        }
+        static if (ARGS >= 7) {
+            if (len == TypeNo!(Tuple, 6).length) {
+                alias instant_from_tuple!( outer!(T).call_ctor, TypeNo!(Tuple, 6) ) fn7;
+                t = py_call!(typeof(&fn7), PyObject) ( &fn7, args );
+                goto Done;
+            }
+        }
+        static if (ARGS >= 8) {
+            if (len == TypeNo!(Tuple, 7).length) {
+                alias instant_from_tuple!( outer!(T).call_ctor, TypeNo!(Tuple, 7) ) fn8;
+                t = py_call!(typeof(&fn8), PyObject) ( &fn8, args );
+                goto Done;
+            }
+        }
+        static if (ARGS >= 9) {
+            if (len == TypeNo!(Tuple, 8).length) {
+                alias instant_from_tuple!( outer!(T).call_ctor, TypeNo!(Tuple, 8) ) fn9;
+                t = py_call!(typeof(&fn9), PyObject) ( &fn9, args );
+                goto Done;
+            }
+        }
+        static if (ARGS >= 10) {
+            if (len == TypeNo!(Tuple, 9).length) {
+                alias instant_from_tuple!( outer!(T).call_ctor, TypeNo!(Tuple, 9) ) fn10;
+                t = py_call!(typeof(&fn10), PyObject) ( &fn10, args );
+                goto Done;
+            }
+        } else {
+            PyErr_SetString(PyExc_TypeError, "Unsupported number of constructor arguments.");
+            return -1;
+        }
+Done:
+        (cast(wrapped_class_object!(T)*)self).d_obj = t;
+        wrap_class_instances!(T)[t]++;
 
         } /* end try */
 
@@ -176,95 +198,7 @@ template wrapped_ctor(T, alias Ctor) {
             return -1;
         }
 
-        (cast(wrapped_class_object!(T)*)self).d_obj = t;
-        wrap_class_instances!(T)[t] = 1;
-
         return 0;
-    }
-}
-
-// This template accepts a list of "ctor" templates and uses them to wrap a Python __init__ function.
-template wrapped_ctors(T, alias C1, alias C2, alias C3, alias C4, alias C5, alias C6, alias C7, alias C8, alias C9, alias C10) {
-    alias wrapped_class_object!(T) wrap_object;
-    static if (!is(C10.arg1 == dummy))
-        const uint ARGS = 10;
-    else static if(!is(C9.arg1 == dummy))
-        const uint ARGS = 9;
-    else static if(!is(C8.arg1 == dummy))
-        const uint ARGS = 8;
-    else static if(!is(C7.arg1 == dummy))
-        const uint ARGS = 7;
-    else static if(!is(C6.arg1 == dummy))
-        const uint ARGS = 6;
-    else static if(!is(C5.arg1 == dummy))
-        const uint ARGS = 5;
-    else static if(!is(C4.arg1 == dummy))
-        const uint ARGS = 4;
-    else static if(!is(C3.arg1 == dummy))
-        const uint ARGS = 3;
-    else static if(!is(C2.arg1 == dummy))
-        const uint ARGS = 2;
-    else static if(!is(C1.arg1 == dummy))
-        const uint ARGS = 1;
-    else
-        const uint ARGS = 0;
-    extern(C)
-    int init_func(PyObject* self, PyObject* args, PyObject* kwds) {
-        int len = PyObject_Length(args);
-        // Default ctor
-        static if (is(typeof(new T))) {
-            if (len == 0) {
-                T t = new T;
-                (cast(wrap_object*)self).d_obj = t;
-                wrap_class_instances!(T)[t] = 1;
-                return 0;
-            }
-        }
-        // We only match the first supplied ctor with the proper number of
-        // arguments. (Eventually, we'll do some more sophisticated matching,
-        // but this will do for now.)
-        static if (ARGS >= 1) {
-            if (len == C1.ARGS)
-                return wrapped_ctor!(T, C1)(self, args, kwds);
-        }
-        static if (ARGS >= 2) {
-            if (len == C2.ARGS)
-                return wrapped_ctor!(T, C2)(self, args, kwds);
-        }
-        static if (ARGS >= 3) {
-            if (len == C3.ARGS)
-                return wrapped_ctor!(T, C3)(self, args, kwds);
-        }
-        static if (ARGS >= 4) {
-            if (len == C4.ARGS)
-                return wrapped_ctor!(T, C4)(self, args, kwds);
-        }
-        static if (ARGS >= 5) {
-            if (len == C5.ARGS)
-                return wrapped_ctor!(T, C5)(self, args, kwds);
-        }
-        static if (ARGS >= 6) {
-            if (len == C6.ARGS)
-                return wrapped_ctor!(T, C6)(self, args, kwds);
-        }
-        static if (ARGS >= 7) {
-            if (len == C7.ARGS)
-                return wrapped_ctor!(T, C7)(self, args, kwds);
-        }
-        static if (ARGS >= 8) {
-            if (len == C8.ARGS)
-                return wrapped_ctor!(T, C8)(self, args, kwds);
-        }
-        static if (ARGS >= 9) {
-            if (len == C9.ARGS)
-                return wrapped_ctor!(T, C9)(self, args, kwds);
-        }
-        static if (ARGS >= 10) {
-            if (len == C10.ARGS)
-                return wrapped_ctor!(T, C10)(self, args, kwds);
-        }
-        PyErr_SetString(PyExc_TypeError, "Unsupported number of constructor arguments.");
-        return -1;
     }
 }
 

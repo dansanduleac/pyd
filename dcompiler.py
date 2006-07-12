@@ -35,6 +35,7 @@ _pydFiles = [
     'object.d',
     'op_wrap.d',
     'pyd.d',
+    'tuples.d',
 ]
 
 _pyVerXDotY = '.'.join(str(v) for v in sys.version_info[:2]) # e.g., '2.4'

@@ -69,6 +69,29 @@ template wrapped_class_as_number(T) {
     };
 }
 
+template wrapped_class_as_sequence(T) {
+    static PySequenceMethods wrapped_class_as_sequence = {
+        null,                 /*sq_length*/
+        null,                 /*sq_concat*/
+        null,                 /*sq_repeat*/
+        null,                 /*sq_item*/
+        null,                 /*sq_slice*/
+        null,                 /*sq_ass_item*/
+        null,                 /*sq_ass_slice*/
+        null,                 /*sq_contains*/
+        null,                 /*sq_inplace_concat*/
+        null,                 /*sq_inplace_repeat*/
+    };
+}
+
+template wrapped_class_as_mapping(T) {
+    static PyMappingMethods wrapped_class_as_mapping = {
+        null,                 /*mp_length*/
+        null,                 /*mp_subscript*/
+        null,                 /*mp_ass_subscript*/
+    };
+}
+
 template opfunc_binary_wrap(T, alias opfn) {
     alias wrapped_class_object!(T) wrap_object;
     extern(C)

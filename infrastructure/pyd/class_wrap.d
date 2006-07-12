@@ -29,6 +29,7 @@ private import pyd.ftype;
 private import pyd.func_wrap;
 private import pyd.make_object;
 private import pyd.op_wrap;
+private import pyd.tuples;
 
 private import std.string;
 
@@ -234,7 +235,8 @@ template wrapped_prop_list(T) {
  * This struct wraps a D class. Its member functions are the primary way of
  * wrapping the specific parts of the class.
  */
-template wrapped_class(char[] classname, T) {
+template wrapped_class(T, char[] classname) {
+    pragma(msg, "wrapped_class: " ~ classname);
     struct wrapped_class {
         static const char[] _name = classname;
         T t = null;
@@ -248,7 +250,8 @@ template wrapped_class(char[] classname, T) {
          * fn_t = The type of the function. It is only useful to specify this
          *        if more than one function has the same name as this one.
          */
-        template def(char[] name, alias fn, uint MIN_ARGS = MIN_ARGS!(fn), fn_t=typeof(&fn)) {
+        template def(alias fn, char[] name, fn_t=typeof(&fn), uint MIN_ARGS = MIN_ARGS!(fn)) {
+            pragma(msg, "class.def: " ~ name);
             static void def() {
                 static PyMethodDef empty = { null, null, 0, null };
                 alias wrapped_method_list!(T) list;
@@ -271,7 +274,8 @@ template wrapped_class(char[] classname, T) {
          * fn = The property to wrap.
          * RO = Whether this is a read-only property.
          */
-        template prop(char[] name, alias fn, bool RO=false) {
+        template prop(alias fn, char[] name, bool RO=false) {
+            pragma(msg, "class.prop: " ~ name);
             static void prop() {
                 static PyGetSetDef empty = { null, null, null, null, null };
                 wrapped_prop_list!(T)[length-1].name = name ~ \0;
@@ -303,10 +307,10 @@ template wrapped_class(char[] classname, T) {
          * This currently does not support having multiple constructors with
          * the same number of arguments.
          */
-        template init(alias C1=undefined, alias C2=undefined, alias C3=undefined, alias C4=undefined, alias C5=undefined, alias C6=undefined, alias C7=undefined, alias C8=undefined, alias C9=undefined, alias C10=undefined) {
+        template init(C1=Void, C2=Void, C3=Void, C4=Void, C5=Void, C6=Void, C7=Void, C8=Void, C9=Void, C10=Void) {
             static void init() {
                 wrapped_class_type!(T).tp_init =
-                    &wrapped_ctors!(T, C1, C2, C3, C4, C5, C6, C7, C8, C9, C10).init_func;
+                    &wrapped_ctors!(T, tuple!(C1, C2, C3, C4, C5, C6, C7, C8, C9, C10)).init_func;
             }
         }
     }
@@ -320,6 +324,7 @@ void finalize_class(CLS) (CLS cls) {
     alias typeof(cls.t) T;
     alias wrapped_class_type!(T) type;
     const char[] name = CLS._name;
+    pragma(msg, "finalize_class: " ~ name);
     
     assert(DPy_Module_p !is null, "Must initialize module before wrapping classes.");
     char[] module_name = .toString(PyModule_GetName(DPy_Module_p));
