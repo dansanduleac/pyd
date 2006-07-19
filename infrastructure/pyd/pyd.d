@@ -26,15 +26,13 @@ SOFTWARE.
  */
 module pyd.pyd;
 
-private import python;
-import pyd.def;
-import pyd.class_wrap;
-import pyd.ctor_wrap;
-import pyd.exception;
-import pyd.ftype;
-import pyd.func_wrap;
-import pyd.make_object;
-import pyd.tuples;
-// Base type
-import pyd.object;
+public import pyd.def;
+public import pyd.class_wrap;
+public import pyd.ctor_wrap;
+public import pyd.dpyobject;
+public import pyd.exception;
+public import pyd.ftype;
+public import pyd.func_wrap;
+public import pyd.make_object;
+public import pyd.tuples;
 

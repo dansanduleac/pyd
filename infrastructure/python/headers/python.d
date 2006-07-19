@@ -3182,6 +3182,8 @@ PyObject *PyStructSequence_SET_ITEM(PyObject *op, int i, PyObject *v) {
  * pointers to the required objects manually (see
  * python_support.d/_loadPythonSupport). */
 
+private {
+
 /* Singletons: */
 PyObject* m_Py_None;
 PyObject* m_Py_NotImplemented;
@@ -3295,8 +3297,6 @@ PyObject* m_PyExc_SyntaxWarning;
 PyObject* m_PyExc_RuntimeWarning;
 PyObject* m_PyExc_FutureWarning;
 
-private {
-
 PyObject *eval(char[] code) {
     PyObject *pyGlobals = PyEval_GetGlobals(); /* borrowed ref */
     PyObject *res = PyRun_String(code ~ \0, Py_eval_input,
@@ -3309,6 +3309,8 @@ PyObject *eval(char[] code) {
 }
 
 PyObject* m_builtins, m_types, m_weakref;
+
+} /* end private */
 
 // These template functions will lazily-load the various singleton objects,
 // removing the need for a "load" function that does it all at once.
@@ -3341,7 +3343,6 @@ typeof(Ptr) lazy_eval(alias Ptr, char[] code) () {
     return Ptr;
 }
 
-} /* end private */
 
 //void _loadPythonSupport() {
 //static this() {

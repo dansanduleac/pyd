@@ -37,7 +37,7 @@ module pyd.make_object;
 private import python;
 private import std.string;
 // Base type
-private import pyd.object;
+private import pyd.dpyobject;
 private import pyd.class_wrap;
 private import pyd.func_wrap;
 
