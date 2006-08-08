@@ -13,10 +13,11 @@
 import os, os.path, sys
 
 from distutils import ccompiler as cc
+from distutils.ccompiler import gen_lib_options
 from distutils.errors import (
     DistutilsExecError, DistutilsFileError, DistutilsPlatformError,
     CompileError, LibError, LinkError, UnknownFileError
-  )
+)
 
 
 _isPlatWin = sys.platform.lower().startswith('win')
@@ -43,22 +44,6 @@ _pyVerXY = _pyVerXDotY.replace('.', '') # e.g., '24'
 
 
 class DCompiler(cc.CCompiler):
-    # YYY: This class exists because in the long term, a GDCDCompiler class
-    # should be created (selectable with 'python setup.py build -cgdc') and
-    # common code should be factored into the common superclass DCompiler.
-    pass
-
-
-class DMDDCompiler(DCompiler):
-    compiler_type = 'dmd'
-
-    executables = {
-        'preprocessor' : None,
-        'compiler'     : ['dmd'],
-        'compiler_so'  : ['dmd'],
-        'linker_so'    : ['dmd', '-shared'], # XXX?
-        'linker_exe'   : ['dmd'],
-      }
 
     src_extensions = ['.d']
     obj_extension = (_isPlatWin and '.obj') or '.o'
@@ -69,100 +54,66 @@ class DMDDCompiler(DCompiler):
     exe_extension = (_isPlatWin and '.exe') or ''
 
     def __init__(self, *args, **kwargs):
-        DCompiler.__init__(self, *args, **kwargs)
-        self._initialized = False
-
-
-    def _initialize(self, debug):
-        # Would like to determine whether optimization was requested in a more
-        # proper manner (by checking the 'optimize' attribute of the Command
-        # object under which we're operating), but can't figure out how to get
-        # a reference to that Command object without burdening client
-        # programmers by forcing them to pass a cmd_class argument to setup().
-        args = [a.lower() for a in sys.argv[1:]]
-        optimize = ('-o' in args or '--optimize' in args)
-
-        dmdExeFilename = (_isPlatWin and 'dmd.exe') or 'dmd'
-
-        # Require environment variable D_ROOT:
+        cc.CCompiler.__init__(self, *args, **kwargs)
+        # Get DMD/GDC specific info
+        self._initialize()
+        # _binpath
         try:
-            dRoot = os.environ['D_ROOT']
+            dBin = os.environ[self._env_var]
+            if not os.path.isfile(dBin):
+                self.warn("Environment variable %s provided, but file '%s' does not exist." % (self._env_var, dBin))
+                raise KeyError
         except KeyError:
             if _isPlatWin:
-                exampleDMDPath = os.path.join(
-                    os.path.dirname(os.path.dirname(sys.executable)),
-                    'd', 'dmd', 'bin', dmdExeFilename
-                  )
+                # The environment variable wasn't supplied, so search the PATH.
+                # Windows requires the full path for reasons that escape me at
+                # the moment.
+                dBin = _findInPath(self.compiler_type + self.exe_extension)
+                if dBin is None:
+                    raise DistutilsFileError('You must either set the %s'
+                        ' environment variable to the full path of the %s'
+                        ' executable, or place the executable on the PATH.' %
+                        (self._env_var, self.compiler_type)
+                    )
             else:
-                exampleDMDPath = '/opt/d/dmd/bin/' + dmdExeFilename
+                # Just run it via the PATH directly in Linux
+                dBin = self.compiler_type
+        self._binpath = dBin
+        # _unicodeOpt
+        self._unicodeOpt = self._versionOpt % ('Python_Unicode_UCS' + ((sys.maxunicode == 0xFFFF and '2') or '4'))
 
-            raise DistutilsFileError('You must set the D_ROOT environment'
-                ' variable to the great-grandparent directory of the dmd'
-                ' executable.'
-                '\n(If the dmd executable were at\n  "%s", D_ROOT should be'
-                '\n  "%s".)'
-                % (exampleDMDPath,
-                   os.path.dirname(os.path.dirname(
-                       os.path.dirname(exampleDMDPath)
-                     ))
-                  )
-              )
+    def _initialize(self):
+        # It is intended that this method be implemented by subclasses.
+        raise NotImplementedError, "Cannot initialize DCompiler, use DMDDCompiler or GDCDCompiler instead."
 
-        # Find the DMD executable:
-        dmdExePath = _findInPath(dmdExeFilename,
-            startIn=os.path.join(dRoot, 'dmd', 'bin')
-          )
-        if not dmdExePath:
-            dmdExeSubPath = os.path.join('dmd', 'bin',
-                'dmd' + ((_isPlatWin and '.exe') or '')
-              )
-            dmdExePath = os.path.join(dRoot, dmdExeSubPath)
-            if not os.path.isfile(dmdExePath):
-                dmdExePathRepr = os.path.join(
-                    ((_isPlatWin and '%D_ROOT%') or '$D_ROOT'),
-                    dmdExeSubPath
-                  )
-                raise DistutilsFileError('Could not find dmd executable.  It'
-                    ' should be located at "%s".' % dmdExePathRepr
-                  )
+    def _def_file(self, output_dir, output_filename):
+        """A list of options used to tell the linker how to make a dll/so. In
+        DMD, it is the .def file. In GDC, it is
+        ['-shared', '-Wl,-soname,blah.so'] or similar."""
+        raise NotImplementedError, "Cannot initialize DCompiler, use DMDDCompiler or GDCDCompiler instead."
 
-        # Store in instance variables the info we'll need later:
-        self._dRoot = dRoot
-        self._dmdExePath = dmdExePath
-        self._unicodeOpt = ('-version=Python_Unicode_UCS'
-            + ((sys.maxunicode == 0xFFFF and '2') or '4')
-          )
+    def _lib_file(self, libraries):
+        return ''
 
-        # Set optimization-versus-safety options (conservatively by default;
-        # as aggressively optimized as possible when the user specifies
-        # 'python setup.py build -O').
-        conservativeOpts = ['-debug', '-unittest']
-        if debug:
-            # Conservative checking AND symbolic debugging information:
-            self._optimizationOpts = conservativeOpts + ['-g']
-        elif optimize:
-            self._optimizationOpts = ['-version=Optimized',
-                '-release', '-O', '-inline',
-              ]
-        else:
-            # The default is conservative in that it generates validation code,
-            # but it does not include symbolic debugging information:
-            self._optimizationOpts = conservativeOpts
+    def find_library_file(self, dirs, lib, debug=0):
+        shared_f = self.library_filename(lib, lib_type='shared')
+        static_f = self.library_filename(lib, lib_type='static')
 
+        for dir in dirs:
+            shared = os.path.join(dir, shared_f)
+            static = os.path.join(dir, static_f)
 
-        self._initialized = True
+            if os.path.exists(shared):
+                return shared
+            elif os.path.exists(static):
+                return static
 
+        return None
 
     def compile(self, sources,
         output_dir=None, macros=None, include_dirs=None, debug=0,
         extra_preargs=None, extra_postargs=None, depends=None
-      ):
-        if not self._initialized: self._initialize(debug)
-
-        # Distutils defaults to None for "unspecified option list"; we want
-        # empty lists in that case (this substitution is done here in the body
-        # rather than by changing the default parameters in case distutils
-        # passes None explicitly).
+    ):
         macros = macros or []
         include_dirs = include_dirs or []
         extra_preargs = extra_preargs or []
@@ -171,19 +122,23 @@ class DMDDCompiler(DCompiler):
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
-        dmdExeOpt = _qp(self._dmdExePath)
-        compileOnlyOpt = '-c' # In this stage, we don't want to link.
+        binpath = _qp(self._binpath)
+        compileOpts = self._compileOpts
+        #outputOpts = self._outputOpts
 
-        outputDirOpt = '-od' + _qp(output_dir)
-
+        includePathOpts = []
+        
         # To sources, add the appropriate D header file python.d, as well as
         # any platform-specific boilerplate.
         pythonHeaderPath = os.path.join(_infraDir, 'python', 'headers', 'python.d')
+        # Add the python header's directory to the include path
+        includePathOpts += self._includeOpts
+        includePathOpts[-1] = includePathOpts[-1] % os.path.join(_infraDir, 'python', 'headers')
         if not os.path.isfile(pythonHeaderPath):
             raise DistutilsPlatformError('Required D translation of Python'
                 ' header files "%s" is missing.' % pythonHeaderPath
-              )
-        sources.append(_qp(pythonHeaderPath))
+            )
+        sources.append(pythonHeaderPath)
 
         # And Pyd!
         # XXX: Add support for compiling without Pyd
@@ -193,30 +148,35 @@ class DMDDCompiler(DCompiler):
                 raise DistutilsPlatformError("Required Pyd source file '%s' is"
                     " missing." % filePath
                 )
-            sources.append(_qp(filePath))
+            sources.append(filePath)
+        # Add the pyd directory to the include path
+        includePathOpts += self._includeOpts
+        includePathOpts[-1] = includePathOpts[-1] % os.path.join(_infraDir)
         
+        # Add DLL/SO boilerplate code file.
         if _isPlatWin:
-            pdwbPath = os.path.join(_infraDir, 'd',
+            boilerplatePath = os.path.join(_infraDir, 'd',
                 'python_dll_windows_boilerplate.d'
-              )
-            if not os.path.isfile(pdwbPath):
-                raise DistutilsFileError('Required supporting code file "%s"'
-                    ' is missing.' % pdwbPath
-                  )
-            sources.append(_qp(pdwbPath))
-
-
-        quotedSourceFiles = [_qp(sf) for sf in sources]
+            )
+        else:
+            boilerplatePath = os.path.join(_infraDir, 'd',
+                'python_so_linux_boilerplate.d'
+            )
+        if not os.path.isfile(boilerplatePath):
+            raise DistutilsFileError('Required supporting code file "%s"'
+                ' is missing.' % boilerplatePath
+            )
+        sources.append(boilerplatePath)
 
         # Extension subclass DExtension will have packed any user-supplied
         # version and debug flags into macros; we extract them and convert them
-        # into the appropriate DMD command-line args.
+        # into the appropriate command-line args.
         versionFlags = [name for (name, category) in macros if category == 'version']
         debugFlags = [name for (name, category) in macros if category == 'debug']
         userVersionAndDebugOpts = (
-              ['-version=%s' % v for v in versionFlags]
-            + ['-debug=%s' % v for v in debugFlags]
-          )
+              [self._versionOpt % v for v in versionFlags] +
+              [self._debugOpt   % v for v in debugFlags]
+        )
 
         # Python version option allows extension writer to take advantage of
         # Python/C API features available only in recent version of Python with
@@ -226,27 +186,49 @@ class DMDDCompiler(DCompiler):
         #   } else {
         #     // Do it the hard way...
         #   }
-        pythonVersionOpt = '-version=Python_%d_%d_Or_Later' % sys.version_info[:2]
+        pythonVersionOpt = self._versionOpt % ('Python_%d_%d_Or_Later' % sys.version_info[:2])
 
-        # Generate a complete list of all command-line arguments, excluding any
-        # that turned out to be blank:
-        cmdElements = ([dmdExeOpt] + extra_preargs
-            + [compileOnlyOpt, pythonVersionOpt, self._unicodeOpt]
-            + self._optimizationOpts + [outputDirOpt]
-            + userVersionAndDebugOpts + quotedSourceFiles + extra_postargs
-          )
+        # Optimization opts
+        args = [a.lower() for a in sys.argv[1:]]
+        optimize = ('-o' in args or '--optimize' in args)
+        if debug:
+            optimizationOpts = self._debugOptimizeOpts
+        elif optimize:
+            optimizationOpts = self._releaseOptimizeOpts
+        else:
+            optimizationOpts = self._defaultOptimizeOpts
+
+        #for source in sources:
+            #outOpts = outputOpts[:]
+            #objName = self.object_filenames([os.path.split(source)[1]], 0, output_dir)[0]
+            #outOpts[-1] = outOpts[-1] % _qp(objName)
+            #cmdElements = (
+            #    [binpath] + extra_preargs + compileOpts +
+            #    [pythonVersionOpt, self._unicodeOpt] + optimizationOpts +
+            #    includePathOpts + outOpts + userVersionAndDebugOpts +
+            #    [_qp(source)] + extra_postargs
+            #)
+        # gdc/gcc doesn't support the idea of an output directory, so we
+        # compile from the destination
+        sources = [_qp(os.path.abspath(s)) for s in sources]
+        cwd = os.getcwd()
+        os.chdir(output_dir)
+        cmdElements = (
+            [binpath] + extra_preargs + compileOpts +
+            [pythonVersionOpt, self._unicodeOpt] + optimizationOpts +
+            includePathOpts + userVersionAndDebugOpts +
+            sources + extra_postargs
+        )
         cmdElements = [el for el in cmdElements if el]
 
-        # Invoke the compiler:
         try:
             self.spawn(cmdElements)
         except DistutilsExecError, msg:
+            os.chdir(cwd)
             raise CompileError(msg)
+        os.chdir(cwd)
 
-        # Return a list of paths to the object files generated by the
-        # compilation process:
-        return [os.path.join(output_dir, fn) for fn in os.listdir(output_dir)]
-
+        return [os.path.join(output_dir, fn) for fn in os.listdir(output_dir) if fn.endswith(self.obj_extension)]
 
     def link (self,
         target_desc, objects, output_filename,
@@ -255,9 +237,7 @@ class DMDDCompiler(DCompiler):
         export_symbols=None, debug=0,
         extra_preargs=None, extra_postargs=None,
         build_temp=None, target_lang=None
-      ):
-        if not self._initialized: self._initialize(debug)
-
+    ):
         # Distutils defaults to None for "unspecified option list"; we want
         # empty lists in that case (this substitution is done here in the body
         # rather than by changing the default parameters in case distutils
@@ -269,47 +249,127 @@ class DMDDCompiler(DCompiler):
         extra_preargs = extra_preargs or []
         extra_postargs = extra_postargs or []
 
+        binpath = self._binpath
+        outputOpts = self._outputOpts[:]
+        objectOpts = [_qp(fn) for fn in objects]
+
         (objects, output_dir) = self._fix_object_args (objects, output_dir)
         (libraries, library_dirs, runtime_library_dirs) = \
             self._fix_lib_args (libraries, library_dirs, runtime_library_dirs)
         if runtime_library_dirs:
             self.warn('This CCompiler implementation does nothing with'
                 ' "runtime_library_dirs": ' + str(runtime_library_dirs)
-              )
+            )
 
-        # Determine output_dir from output_filename or vice versa, depending
-        # on which was supplied:
         if output_dir and os.path.basename(output_filename) == output_filename:
             output_filename = os.path.join(output_dir, output_filename)
         else:
             if not output_filename:
-                raise DistutilsFileError('Neither output_dir nor'
+                raise DistutilsFileError, 'Neither output_dir nor' \
                     ' output_filename was specified.'
-                  )
             output_dir = os.path.dirname(output_filename)
             if not output_dir:
-                raise DistutilsFileError('Unable to guess output_dir on the'
-                    ' basis of output_filename "%s" alone.' % output_filename
-                  )
+                raise DistutilsFileError, 'Unable to guess output_dir on the'\
+                    ' bases of output_filename "%s" alone.' % output_filename
+
+        # Format the output filename option
+        # (-offilename in DMD, -o filename in GDC)
+        outputOpts[-1] = outputOpts[-1] % _qp(output_filename)
 
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
         if not self._need_link(objects, output_filename):
-            print ('The distutils infrastructure indicated that all binary'
-                ' output files are up to date.'
-              )
+            print "All binary output files are up to date."
             return
 
+        # The .def file (on Windows) or -shared and -soname (on Linux)
+        sharedOpts = self._def_file(build_temp, output_filename)
+
+        # The python .lib file, if needed
+        pythonLibOpt = self._lib_file(libraries)
+        if pythonLibOpt:
+            pythonLibOpt = _qp(pythonLibOpt)
+
+        if target_desc != cc.CCompiler.SHARED_OBJECT:
+            raise LinkError('This CCompiler implementation does not know'
+                ' how to link anything except an extension module (that is, a'
+                ' shared object file).'
+            )
+
+        # Library linkage options
+        print "library_dirs:", library_dirs
+        print "runtime_library_dirs:", runtime_library_dirs
+        print "libraries:", libraries
+        libOpts = gen_lib_options(self, library_dirs, runtime_library_dirs, libraries)
+
+        # Optimization opts
+        args = [a.lower() for a in sys.argv[1:]]
+        optimize = ('-o' in args or '--optimize' in args)
+        if debug:
+            optimizationOpts = self._debugOptimizeOpts
+        elif optimize:
+            optimizationOpts = self._releaseOptimizeOpts
+        else:
+            optimizationOpts = self._defaultOptimizeOpts
+
+        cmdElements = (
+            [binpath] + extra_preargs + self._linkOpts + optimizationOpts +
+            outputOpts + [pythonLibOpt] + objectOpts + libOpts + sharedOpts +
+            extra_postargs
+        )
+        cmdElements = [el for el in cmdElements if el]
+
+        try:
+            self.spawn(cmdElements)
+        except DistutilsExecError, msg:
+            raise CompileError(msg)
+
+class DMDDCompiler(DCompiler):
+    compiler_type = 'dmd'
+
+    executables = {
+        'preprocessor' : None,
+        'compiler'     : ['dmd'],
+        'compiler_so'  : ['dmd'],
+        'linker_so'    : ['dmd'],
+        'linker_exe'   : ['dmd'],
+    }
+
+    _env_var = 'DMD_BIN'
+
+    def _initialize(self):
+        # _compileOpts
+        self._compileOpts = ['-c']
+        # _outputOpts
+        self._outputOpts = ['-of%s']
+        # _linkOpts
+        self._linkOpts = []
+        # _includeOpts
+        self._includeOpts = ['-I%s']
+        # _versionOpt
+        self._versionOpt = '-version=%s'
+        # _debugOpt
+        self._debugOpt = '-debug=%s'
+        # _defaultOptimizeOpts
+        self._defaultOptimizeOpts = ['-debug', '-unittest']
+        # _debugOptimizeOpts
+        self._debugOptimizeOpts = self._defaultOptimizeOpts + ['-g']
+        # _releaseOptimizeOpts
+        self._releaseOptimizeOpts = ['-version=Optimized', '-release', '-O', '-inline']
+
+    #def link_opts(self, 
+
+    def _def_file(self, output_dir, output_filename):
         if _isPlatWin:
             # Automatically create a .def file:
             defTemplatePath = os.path.join(_infraDir, 'd',
                 'python_dll_def.def_template'
-              )
+            )
             if not os.path.isfile(defTemplatePath):
                 raise DistutilsFileError('Required def template file "%s" is'
                     ' missing.' % defTemplatePath
-                  )
+                )
             f = file(defTemplatePath, 'rb')
             try:
                 defTemplate = f.read()
@@ -317,31 +377,19 @@ class DMDDCompiler(DCompiler):
                 f.close()
 
             defFileContents = defTemplate % os.path.basename(output_filename)
-            defFilePath = os.path.join(build_temp, 'python_dll_def.def')
+            defFilePath = os.path.join(output_dir, 'python_dll_def.def')
             f = file(defFilePath, 'wb')
             try:
                 f.write(defFileContents)
             finally:
                 f.close()
 
-            objects.append(defFilePath)
-
-        if target_desc != cc.CCompiler.SHARED_OBJECT:
-            raise LinkError('This CCompiler implementation does not know'
-                ' how to link anything except an extension module (that is, a'
-                ' shared object file).'
-              )
-
-        dmdExeOpt = _qp(self._dmdExePath)
-        outputDirOpt = '-od' + _qp(output_dir)
-        outputObjOpt = '-of' + _qp(output_filename)
-        inputObjectOpts = [_qp(oFN) for oFN in objects]
-
-        if not _isPlatWin:
-            # DMD uses the GNU linker on non-Windows platforms, so there's no
-            # need for us to change the distutils defaults.
-            pythonLibOpt = ''
+            return [defFilePath]
         else:
+            return []
+
+    def _lib_file(self, libraries):
+        if _isPlatWin:
             # The DMD-compatible .lib file can be generated with implib.exe
             # (from the Digital Mars "Basic Utilities" package) using a command
             # series similar to the following:
@@ -354,14 +402,14 @@ class DMDDCompiler(DCompiler):
             # users and spare them the need for the "Basic Utilities" package.
             pythonDMDLibPath = _qp(os.path.join(_infraDir, 'python', 'libs',
                 _pyVerXDotY, 'python%s_digitalmars.lib' % _pyVerXY
-              ))
+            ))
             if not os.path.isfile(pythonDMDLibPath):
                 raise DistutilsFileError('The DMD-compatible Python .lib file'
                     ' which should be located at "%s" is missing.  Try'
                     ' downloading a more recent version of celeriD that'
                     ' contains a .lib file appropriate for your Python version.'
                     % pythonDMDLibPath
-                  )
+                )
             pythonLibOpt = _qp(pythonDMDLibPath)
 
             # distutils will normally request that the library 'pythonXY' be
@@ -371,71 +419,68 @@ class DMDDCompiler(DCompiler):
             # distutils-requested pythonXY.lib.
             if 'python' + _pyVerXY in libraries:
                 libraries.remove('python' + _pyVerXY)
+            return pythonLibOpt
+        else:
+            return ''
 
-        # Find the paths of any requested library files:
-        explicitLibOpts = []
-        if libraries:
-            if not _isPlatWin:
-                # Pass through library requests to the GNU linker via DMD's -L
-                # option.
-                explicitLibOpts.extend('-L-l' + libName for libName in libraries)
-            else:
-                # On Windows, the linker that DMD uses doesn't seem to have an
-                # equivalent of GCC's -LsearchDirectory and -llibraryName
-                # arguments, so we try to find the exact paths for the
-                # libraries mentioned and pass those paths to DMD.
-                # XXX: What about OptLink's /scanlib option and the LIB env var?
-                explicitLibFilenames = [
-                    libName + DMDDCompiler.static_lib_extension
-                    for libName in libraries
-                  ]
-                if not library_dirs:
-                    explicitLibOpts.extend(explicitLibFilenames)
-                else:
-                    curDir = os.path.abspath(os.curdir)
-                    if curDir not in library_dirs:
-                        library_dirs.insert(0, curDir)
+    def library_dir_option(self, dir):
+        self.warn("Don't know how to set library search path for DMD.")
+        #raise DistutilsPlatformError, "Don't know how to set library search path for DMD."
 
-                    libFound = [False] * len(libraries)
-                    for libIndex, libFilename in enumerate(explicitLibFilenames):
-                        for libDir in library_dirs:
-                            probeLibPath = os.path.join(libDir, libFilename)
-                            if os.path.isfile(probeLibPath):
-                                explicitLibOpts.append(_qp(probeLibPath))
-                                libFound[libIndex] = True
-                                break
+    def runtime_library_dir_option(self, dir):
+        self.warn("Don't know how to set runtime library search path for DMD.")
+        #raise DistutilsPlayformError, "Don't know how to set runtime library search path for DMD."
 
-                    libsNotFound = []
-                    for libIndex, found in enumerate(libFound):
-                        if not found:
-                            libsNotFound.append(
-                                (libraries[libIndex], explicitLibFilenames[libIndex])
-                              )
-                    if libsNotFound:
-                        raise LinkError('Unable to find the following libraries'
-                            ' in the specified library search directories:\n  '
-                            + '\n  '.join(
-                                  '%s  (filename "%s")' % (libName, libFilename)
-                                  for (libName, libFilename) in libsNotFound
-                                )
-                            + '\nSearched the following directories:\n  '
-                            + '\n  '.join(library_dirs)
-                          )
+    def library_option(self, lib):
+        if _isPlatWin:
+            return self.library_filename(lib)
+        else:
+            return '-L-l' + lib
 
-        # Generate a complete list of all command-line arguments, excluding any
-        # that turned out to be blank:
-        cmdElements = ([dmdExeOpt] + extra_preargs + self._optimizationOpts
-            + [outputDirOpt, outputObjOpt, pythonLibOpt, self._unicodeOpt]
-            + inputObjectOpts + explicitLibOpts + extra_postargs
-          )
-        cmdElements = [el for el in cmdElements if el]
+class GDCDCompiler(DCompiler):
+    compiler_type = 'gdc'
 
-        # Invoke the linker indirectly by calling the compiler:
-        try:
-            self.spawn(cmdElements)
-        except DistutilsExecError, msg:
-            raise CompileError(msg)
+    executables = {
+        'preprocessor' : None,
+        'compiler'     : ['gdc'],
+        'compiler_so'  : ['gdc'],
+        'linker_so'    : ['gdc'],
+        'linker_exe'   : ['gdc'],
+    }
 
+    _env_var = 'GDC_BIN'
+
+    def _initialize(self):
+        # _compileOpts
+        self._compileOpts = ['-fPIC', '-c']
+        # _outputOpts
+        self._outputOpts = ['-o', '%s']
+        # _linkOpts
+        self._linkOpts = ['-fPIC', '-nostartfiles', '-shared']
+        # _includeOpts
+        self._includeOpts = ['-I', '%s']
+        # _versionOpt
+        self._versionOpt = '-fversion=%s'
+        # _debugOpt
+        self._debugOpt = '-fdebug=%s'
+        # _defaultOptimizeOpts
+        self._defaultOptimizeOpts = ['-fdebug', '-funittest']
+        # _debugOptimizeOpts
+        self._debugOptimizeOpts = self._defaultOptimizeOpts + ['-g']
+        # _releaseOptimizeOpts
+        self._releaseOptimizeOpts = ['-fversion=Optimized', '-frelease', '-O3', '-finline-functions']
+
+    def _def_file(self, output_dir, output_filename):
+        return ['-Wl,-soname,' + os.path.basename(output_filename)]
+
+    def library_dir_option(self, dir):
+        return '-L' + dir
+
+    def runtime_library_dir_option(self, dir):
+        return '-Wl,-R' + dir
+
+    def library_option(self, lib):
+        return '-l' + lib
 
 # Utility functions:
 def _findInPath(fileName, startIn=None):
