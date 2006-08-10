@@ -7,11 +7,103 @@
 </head>
 
 <body>
-<div class="nav"><a class="nav" href="index.html">Main</a> | <a class="nav" href="celerid.html">CeleriD</a> | <a class="nav" href="conversion.html">Type conversion</a> | <a class="nav" href="func_wrapping.html">Function wrapping</a> | <a class="navcur" href="class_wrapping.html">Class wrapping</a> | <a class="nav" href="except_wrapping.html">Exception wrapping</a></div>
+<div class="nav"><a class="nav" href="index.html">Main</a> | <a class="nav" href="celerid.html">CeleriD</a> | <a class="nav" href="conversion.html">Type conversion</a> | <a class="nav" href="func_wrapping.html">Function wrapping</a> | <a class="navcur" href="class_wrapping.html">Class wrapping</a> | <a class="nav" href="except_wrapping.html">Exception wrapping</a> | <a class="nav" href="dpyobject.html">DPyObject</a></div>
 
 <h1>Class wrapping</h1>
 
-<p><i>Coming soon...</i></p>
+<p>Exposing D classes to Python is easy! The heart of Pyd's class wrapping features is the <code>wrapped_class</code> template struct:</p>
+
+<p><code>struct wrapped_class(<span class="t_arg">T</span>, char[] <span class="t_arg">classname</span>);</code></p>
+    <ul>
+    <li><span class="t_arg">T</span> is the class being wrapped.</li>
+    <li><span class="t_arg">classname</span> is the name of the class as it will appear in Python.</li>
+    </ul>
+
+<p>To expose the constructors, methods, and properties of the class, <code>wrapped_class</code> provides a series of template member functions.</p>
+
+<dl>
+<dt><code>static void def(alias <span class="t_arg">fn</span>, char[] <span class="t_arg">name</span>, <span class="t_arg">fn_t</span> = typeof(&amp;fn)) ();</code></dt>
+<dd>This wraps a method of the class. It functions exactly like the <code>def</code> function used to <a href="func_wrapping.html">wrap regular functions</a>, with one very important difference: There is no support for default arguments. (This is a side-effect of the fact that you cannot call an alias of a method in D, and delegates do not understand default arguments.)</dd>
+
+<dt><code>static void prop(alias <span class="t_arg">fn</span>, char[] <span class="t_arg">name</span>, bool <span class="t_arg">RO</span> = false) ();</code></dt>
+<dd>This wraps a property. See the examples below for more details.
+    <ul>
+    <li><span class="t_arg">fn</span> is the name of the property. <code>prop</code> will automatically attempt to wrap both the "get" and "set" forms of the property, unless <span class="t_arg">RO</span> is specified.</li>
+    <li><span class="t_arg">name</span> is the name of the property as it will appear in Python.</li>
+    <li><span class="t_arg">RO</span> specifies whether this is a <i>read-only</i> property. If true, it will only wrap the "get" form of the property. If false, it will wrap both the "get" and "set" forms. (This is a little hackish, and I will probably try to make this detection more automatic in the future. It also means it cannot support a property that only has a "set" form.)</li>
+    </ul>
+</dd>
+
+<dt><code>static void init(<span class="t_arg">C1</span>, <span class="t_arg">C2</span>, <span class="t_arg">C3</span>, ..., <span class="t_arg">C<i>n</i></span>) ();</code></dt>
+<dd>This allows you to expose anywhere from zero to 10 of the class's constructors to Python. If the class provides a zero-argument constructor, there is no need to specify it; it is always available. Each of <span class="t_arg">C<i>n</i></span> should be an instance of the <code>pyd.tuples.tuple</code> template (not an instance of the tuple struct <em>itself</em>, but an instance of the <em>template</em>), which in turn supports up to 10 arguments. Each tuple should correspond to a constructor. There is an additional limitation at this time: No two constructors may have the same number of arguments. Pyd will always attempt to call the first constructor with the right number of arguments. If you wish to support a constructor with default arguments, you must specify each possible constructor call as a different template argument to this function. The examples show a few uses of the <code>init</code> function.</dd>
+</dl>
+
+<p>Once you have called all of the member functions of <code>wrapped_class</code> that you wish to, you must issue a call to <code>finalize_class</code>.</p>
+
+<p><code>void finalize_class(<span class="t_arg">CLS</span>) (<span class="t_arg">CLS</span> <span class="arg">cls</span>);</code></p>
+
+<p>This does some final initialization of the class and then registers it with Python. Unlike calls to <a href="func_wrapping.html"><code>def</code></a>, calls to <code>finalize_class</code> must occur <em>after</em> calling <code>module_init</code>. The <span class="arg">cls</span> function argument should be an instance of <code>wrapped_class</code>.</p>
+
+<p>If you ever wish to check whether a given class has been wrapped, Pyd helpfully registers all wrapped classes with the <code>is_wrapped</code> template, which is just a templated <code>bool</code>:</p>
+
+<p><code>template is_wrapped(<span class="t_arg">T</span>);</code></p>
+
+<p>If you have a class <code>Foo</code>, you can check whether it is wrapped by simply checking whether <code>is_wrapped!(Foo)</code> is true. It is important to note that this is <em>not</em> a <code>const bool</code>, it is a <em>runtime</em> check.</p>
+
+<h3>Examples</h3>
+
+<p>Suppose we have the following simple class:</p>
+
+<pre class="code"><span class="keyword">import</span> std.stdio;
+
+<span class="keyword">class</span> Foo {
+    <span class="keyword">int</span> m_i;
+
+    <span class="keyword">this</span>() { m_i = <span class="number">0</span>; }
+    <span class="keyword">this</span>(<span class="keyword">int</span> j) { m_i = j; }
+
+    <span class="keyword">int</span> i() { <span class="keyword">return</span> m_i; }
+    <span class="keyword">void</span> i(<span class="keyword">int</span> j) { m_i = j; }
+
+    <span class="keyword">void</span> foo(<span class="keyword">char</span>[] s) {
+        writefln(s, m_i);
+    }
+}</pre>
+
+<p>We would expose this class to Python by putting this code in our init function after the call to <code>module_init</code>:</p>
+
+<pre class="code"><span class="comment">// Make an instance of wrapped_class</span>
+wrapped_class!(Foo, <span class="string">"Foo"</span>) f;
+<span class="comment">// Wrap the "foo" method</span>
+f.def!(Foo.foo, <span class="string">"foo"</span>);
+<span class="comment">// Wrap the "i" property</span>
+f.prop!(Foo.i, <span class="string">"i"</span>);
+<span class="comment">// Wrap the constructor.</span>
+f.init!(tuple!(<span class="keyword">int</span>));
+finalize_class(f);</pre>
+
+<p>Now we can use this type from within Python like any other type.</p>
+
+<pre class="code">&gt;&gt;&gt; from testmodule import Foo
+&gt;&gt;&gt; f = Foo()
+&gt;&gt;&gt; f.i
+0
+&gt;&gt;&gt; f.i = 20
+&gt;&gt;&gt; f.foo("Hello! i is ")
+Hello! i is 20
+&gt;&gt;&gt; g = Foo(30)
+&gt;&gt;&gt; g.i
+30
+&gt;&gt;&gt; # We can even subclass our D type
+&gt;&gt;&gt; class MyFoo(Foo):
+... 	def bar(self):
+... 		print "Hey, i+3 is", self.i + 3
+... 
+&gt;&gt;&gt; h = MyFoo(3)
+&gt;&gt;&gt; h.bar()
+Hey, i+3 is 6
+&gt;&gt;&gt; </pre>
+
 </body>
 </html>
 

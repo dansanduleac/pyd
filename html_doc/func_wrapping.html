@@ -7,7 +7,7 @@
 </head>
 
 <body>
-<div class="nav"><a class="nav" href="index.html">Main</a> | <a class="nav" href="celerid.html">CeleriD</a> | <a class="nav" href="conversion.html">Type conversion</a> | <a class="navcur" href="func_wrapping.html">Function wrapping</a> | <a class="nav" href="class_wrapping.html">Class wrapping</a> | <a class="nav" href="except_wrapping.html">Exception wrapping</a></div>
+<div class="nav"><a class="nav" href="index.html">Main</a> | <a class="nav" href="celerid.html">CeleriD</a> | <a class="nav" href="conversion.html">Type conversion</a> | <a class="navcur" href="func_wrapping.html">Function wrapping</a> | <a class="nav" href="class_wrapping.html">Class wrapping</a> | <a class="nav" href="except_wrapping.html">Exception wrapping</a> | <a class="nav" href="dpyobject.html">DPyObject</a></div>
 
 <h1>Function wrapping</h1>
 
@@ -21,7 +21,7 @@
     <li><span class="t_arg">MIN_ARGS</span> is the minimum number of arguments this function can accept. It is used when a function has default arguments. The <code>MIN_ARGS</code> template can derive the correct number automatically, so you typically won't specify this manually.</li>
     </ul>
 
-<p>Any function whose return type and arguments are <a href="conversion.html">convertable</a> can be wrapped by <code>def</code>. <code>def</code> also provides support for wrapping overloaded functions as well as functions with default arguments. Here are some examples:</p>
+<p>All calls to <code>def</code> must occur <em>before</em> calling <code>module_init</code>. Any function whose return type and arguments are <a href="conversion.html">convertable</a> can be wrapped by <code>def</code>. <code>def</code> also provides support for wrapping overloaded functions as well as functions with default arguments. Here are some examples:</p>
 
 <pre class="code"><span class="keyword">import</span> pyd.pyd;
 <span class="keyword">import</span> std.stdio;
