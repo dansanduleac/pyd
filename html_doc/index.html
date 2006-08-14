@@ -7,12 +7,26 @@
 </head>
 
 <body>
-<div class="nav"><a class="navcur" href="index.html">Main</a> | <a class="nav" href="celerid.html">CeleriD</a> | <a class="nav" href="conversion.html">Type conversion</a> | <a class="nav" href="func_wrapping.html">Function wrapping</a> | <a class="nav" href="class_wrapping.html">Class wrapping</a> | <a class="nav" href="except_wrapping.html">Exception wrapping</a> | <a class="nav" href="dpyobject.html">DPyObject</a></div>
+<div id="nav">
+<p><big>Contents</big></p>
+<a class="navcur" href="index.html">Main</a><br />
+<a class="nav" href="basics.html">The basics</a><br />
+<a class="nav" href="celerid.html">CeleriD</a><br />
+<a class="nav" href="conversion.html">Type conversion</a><br />
+<a class="nav" href="func_wrapping.html">Function wrapping</a><br />
+<a class="nav" href="class_wrapping.html">Class wrapping</a><br />
+<a class="nav" href="except_wrapping.html">Exception wrapping</a><br />
+<a class="nav" href="dpyobject.html">DPyObject</a>
+</div>
+
+<div id="content">
 
 <h1>Pyd</h1>
 <p>Pyd is a library for D that wraps the raw <a href="http://docs.python.org/api/api.html">Python/C API</a> with a cleaner, simpler interface. It makes exposing raw D functions and classes to Python almost trivially simple. It bears certain similarities to <a href="http://www.boost.org/libs/python/doc/">Boost.Python</a>, and indeed Boost.Python is a major influence on Pyd.</p>
 
 <p>Pyd also comes with its own extension to Python's <a href="http://docs.python.org/dist/dist.html">distutils</a>, called <a href="celerid.html">CeleriD</a>, making the building of extension modules quite easy.</p>
+
+<p>Pyd's Trac page can be found <a href="http://dsource.org/projects/pyd/wiki">here</a>.</p>
 
 <p>A simple "hello, world" module might look like this:</p>
 
@@ -35,5 +49,8 @@
 <pre class="code">&gt;&gt;&gt; import testdll
 &gt;&gt;&gt; testdll.hello_func()
 Hello, world!</pre>
+
+</div>
+
 </body>
 </html>

@@ -1,0 +1,53 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=iso-8859-1">
+    <link href="pyd.css" rel="stylesheet" type="text/css">
+    <title>Starting out with Pyd</title>
+</head>
+
+<body>
+<div id="nav">
+<p><big>Contents</big></p>
+<a class="nav" href="index.html">Main</a><br />
+<a class="navcur" href="basics.html">The basics</a><br />
+<a class="nav" href="celerid.html">CeleriD</a><br />
+<a class="nav" href="conversion.html">Type conversion</a><br />
+<a class="nav" href="func_wrapping.html">Function wrapping</a><br />
+<a class="nav" href="class_wrapping.html">Class wrapping</a><br />
+<a class="nav" href="except_wrapping.html">Exception wrapping</a><br />
+<a class="nav" href="dpyobject.html">DPyObject</a>
+</div>
+
+<div id="content">
+
+<h1>The basics</h1>
+
+<p>The most minimal working Pyd module looks something like this:</p>
+
+<pre class="code"><span class="keyword">import</span> pyd.pyd;
+
+<span class="keyword">extern</span> (C)
+<span class="keyword">export void</span> inittestmodule() {
+    module_init(<span class="string">"testmodule"</span>);
+}</pre>
+
+<p>The first line imports Pyd:</p>
+
+<pre class="code"><span class="keyword">import</span> pyd.pyd;</pre>
+
+<p>The <code>pyd</code> module in the <code>pyd</code> package publicly imports all of the other components of Pyd.</p>
+
+<p>The "init" function is a requirement of the Python/C API. It is a global function with the footprint <code>extern(C) export void function()</code>. Its name <em>must</em> be <code>init</code> plus the name of your module. This function must then contain a call to <code>module_init</code>, with the same module name as an argument. (Users of Boost.Python will be familiar with the <code>BOOST_PYTHON_MODULE</code> macro used in that library. Unfortunately for this purpose, D has no preprocessor, and cannot define the name of a function like the C preprocessor can. Therefore, users of Pyd must define their init functions manually.)</p>
+
+<p>The <code>module_init</code> function has the following form:</p>
+
+<p><code>PyObject* module_init(char[] <span class="arg">name</span>);</code></p>
+
+<p>It does little more than call <a href="http://docs.python.org/api/allocating-objects.html">Py_InitModule</a> and return the new module object. This object is also available via the <code>DPy_Module_p</code> property once you've called <code>module_init</code>.</p>
+
+<p>Due to the way in which Pyd implements function and class wrapping, any calls to <code>def</code> must occur <em>before</em> the call to <code>module_init</code>, and any calls to <code>finalize_class</code> must occur <em>after</em> the call. I know this seems like a rather arbitrary rule, but it is important. Calls to <code>def</code> in the wrong place will simply be ignored, and calls to <code>finalize_class</code> in the wrong place will throw an assert. (And this assert will cause the Python interpreter to crash. So be warned.)</p>
+</div>
+
+</body>
+</html>

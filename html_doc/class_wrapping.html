@@ -7,7 +7,19 @@
 </head>
 
 <body>
-<div class="nav"><a class="nav" href="index.html">Main</a> | <a class="nav" href="celerid.html">CeleriD</a> | <a class="nav" href="conversion.html">Type conversion</a> | <a class="nav" href="func_wrapping.html">Function wrapping</a> | <a class="navcur" href="class_wrapping.html">Class wrapping</a> | <a class="nav" href="except_wrapping.html">Exception wrapping</a> | <a class="nav" href="dpyobject.html">DPyObject</a></div>
+<div id="nav">
+<p><big>Contents</big></p>
+<a class="nav" href="index.html">Main</a><br />
+<a class="nav" href="basics.html">The basics</a><br />
+<a class="nav" href="celerid.html">CeleriD</a><br />
+<a class="nav" href="conversion.html">Type conversion</a><br />
+<a class="nav" href="func_wrapping.html">Function wrapping</a><br />
+<a class="navcur" href="class_wrapping.html">Class wrapping</a><br />
+<a class="nav" href="except_wrapping.html">Exception wrapping</a><br />
+<a class="nav" href="dpyobject.html">DPyObject</a>
+</div>
+
+<div id="content">
 
 <h1>Class wrapping</h1>
 
@@ -49,6 +61,10 @@
 <p><code>template is_wrapped(<span class="t_arg">T</span>);</code></p>
 
 <p>If you have a class <code>Foo</code>, you can check whether it is wrapped by simply checking whether <code>is_wrapped!(Foo)</code> is true. It is important to note that this is <em>not</em> a <code>const bool</code>, it is a <em>runtime</em> check.</p>
+
+<h3>Automatic operator overloading</h3>
+
+<p><i>Docs coming soon...</i></p>
 
 <h3>Examples</h3>
 
@@ -103,6 +119,8 @@ Hello! i is 20
 &gt;&gt;&gt; h.bar()
 Hey, i+3 is 6
 &gt;&gt;&gt; </pre>
+
+</div>
 
 </body>
 </html>
