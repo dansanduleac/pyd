@@ -25,6 +25,7 @@ div#nav {
     line-height: 140%;
     width: 150px;
 }
+/* navbar links */
 a.nav {
     text-decoration: none;
     font-weight: bold;
@@ -40,6 +41,7 @@ a.nav:hover {
     color: black;
     background-color: #d8d8d8;
 }
+/* the current navbar link */
 a.navcur {
     text-decoration: none;
     font-weight: bold;
@@ -56,6 +58,18 @@ a.navcur:hover {
     color: #f0f0f0;
     background-color: #305880;
 }
+/* section header anchors */
+a.anchor {
+    color: black;
+}
+a.anchor:active {
+    color: black;
+}
+a.anchor:hover {
+    text-decoration: none;
+    background-color: #d8d8d8;
+}
+/* normal links */
 a {
     color: #103860;
 }

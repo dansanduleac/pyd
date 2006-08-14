@@ -62,11 +62,22 @@
 
 <p>If you have a class <code>Foo</code>, you can check whether it is wrapped by simply checking whether <code>is_wrapped!(Foo)</code> is true. It is important to note that this is <em>not</em> a <code>const bool</code>, it is a <em>runtime</em> check.</p>
 
-<h3>Automatic operator overloading</h3>
+<h3><a class="anchor" name="opwrap">Automatic operator overloading</a></h3>
 
-<p><i>Docs coming soon...</i></p>
+<p>Pyd will automatically wrap most of D's operator overload functions with appropriate Python operator overloads. There are some caveats:</p>
 
-<h3>Examples</h3>
+<ul>
+<li>Pyd will only automatically wrap the lexically first <i>opFunc</i> defined for a given <i>opFunc</i>. <i>(In the future, I may add a mechanism allowing a user to specifiy a specific overload of an opFunc.)</i></li>
+<li>The usual rules for function wrapping apply: Only an <i>opFunc</i> whose return type and arguments are <a href="conversion.html">convertable</a> may be wrapped. <i>(The current implementation is pretty dumb: If the lexically first opFunc has an unconvertable return type or argument, the operator overload will still be wrapped, but won't work.)</i></li>
+</ul>
+
+<p>At the moment, only the following operator overloads are supported:</p>
+
+<p><code>opAdd, opSub, opMul, opDiv, opMod, opAnd, opOr, opXor, opShl, opShr, opCat, opAddAssign, opSubAssign, opMulAssign, opDivAssign, opModAssign, opAndAssign, opOrAssign, opXorAssign, opShlAssign, opShrAssign, opCatAssign, opIn_r</code></p>
+
+<p>Most notably missing from this list are <code>opIndex, opIndexAssign, opSlice, opSliceAssign, opCall</code>, and <code>opApply</code>. Support for these operators is forthcoming. Also missing from the list are <code>opUShr</code> and <code>opUShrAssign</code>. Python does not have an unsigned right-shift operator, so these operator overloads are not supported. (You may still wrap them with a normal method using <code>wrapped_class.def</code>, of course.)</p>
+
+<h3><a class="anchor" name="examples">Examples</a></h3>
 
 <p>Suppose we have the following simple class:</p>
 
@@ -77,12 +88,17 @@
 
     <span class="keyword">this</span>() { m_i = <span class="number">0</span>; }
     <span class="keyword">this</span>(<span class="keyword">int</span> j) { m_i = j; }
+    <span class="keyword">this</span>(<span class="keyword">int</span> j, <span class="keyword">int</span> k) { m_i = j + k; }
 
     <span class="keyword">int</span> i() { <span class="keyword">return</span> m_i; }
     <span class="keyword">void</span> i(<span class="keyword">int</span> j) { m_i = j; }
 
     <span class="keyword">void</span> foo(<span class="keyword">char</span>[] s) {
         writefln(s, m_i);
+    }
+
+    Foo opAdd(Foo rhs) {
+        <span class="keyword">return new</span> Foo(m_i + rhs.m_i);
     }
 }</pre>
 
@@ -94,8 +110,8 @@ wrapped_class!(Foo, <span class="string">"Foo"</span>) f;
 f.def!(Foo.foo, <span class="string">"foo"</span>);
 <span class="comment">// Wrap the "i" property</span>
 f.prop!(Foo.i, <span class="string">"i"</span>);
-<span class="comment">// Wrap the constructor.</span>
-f.init!(tuple!(<span class="keyword">int</span>));
+<span class="comment">// Wrap the constructors.</span>
+f.init!(tuple!(<span class="keyword">int</span>), tuple!(<span class="keyword">int</span>, <span class="keyword">int</span>));
 finalize_class(f);</pre>
 
 <p>Now we can use this type from within Python like any other type.</p>
@@ -107,9 +123,15 @@ finalize_class(f);</pre>
 &gt;&gt;&gt; f.i = 20
 &gt;&gt;&gt; f.foo("Hello! i is ")
 Hello! i is 20
+&gt;&gt;&gt; f = Foo(10, 10)
+&gt;&gt;&gt; f.i
+20
 &gt;&gt;&gt; g = Foo(30)
 &gt;&gt;&gt; g.i
 30
+&gt;&gt;&gt; e = f + g
+&gt;&gt;&gt; e.i
+50
 &gt;&gt;&gt; # We can even subclass our D type
 &gt;&gt;&gt; class MyFoo(Foo):
 ... 	def bar(self):
