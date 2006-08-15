@@ -330,8 +330,8 @@ template opCatAssign_wrap(T) {
 
 
 template opIn_wrap(T) {
-    static if (is(typeof(&T.opIn))) {
-        const binaryfunc opIn_wrap = &opfunc_binary_wrap!(T, T.opIn).func;
+    static if (is(typeof(&T.opIn_r))) {
+        const binaryfunc opIn_wrap = &opfunc_binary_wrap!(T, T.opIn_r).func;
     } else {
         const binaryfunc opIn_wrap = null;
     }

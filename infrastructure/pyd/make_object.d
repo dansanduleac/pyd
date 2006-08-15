@@ -62,8 +62,6 @@ private template isAA(T) {
     const bool isAA = is(typeof(T.init.values[0])[typeof(T.init.keys[0])] == T);
 }
 
-///
-template _py(T) {
 /**
  * Returns a new (owned) reference to a Python object based on the passed
  * argument. If the passed argument is a PyObject*, this "steals" the
@@ -74,10 +72,7 @@ template _py(T) {
  * If the passed argument can't be converted to a PyObject, a Python
  * RuntimeError will be raised and this function will return null.
  */
-// I reverted these to the old-style function templates as ddoc can't seem to
-// handle the new style.
-//PyObject* _py(T) (T t) {
-PyObject* _py(T t) {
+PyObject* _py(T) (T t) {
     static if (is(T : bool)) {
         PyObject* temp = (t) ? Py_True : Py_False;
         Py_INCREF(temp);
@@ -145,18 +140,7 @@ PyObject* _py(T t) {
     } else static if (is(T == class)) {
         // Put only if it actually is a wrapped type. :-)
         if (is_wrapped!(T)) {
-            // Allocate the object
-            wrapped_class_object!(T)* obj =
-                cast(wrapped_class_object!(T)*)wrapped_class_type!(T).tp_new(&wrapped_class_type!(T), null, null);
-            obj.d_obj = t;
-            // Add the reference to the class's reference AA to help keep the
-            // GC happy.
-            if (t in wrap_class_instances!(T)) {
-                wrap_class_instances!(T)[t] = wrap_class_instances!(T)[t] + 1;
-            } else {
-                wrap_class_instances!(T)[t] = 1;
-            }
-            return cast(PyObject*)obj;
+            return WrapPyObject_FromObject(t);
         }
         // If it's not a wrapped type, fall through to the exception.
     // This just passes the argument right back through without changing
@@ -167,10 +151,7 @@ PyObject* _py(T t) {
     PyErr_SetString(PyExc_RuntimeError, "D conversion function _py failed with type " ~ typeid(T).toString());
     return null;
 }
-} /* end template _py */
 
-///
-template py(T) {
 /**
  * Constructs an object based on the type of the argument passed in.
  *
@@ -181,17 +162,13 @@ template py(T) {
  *
  * Calling this with a PyObject* will "steal" the reference.
  */
-// I reverted these to the old-style function templates as ddoc can't seem to
-// handle the new style.
-//DPyObject py(T) (T t) {
-DPyObject py(T t) {
+DPyObject py(T) (T t) {
     static if(is(T : DPyObject)) {
         return t;
     } else {
         return new DPyObject(_py(t));
     }
 }
-} /* end template py */
 
 /**
  * An exception class used by d_type.
@@ -200,8 +177,6 @@ class DPyConversionException : Exception {
     this(char[] msg) { super(msg); }
 }
 
-///
-template d_type(T) {
 /**
  * This converts a PyObject* to a D type. The template argument is the type to
  * convert to. The function argument is the PyObject* to convert. For instance:
@@ -213,10 +188,7 @@ template d_type(T) {
  * This throws a DPyConversionException if the PyObject can't be converted to
  * the given D type.
  */
-// I reverted these to the old-style function templates as ddoc can't seem to
-// handle the new style.
-//T d_type(T) (PyObject* o) {
-T d_type(PyObject* o) {
+T d_type(T) (PyObject* o) {
     // This ordering is very important. If the check for bool came first,
     // then all integral types would be converted to bools (they would be
     // 0 or 1), because bool can be implicitly converted to any integral
@@ -239,7 +211,7 @@ T d_type(PyObject* o) {
         // We can only convert to a class if it has been wrapped, and of course
         // we can only convert the object if it is the wrapped type.
         if (is_wrapped!(T) && PyObject_TypeCheck(o, &wrapped_class_type!(T))) {
-            return (cast(wrapped_class_object!(T)*)o).d_obj;
+            return WrapPyObject_AsObject!(T)(o);
         }
         // Otherwise, throw up an exception.
         could_not_convert!(T)(o);
@@ -298,7 +270,6 @@ T d_type(PyObject* o) {
         could_not_convert!(T)(o);
     }
 }
-} /* end template d_type */
 
 private
 void could_not_convert(T) (PyObject* o) {

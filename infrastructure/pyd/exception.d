@@ -28,15 +28,73 @@ private import std.string;
  * This function first checks if a Python exception is set, and then (if one
  * is) pulls it out, stuffs it in a PythonException, and throws that exception.
  *
- * If this exception is never caught, it will be handled by the function
- * wrapping template and passed right back into Python as though nothing
- * happened.
+ * If this exception is never caught, it will be handled by exception_catcher
+ * (below) and passed right back into Python as though nothing happened.
  */
 void handle_exception() {
     PyObject* type, value, traceback;
     if (PyErr_Occurred() !is null) {
         PyErr_Fetch(&type, &value, &traceback);
         throw new PythonException(type, value, traceback);
+    }
+}
+
+/**
+ * It is intended that any functions that interface directly with Python which
+ * have the possibility of a D exception being raised wrap their contents in a
+ * call to this function, e.g.:
+ *
+ *$(D_CODE extern (C)
+ *PyObject* some_func(PyObject* self) {
+ *    return _exception_catcher({
+ *        // ...
+ *    });
+ *})
+ */
+PyObject* exception_catcher(PyObject* delegate() dg) {
+    try {
+        return dg();
+    }
+    // A Python exception was raised and duly re-thrown as a D exception.
+    // It should now be re-raised as a Python exception.
+    catch (PythonException e) {
+        PyErr_Restore(e.type(), e.value(), e.traceback());
+        return null;
+    }
+    // A D exception was raised and should be translated into a meaningful
+    // Python exception.
+    catch (Exception e) {
+        PyErr_SetString(PyExc_RuntimeError, "D Exception: " ~ e.classinfo.name ~ ": " ~ e.msg ~ \0);
+        return null;
+    }
+    // Some other D object was thrown. Deal with it.
+    catch (Object o) {
+        PyErr_SetString(PyExc_RuntimeError, "thrown D Object: " ~ o.classinfo.name ~ ": " ~ o.toString() ~ \0);
+        return null;
+    }
+}
+
+// XXX: Some way to combine this with the above?
+int exception_catcher(int delegate() dg) {
+    try {
+        return dg();
+    }
+    // A Python exception was raised and duly re-thrown as a D exception.
+    // It should now be re-raised as a Python exception.
+    catch (PythonException e) {
+        PyErr_Restore(e.type(), e.value(), e.traceback());
+        return -1;
+    }
+    // A D exception was raised and should be translated into a meaningful
+    // Python exception.
+    catch (Exception e) {
+        PyErr_SetString(PyExc_RuntimeError, "D Exception: " ~ e.classinfo.name ~ ": " ~ e.msg ~ \0);
+        return -1;
+    }
+    // Some other D object was thrown. Deal with it.
+    catch (Object o) {
+        PyErr_SetString(PyExc_RuntimeError, "thrown D Object: " ~ o.classinfo.name ~ ": " ~ o.toString() ~ \0);
+        return -1;
     }
 }
 

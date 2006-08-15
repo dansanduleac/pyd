@@ -33,10 +33,17 @@ _pydFiles = [
     'exception.d',
     'ftype.d',
     'func_wrap.d',
+    'iteration.d',
     'make_object.d',
     'op_wrap.d',
     'pyd.d',
     'tuples.d',
+]
+
+_stFiles = [
+    'coroutine.d',
+    'stackcontext.d',
+    'stackthread.d',
 ]
 
 _pyVerXDotY = '.'.join(str(v) for v in sys.version_info[:2]) # e.g., '2.4'
@@ -124,7 +131,7 @@ class DCompiler(cc.CCompiler):
 
         binpath = _qp(self._binpath)
         compileOpts = self._compileOpts
-        #outputOpts = self._outputOpts
+        outputOpts = self._outputOpts
 
         includePathOpts = []
         
@@ -149,7 +156,15 @@ class DCompiler(cc.CCompiler):
                     " missing." % filePath
                 )
             sources.append(filePath)
-        # Add the pyd directory to the include path
+        # And StackThreads
+        for file in _stFiles:
+            filePath = os.path.join(_infraDir, 'st', file)
+            if not os.path.isfile(filePath):
+                raise DistutilsPlatformError("Required StackThreads source"
+                    "file '%s' is missing." % filePath
+                )
+            sources.append(filePath)
+        # Add the infraDir to the include path for Pyd and ST
         includePathOpts += self._includeOpts
         includePathOpts[-1] = includePathOpts[-1] % os.path.join(_infraDir)
         
@@ -198,35 +213,47 @@ class DCompiler(cc.CCompiler):
         else:
             optimizationOpts = self._defaultOptimizeOpts
 
-        #for source in sources:
-            #outOpts = outputOpts[:]
-            #objName = self.object_filenames([os.path.split(source)[1]], 0, output_dir)[0]
-            #outOpts[-1] = outOpts[-1] % _qp(objName)
-            #cmdElements = (
-            #    [binpath] + extra_preargs + compileOpts +
-            #    [pythonVersionOpt, self._unicodeOpt] + optimizationOpts +
-            #    includePathOpts + outOpts + userVersionAndDebugOpts +
-            #    [_qp(source)] + extra_postargs
-            #)
-        # gdc/gcc doesn't support the idea of an output directory, so we
-        # compile from the destination
-        sources = [_qp(os.path.abspath(s)) for s in sources]
-        cwd = os.getcwd()
-        os.chdir(output_dir)
-        cmdElements = (
-            [binpath] + extra_preargs + compileOpts +
-            [pythonVersionOpt, self._unicodeOpt] + optimizationOpts +
-            includePathOpts + userVersionAndDebugOpts +
-            sources + extra_postargs
-        )
-        cmdElements = [el for el in cmdElements if el]
-
-        try:
-            self.spawn(cmdElements)
-        except DistutilsExecError, msg:
+        print 'sources: ', [os.path.basename(s) for s in sources]
+        # Compiling one-by-one exhibits a strange bug in the D front-end, while
+        # compiling all at once works. This flags allows me to test each form
+        # easily. Supporting the one-by-one form is synonymous with GDC support.
+        ONE_BY_ONE = False
+        if ONE_BY_ONE:
+            for source in sources:
+                outOpts = outputOpts[:]
+                objName = self.object_filenames([os.path.split(source)[1]], 0, output_dir)[0]
+                outOpts[-1] = outOpts[-1] % _qp(objName)
+                cmdElements = (
+                    [binpath] + extra_preargs + compileOpts +
+                    [pythonVersionOpt, self._unicodeOpt] + optimizationOpts +
+                    includePathOpts + outOpts + userVersionAndDebugOpts +
+                    [_qp(source)] + extra_postargs
+                )
+                cmdElements = [el for el in cmdElements if el]
+                try:
+                    self.spawn(cmdElements)
+                except DistutilsExecError, msg:
+                    raise CompileError(msg)
+        else:
+            # gdc/gcc doesn't support the idea of an output directory, so we
+            # compile from the destination
+            sources = [_qp(os.path.abspath(s)) for s in sources]
+            cwd = os.getcwd()
+            os.chdir(output_dir)
+            cmdElements = (
+                [binpath] + extra_preargs + compileOpts +
+                [pythonVersionOpt, self._unicodeOpt] + optimizationOpts +
+                includePathOpts + userVersionAndDebugOpts +
+                sources + extra_postargs
+            )
+            cmdElements = [el for el in cmdElements if el]
+    
+            try:
+                self.spawn(cmdElements)
+            except DistutilsExecError, msg:
+                #os.chdir(cwd)
+                raise CompileError(msg)
             os.chdir(cwd)
-            raise CompileError(msg)
-        os.chdir(cwd)
 
         return [os.path.join(output_dir, fn) for fn in os.listdir(output_dir) if fn.endswith(self.obj_extension)]
 

@@ -52,6 +52,14 @@ class Foo {
         writefln("Foo.foo(): i = %s", m_i);
     }
     Foo opAdd(Foo f) { return new Foo(m_i + f.m_i); }
+    int opApply(int delegate(inout int) dg) {
+        int result = 0;
+        for (int i=0; i<10; ++i) {
+            result = dg(i);
+            if (result) break;
+        }
+        return result;
+    }
     int i() { return m_i; }
     void i(int j) { m_i = j; }
 }

@@ -30,6 +30,10 @@ print
 a = testdll.Foo(10)
 a.foo()
 
+print "Testing opApply wrapping:"
+for i in a:
+    print i
+
 print
 
 print '--------'

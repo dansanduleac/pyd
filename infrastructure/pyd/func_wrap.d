@@ -41,7 +41,7 @@ template DPyFunc_FromDG(T, uint MIN_ARGS=NumberOfArgs!(T)) {
             type.ob_type = PyType_Type_p;
             type.tp_basicsize = obj.sizeof;
             type.tp_name = "DPyFunc";
-            type.tp_call = &wrapped_func_call!(T/*, MIN_ARGS*/).call;
+            type.tp_call = &wrapped_func_call!(T).call;
             PyType_Ready(&type);
             is_wrapped!(T) = true;
             wrapped_classes[typeid(T)] = true;
@@ -111,9 +111,12 @@ ReturnType!(fn_t) py_call(fn_t, PY)(fn_t fn, PY* args) {
     }
 }
 
-template wrapped_func_call(fn_t/*, uint MIN_ARGS*/) {
+template wrapped_func_call(fn_t) {
     const uint MAX_ARGS = NumberOfArgs!(fn_t);
     alias ReturnType!(fn_t) RetType;
+    // The entry for the tp_call slot of the DPyFunc types.
+    // (Or: What gets called when you pass a delegate or function pointer to
+    // Python.)
     extern(C)
     PyObject* call(PyObject* self, PyObject* args, PyObject* kwds) {
         if (self is null) {
@@ -122,31 +125,17 @@ template wrapped_func_call(fn_t/*, uint MIN_ARGS*/) {
         }
 
         fn_t fn = (cast(wrapped_class_object!(fn_t)*)self).d_obj;
-        PyObject* ret;
+        //PyObject* ret;
 
-        try {
+        return exception_catcher({
             static if (is(RetType == void)) {
-                py_call/+!(fn_t/*, MIN_ARGS*/)+/(fn, args);
+                py_call(fn, args);
                 Py_INCREF(Py_None);
-                ret = Py_None;
+                return Py_None;
             } else {
-                ret = _py( py_call/+!(fn_t/*, MIN_ARGS*/)+/(fn, args) );
+                return _py( py_call(fn, args) );
             }
-        }
-
-        // A Python exception was raised and duly re-thrown as a D exception.
-        // It should now be re-raised as a Python exception.
-        catch (PythonException e) {
-            PyErr_Restore(e.type(), e.value(), e.traceback());
-            return null;
-        }
-        // A D exception was raised and should be translated into a meaningful
-        // Python exception.
-        catch (Exception e) {
-            PyErr_SetString(PyExc_RuntimeError, "D Exception: " ~ e.classinfo.name ~ ": " ~ e.msg ~ \0);
-            return null;
-        }
-        return ret;
+        });
     }
 }
 
@@ -213,7 +202,9 @@ template func_wrap(alias real_fn, uint MIN_ARGS, C=void, fn_t=typeof(&real_fn)) 
 
     extern (C)
     PyObject* func(PyObject* self, PyObject* args) {
-        try {
+        // For some reason, D can't infer the return type of this function
+        // literal...
+        return exception_catcher(delegate PyObject*() {
             // If C is specified, then this is a method call. We need to pull out
             // the object in self and turn the member function pointer in real_fn
             // into a delegate. This conversion is done with a dirty hack; see
@@ -238,21 +229,7 @@ template func_wrap(alias real_fn, uint MIN_ARGS, C=void, fn_t=typeof(&real_fn)) 
             } else {
                 return tuple_py_call(func_range!(real_fn, MIN_ARGS)(), args);
             }
-        }
-
-        // A Python exception was raised and duly re-thrown as a D exception.
-        // It should now be re-raised as a Python exception.
-        catch (PythonException e) {
-            PyErr_Restore(e.type(), e.value(), e.traceback());
-            return null;
-        }
-        // A D exception was raised and should be translated into a meaningful
-        // Python exception.
-        catch (Exception e) {
-            PyErr_SetString(PyExc_RuntimeError, "D Exception: " ~ e.classinfo.name ~ ": " ~ e.msg ~ \0);
-            return null;
-        }
-        //return wrapped_func_call!(typeof(fn), MIN_ARGS).call(cast(PyObject*)&fn_obj, args, null);
+        });
     }
 }
 

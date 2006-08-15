@@ -25,8 +25,10 @@ private import python;
 
 private import pyd.ctor_wrap;
 private import pyd.def;
+private import pyd.exception;
 private import pyd.ftype;
 private import pyd.func_wrap;
+private import pyd.iteration;
 private import pyd.make_object;
 private import pyd.op_wrap;
 private import pyd.tuples;
@@ -110,27 +112,26 @@ template wrapped_methods(T) {
     /// The generic "__new__" method
     extern(C)
     PyObject* wrapped_new(PyTypeObject* type, PyObject* args, PyObject* kwds) {
-        wrap_object* self;
+        return exception_catcher(delegate PyObject*() {
+            wrap_object* self;
 
-        self = cast(wrap_object*)type.tp_alloc(type, 0);
-        if (self !is null) {
-            self.d_obj = null;
-        }
+            self = cast(wrap_object*)type.tp_alloc(type, 0);
+            if (self !is null) {
+                self.d_obj = null;
+            }
 
-        return cast(PyObject*)self;
+            return cast(PyObject*)self;
+        });
     }
 
     /// The generic dealloc method.
     extern(C)
-    void wrapped_dealloc(PyObject* _self) {
-        wrap_object* self = cast(wrap_object*)_self;
-        if (self.d_obj !is null) {
-            wrap_class_instances!(T)[self.d_obj]--;
-            if (wrap_class_instances!(T)[self.d_obj] <= 0) {
-                wrap_class_instances!(T).remove(self.d_obj);
-            }
-        }
-        self.ob_type.tp_free(self);
+    void wrapped_dealloc(PyObject* self) {
+        exception_catcher(delegate PyObject*() {
+            WrapPyObject_SetObj(self, null);
+            self.ob_type.tp_free(self);
+            return null;
+        });
     }
 }
 
@@ -139,9 +140,11 @@ template wrapped_repr(T) {
     /// The default repr method calls the class's toString.
     extern(C)
     PyObject* repr(PyObject* _self) {
-        wrap_object* self = cast(wrap_object*)_self;
-        char[] repr = self.d_obj.toString();
-        return _py(repr);
+        return exception_catcher({
+            wrap_object* self = cast(wrap_object*)_self;
+            char[] repr = self.d_obj.toString();
+            return _py(repr);
+        });
     }
 }
 
@@ -151,10 +154,10 @@ template wrapped_init(T) {
     /// The default _init method calls the class's zero-argument constructor.
     extern(C)
     int init(PyObject* self, PyObject* args, PyObject* kwds) {
-        T t = new T;
-        (cast(wrap_object*)self).d_obj = t;
-        wrap_class_instances!(T)[t] = 1;
-        return 0;
+        return exception_catcher({
+            WrapPyObject_SetObj(self, new T);
+            return 0;
+        });
     }
 }
 
@@ -181,6 +184,7 @@ template wrapped_get(T, alias Fn) {
     /// A generic wrapper around a "getter" property.
     extern(C)
     PyObject* func(PyObject* self, void* closure) {
+        // func_wrap already catches exceptions
         return func_wrap!(Fn, 0, T, property_parts!(Fn).getter_type).func(self, null);
     }
 }
@@ -192,12 +196,15 @@ template wrapped_set(T, alias Fn) {
     int func(PyObject* self, PyObject* value, void* closure) {
         PyObject* temp_tuple = PyTuple_New(1);
         if (temp_tuple is null) return -1;
+        scope(exit) Py_DECREF(temp_tuple);
         Py_INCREF(value);
         PyTuple_SetItem(temp_tuple, 0, value);
         PyObject* res = func_wrap!(Fn, 1, T, property_parts!(Fn).setter_type).func(self, temp_tuple);
-        // We'll get something back, and need to DECREF it.
-        Py_DECREF(res);
-        Py_DECREF(temp_tuple);
+        // If we get something back, we need to DECREF it.
+        if (res) Py_DECREF(res);
+        // If we don't, propagate the exception
+        else return -1;
+        // Otherwise, all is well.
         return 0;
     }
 }
@@ -340,6 +347,11 @@ void finalize_class(CLS) (CLS cls) {
     if (wrapped_class_as_number!(T) != PyNumberMethods.init) {
         type.tp_as_number = &wrapped_class_as_number!(T);
     }
+
+    static if (is(typeof(&T.opApply))) {
+        DPySC_Ready();
+        type.tp_iter = &wrapped_iter!(T).iter;
+    }
     
     // If a ctor wasn't supplied, try the default.
     if (type.tp_init is null) {
@@ -354,4 +366,51 @@ void finalize_class(CLS) (CLS cls) {
     PyModule_AddObject(DPy_Module_p, name, cast(PyObject*)&type);
     is_wrapped!(T) = true;
     wrapped_classes[typeid(T)] = true;
+}
+
+/**
+ * Returns a new Python object of a wrapped type.
+ */
+PyObject* WrapPyObject_FromObject(T) (T t) {
+    alias wrapped_class_object!(T) wrapped_object;
+    alias wrapped_class_type!(T) type;
+    if (is_wrapped!(T)) {
+        // Allocate the object
+        wrapped_object* obj =
+            cast(wrapped_object*)type.tp_new(&type, null, null);
+        // Set the contained instance
+        WrapPyObject_SetObj(obj, t);
+        return cast(PyObject*)obj;
+    } else {
+        PyErr_SetString(PyExc_RuntimeError, "Type " ~ typeid(T).toString() ~ " is not wrapped by Pyd.");
+        return null;
+    }
+}
+
+T WrapPyObject_AsObject(T) (PyObject* _self) {
+    alias wrapped_class_object!(T) wrapped_object;
+    alias wrapped_class_type!(T) type;
+    wrapped_object* self = cast(wrapped_object*)_self;
+    if (!is_wrapped!(T) || self is null || !PyObject_TypeCheck(_self, &type)) {
+        // Throw something
+    }
+    return self.d_obj;
+}
+
+/**
+ * Sets the contained object in self to t.
+ */
+void WrapPyObject_SetObj(PY, T) (PY* _self, T t) {
+    alias wrapped_class_object!(T) obj;
+    obj* self = cast(obj*)_self;
+    // Clean up the old object, if there is one
+    if (self.d_obj !is null) {
+        wrap_class_instances!(T)[self.d_obj]--;
+        if (wrap_class_instances!(T)[self.d_obj] <= 0) {
+            wrap_class_instances!(T).remove(self.d_obj);
+        }
+    }
+    self.d_obj = t;
+    // Handle the new one, if there is one
+    if (t !is null) wrap_class_instances!(T)[t]++;
 }
