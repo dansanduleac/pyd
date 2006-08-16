@@ -52,10 +52,12 @@ class Foo {
         writefln("Foo.foo(): i = %s", m_i);
     }
     Foo opAdd(Foo f) { return new Foo(m_i + f.m_i); }
-    int opApply(int delegate(inout int) dg) {
+    int opApply(int delegate(inout int, inout int) dg) {
         int result = 0;
+        int j;
         for (int i=0; i<10; ++i) {
-            result = dg(i);
+            j = i+1;
+            result = dg(i, j);
             if (result) break;
         }
         return result;

@@ -122,8 +122,6 @@ NumberOfArgsSwitchT(Tf)
         alias NumberOfArgsT!(Tf).type type;
     else static if( is( Tf U == delegate ) )
         alias NumberOfArgsSwitchT!(U*).type type;
-    else static if( (is( T == class ) || is( T == struct )) && is(typeof(&T.opCall)) )
-        alias NumberOfArgsSwitchT!(typeof(&T.opCall)).type type;
 }
 
 /**
@@ -144,7 +142,6 @@ NumberOfArgs(Tf)
     const uint NumberOfArgs = ArglenConvT!(NumberOfArgsSwitchT!(Tf).type);
 }
 
-/* NumberOfArgsInout */
 template
 ArgleninoutT(Tr)
 {
@@ -245,19 +242,14 @@ NumberOfArgsInout(Tf)
     const uint NumberOfArgsInout = ArglenConvT!(NumberOfArgsSwitchInoutT!(Tf).type);
 }
 
-/* ReturnType */
-
 template
 ReturnTypeT(Tf)
 {
     private Tf fptr;
-    //pragma(msg, Tf);
     static if( is( typeof(*Tf) U == function ) )
         alias U type;
     else static if( is( Tf U == delegate ) )
         alias ReturnType!(U*) type;
-    else static if( (is( T == class ) || is( T == struct )) && is(typeof(&T.opCall)) )
-        alias ReturnTypeT!(typeof(&T.opCall)).type type;
     else
         static assert(false, "ReturnType argument must be function pointer"
                 " or delegate.");
@@ -649,8 +641,6 @@ ArgTypeSwitchT(Tf, uint n)
         alias ArgTypeT!(Tf, n).type type;
     else static if( is( Tf U == delegate ) )
         alias ArgTypeSwitchT!(U*, n).type type;
-    else static if( (is( T == class ) || is( T == struct )) && is(typeof(&T.opCall)) )
-        alias ArgTypeSwitchT!(typeof(&T.opCall)).type type;
     else
         static assert(false, "ArgType argument must be a function pointer"
                 " or a delegate.");
@@ -672,45 +662,6 @@ template
 ArgType(Tf, uint n)
 {
     alias ArgTypeSwitchT!(Tf, n).type ArgType;
-}
-
-template MIN_ARGS_T(alias fn) {
-    alias typeof(&fn) fn_t;
-    static if (is(typeof(fn())))
-        const uint MIN_ARGS = 0;
-    else static if (is(typeof(fn(ArgType!(fn_t, 1).init))))
-        const uint MIN_ARGS = 1;
-    else static if (is(typeof(fn(ArgType!(fn_t, 1).init, ArgType!(fn_t, 2).init))))
-        const uint MIN_ARGS = 2;
-    else static if (is(typeof(fn(ArgType!(fn_t, 1).init, ArgType!(fn_t, 2).init, ArgType!(fn_t, 3).init))))
-        const uint MIN_ARGS = 3;
-    else static if (is(typeof(fn(ArgType!(fn_t, 1).init, ArgType!(fn_t, 2).init, ArgType!(fn_t, 3).init, ArgType!(fn_t, 4).init))))
-        const uint MIN_ARGS = 4;
-    else static if (is(typeof(fn(ArgType!(fn_t, 1).init, ArgType!(fn_t, 2).init, ArgType!(fn_t, 3).init, ArgType!(fn_t, 4).init, ArgType!(fn_t, 5).init))))
-        const uint MIN_ARGS = 5;
-    else static if (is(typeof(fn(ArgType!(fn_t, 1).init, ArgType!(fn_t, 2).init, ArgType!(fn_t, 3).init, ArgType!(fn_t, 4).init, ArgType!(fn_t, 5).init, ArgType!(fn_t, 6).init))))
-        const uint MIN_ARGS = 6;
-    else static if (is(typeof(fn(ArgType!(fn_t, 1).init, ArgType!(fn_t, 2).init, ArgType!(fn_t, 3).init, ArgType!(fn_t, 4).init, ArgType!(fn_t, 5).init, ArgType!(fn_t, 6).init, ArgType!(fn_t, 7).init))))
-        const uint MIN_ARGS = 7;
-    else static if (is(typeof(fn(ArgType!(fn_t, 1).init, ArgType!(fn_t, 2).init, ArgType!(fn_t, 3).init, ArgType!(fn_t, 4).init, ArgType!(fn_t, 5).init, ArgType!(fn_t, 6).init, ArgType!(fn_t, 7).init, ArgType!(fn_t, 8).init))))
-        const uint MIN_ARGS = 8;
-    else static if (is(typeof(fn(ArgType!(fn_t, 1).init, ArgType!(fn_t, 2).init, ArgType!(fn_t, 3).init, ArgType!(fn_t, 4).init, ArgType!(fn_t, 5).init, ArgType!(fn_t, 6).init, ArgType!(fn_t, 7).init, ArgType!(fn_t, 8).init, ArgType!(fn_t, 9).init))))
-        const uint MIN_ARGS = 9;
-    else static if (is(typeof(fn(ArgType!(fn_t, 1).init, ArgType!(fn_t, 2).init, ArgType!(fn_t, 3).init, ArgType!(fn_t, 4).init, ArgType!(fn_t, 5).init, ArgType!(fn_t, 6).init, ArgType!(fn_t, 7).init, ArgType!(fn_t, 8).init, ArgType!(fn_t, 9).init, ArgType!(fn_t, 10).init))))
-        const uint MIN_ARGS = 10;
-}
-
-/**
- * This template will attempt to determine the minimum number of arguments a
- * function can accept. Note that this accepts an alias parameter rather than a
- * function pointer type, as the function and delegate types contain no
- * information about default arguments.
- *
- * (Written by Kirk McDonald.)
- */
-public
-template MIN_ARGS(alias fn) {
-    alias MIN_ARGS_T!(fn).MIN_ARGS MIN_ARGS;
 }
 
 /* *** Unit tests *** */

@@ -22,13 +22,14 @@ SOFTWARE.
 
 /**
  * This module provides the support for wrapping opApply with Python's
- * iteration interface using Mikola Lysenko's StackThreads module.
+ * iteration interface using Mikola Lysenko's StackThreads package.
  */
 module pyd.iteration;
 
 private import python;
 private import pyd.class_wrap;
 private import pyd.exception;
+private import pyd.ftype;
 private import pyd.make_object;
 private import st.stackcontext;
 
@@ -42,12 +43,88 @@ class DPyYield : Exception {
     PyObject* item() { return m_py; }
 }
 
+// Makes a PyTuple and "steals" all of the passed references
+PyObject* _make_pytuple(PyObject*[] pyobjs ...) {
+    PyObject* temp = PyTuple_New(pyobjs.length);
+    if (temp is null) {
+        foreach (PyObject* o; pyobjs) {
+            Py_DECREF(o);
+        }
+        return null;
+    }
+    foreach (uint i, PyObject* o; pyobjs) {
+        PyTuple_SetItem(temp, i, o);
+    }
+    return temp;
+}
+
 // Creates an iterator object from an object.
 PyObject* DPySC_FromWrapped(T) (T obj) {
+    // Get the number of args the opApply's delegate argument takes
+    const uint ARGS = NumberOfArgsInout!(ArgType!(typeof(&T.opApply), 1));
     auto sc = new StackContext(delegate void() {
         T t = obj;
-        foreach (i; t) {
-            StackContext.throwYield(new DPyYield(_py(i)));
+        PyObject* temp;
+        // I seriously doubt I need to support up to ten (10!) arguments to the
+        // opApply delegate, but everything else in Pyd does, so here we go.
+        static if (ARGS == 1) {
+            foreach (i; t) {
+                StackContext.throwYield(new DPyYield(_py(i)));
+            }
+        } else static if (ARGS == 2) {
+            foreach (a0, a1; t) {
+                temp = _make_pytuple(_py(a0), _py(a1));
+                if (temp is null) StackContext.throwYield(new DPyYield(null));
+                StackContext.throwYield(new DPyYield(temp));
+            }
+        } else static if (ARGS == 3) {
+            foreach (a0, a1, a2; t) {
+                temp = _make_pytuple(_py(a0), _py(a1), _py(a2));
+                if (temp is null) StackContext.throwYield(new DPyYield(null));
+                StackContext.throwYield(new DPyYield(temp));
+            }
+        } else static if (ARGS == 4) {
+            foreach (a0, a1, a2, a3; t) {
+                temp = _make_pytuple(_py(a0), _py(a1), _py(a2), _py(a3));
+                if (temp is null) StackContext.throwYield(new DPyYield(null));
+                StackContext.throwYield(new DPyYield(temp));
+            }
+        } else static if (ARGS == 5) {
+            foreach (a0, a1, a2, a3, a4; t) {
+                temp = _make_pytuple(_py(a0), _py(a1), _py(a2), _py(a3), _py(a4));
+                if (temp is null) StackContext.throwYield(new DPyYield(null));
+                StackContext.throwYield(new DPyYield(temp));
+            }
+        } else static if (ARGS == 6) {
+            foreach (a0, a1, a2, a3, a4, a5; t) {
+                temp = _make_pytuple(_py(a0), _py(a1), _py(a2), _py(a3), _py(a4), _py(a5));
+                if (temp is null) StackContext.throwYield(new DPyYield(null));
+                StackContext.throwYield(new DPyYield(temp));
+            }
+        } else static if (ARGS == 7) {
+            foreach (a0, a1, a2, a3, a4, a5, a6; t) {
+                temp = _make_pytuple(_py(a0), _py(a1), _py(a2), _py(a3), _py(a4), _py(a5), _py(a6));
+                if (temp is null) StackContext.throwYield(new DPyYield(null));
+                StackContext.throwYield(new DPyYield(temp));
+            }
+        } else static if (ARGS == 8) {
+            foreach (a0, a1, a2, a3, a4, a5, a6, a7; t) {
+                temp = _make_pytuple(_py(a0), _py(a1), _py(a2), _py(a3), _py(a4), _py(a5), _py(a6), _py(a7));
+                if (temp is null) StackContext.throwYield(new DPyYield(null));
+                StackContext.throwYield(new DPyYield(temp));
+            }
+        } else static if (ARGS == 9) {
+            foreach (a0, a1, a2, a3, a4, a5, a6, a7, a8; t) {
+                temp = _make_pytuple(_py(a0), _py(a1), _py(a2), _py(a3), _py(a4), _py(a5), _py(a6), _py(a7), _py(a8));
+                if (temp is null) StackContext.throwYield(new DPyYield(null));
+                StackContext.throwYield(new DPyYield(temp));
+            }
+        } else static if (ARGS == 10) {
+            foreach (a0, a1, a2, a3, a4, a5, a6, a7, a8, a9; t) {
+                temp = _make_pytuple(_py(a0), _py(a1), _py(a2), _py(a3), _py(a4), _py(a5), _py(a6), _py(a7), _py(a8), _py(a9));
+                if (temp is null) StackContext.throwYield(new DPyYield(null));
+                StackContext.throwYield(new DPyYield(temp));
+            }
         }
     });
     return WrapPyObject_FromObject(sc);

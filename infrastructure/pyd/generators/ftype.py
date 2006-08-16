@@ -19,10 +19,10 @@
 MAX_ARGS = 10
 
 # This is the file the module will be output to.
-OUT_FILE = "ftype.d"
+OUT_FILE = "ftype.txt"
 
 # This is the full name of the module.
-MODULE_PATH = "ftype"
+MODULE_PATH = "pyd.ftype"
 
 #
 # Everything from here on isn't very interesting :)
@@ -39,6 +39,12 @@ def typename(i):
     else:
         return "Ta%d" % i
 
+def typenameinout(i):
+    if i == 0:
+        return "Tr"
+    else:
+        return "inout Ta%d" % i
+
 def typeargs(n, omit_first=False):
     if omit_first:
         xs = range(1,n+1)
@@ -47,8 +53,19 @@ def typeargs(n, omit_first=False):
         
     return ", ".join(typename(x) for x in xs)
 
+def typeargsinout(n, omit_first=False):
+    if omit_first:
+        xs = range(1,n+1)
+    else:
+        xs = range(n+1)
+        
+    return ", ".join(typenameinout(x) for x in xs)
+
 def typefptr(n):
     return "%s function(%s)" % (typename(0), typeargs(n, True))
+
+def typefninout(n):
+    return "%s function(%s)" % (typenameinout(0), typeargsinout(n, True))
 
 def typedelegate(n):
     return "%s delegate(%s)" % (typename(0), typeargs(n, True))
@@ -165,6 +182,44 @@ NumberOfArgs(Tf)
 {
     const uint NumberOfArgs = ArglenConvT!(NumberOfArgsSwitchT!(Tf).type);
 }""" % MAX_ARGS
+
+#
+# NumberOfArgsInout
+#
+for i in range(MAX_ARGS+1):
+    print ""
+    print "template"
+    print "ArgleninoutT(%s)" % typeargs(i)
+    print "{"
+    print "    Arglen%d" % i
+    print "    ArgleninoutT(%s fn) { assert(false); }" % typefninout(i)
+    print "}"
+
+print """
+template
+NumberOfArgsInoutT(Tf)
+{
+    private Tf fptr;
+    alias typeof(ArgleninoutT(fptr)) type;
+}"""
+
+print """
+template
+NumberOfArgsSwitchInoutT(Tf)
+{
+    static if( is( typeof(*Tf) == function ) )
+        alias NumberOfArgsInoutT!(Tf).type type;
+    else static if( is( Tf U == delegate ) )
+        alias NumberOfArgsSwitchInoutT!(U*).type type;
+}"""
+
+print """
+public
+template
+NumberOfArgsInout(Tf)
+{
+    const uint NumberOfArgsInout = ArglenConvT!(NumberOfArgsSwitchInoutT!(Tf).type);
+}"""
 
 #
 # ReturnType(Tf)

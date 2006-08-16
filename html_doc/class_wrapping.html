@@ -73,9 +73,11 @@
 
 <p>At the moment, only the following operator overloads are supported:</p>
 
-<p><code>opAdd, opSub, opMul, opDiv, opMod, opAnd, opOr, opXor, opShl, opShr, opCat, opAddAssign, opSubAssign, opMulAssign, opDivAssign, opModAssign, opAndAssign, opOrAssign, opXorAssign, opShlAssign, opShrAssign, opCatAssign, opIn_r</code></p>
+<p><code>opAdd, opSub, opMul, opDiv, opMod, opAnd, opOr, opXor, opShl, opShr, opCat, opAddAssign, opSubAssign, opMulAssign, opDivAssign, opModAssign, opAndAssign, opOrAssign, opXorAssign, opShlAssign, opShrAssign, opCatAssign, opIn_r, opApply</code></p>
 
-<p>Most notably missing from this list are <code>opIndex, opIndexAssign, opSlice, opSliceAssign, opCall</code>, and <code>opApply</code>. Support for these operators is forthcoming. Also missing from the list are <code>opUShr</code> and <code>opUShrAssign</code>. Python does not have an unsigned right-shift operator, so these operator overloads are not supported. (You may still wrap them with a normal method using <code>wrapped_class.def</code>, of course.)</p>
+<p>Most notably missing from this list are <code>opIndex, opIndexAssign, opSlice, opSliceAssign</code>, and <code>opCall</code>. Support for these operators is forthcoming. Also missing from the list are <code>opUShr</code> and <code>opUShrAssign</code>. Python does not have an unsigned right-shift operator, so these operator overloads are not supported. (You may still wrap them with a normal method using <code>wrapped_class.def</code>, of course.)</p>
+
+<p>Notably <em>included</em> in the list is <code>opApply</code>. Pyd wraps D's iteration protocol with the help of Mikola Lysenko's StackThreads package.</p>
 
 <h3><a class="anchor" name="examples">Examples</a></h3>
 
