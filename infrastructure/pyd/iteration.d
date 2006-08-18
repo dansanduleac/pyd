@@ -64,6 +64,8 @@ PyObject* DPySC_FromWrapped(T) (T obj) {
     const uint ARGS = NumberOfArgsInout!(ArgType!(typeof(&T.opApply), 1));
     auto sc = new StackContext(delegate void() {
         T t = obj;
+        // So we can get the variable in the enclosing function's stack frame
+        StackContext.yield();
         PyObject* temp;
         // I seriously doubt I need to support up to ten (10!) arguments to the
         // opApply delegate, but everything else in Pyd does, so here we go.
@@ -127,6 +129,8 @@ PyObject* DPySC_FromWrapped(T) (T obj) {
             }
         }
     });
+    // Initialize the StackContext
+    sc.run();
     return WrapPyObject_FromObject(sc);
 }
 
