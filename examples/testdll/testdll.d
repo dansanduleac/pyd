@@ -5,26 +5,19 @@ import pyd.pyd;
 //import pyd.ftype;
 import std.stdio;
 
+import meta.Tuple;
+import meta.Apply;
+
 void apply_test(int i, char[] s) {
     writefln("%s %s", i, s);
 }
 
 void foo() {
-    alias tuple!(int, char[]) Tuple;
-//    alias dg_from_tuple!(void, Tuple) dg;
-    Tuple t;
-//    Tuple.TypeNo!(0) i = 20;
-//    typeof(Tuple.arg1) j = 30;
-    t.arg1 = 20;
-    t.arg2 = "Monkey";
-//    t.arg3 = 5.8;
-    apply_tuple_to_fn(t, &apply_test);
-    
-//    writefln(typeid(ArgType!(dg, 1)));
-//    writefln(typeid(TypeNo!(Tuple, 0)));
-//    writefln(typeid(Tuple.A1));
-//    writefln(typeid(dg));
-//    writefln(i, " ", j);
+    alias Tuple!(int, char[]) T;
+    T t;
+    t.val!(0) = 20;
+    t.val!(1) = "Monkey";
+    apply(&apply_test, t);
 }
 
 void foo(int i) {
@@ -46,8 +39,12 @@ void baz(int i=10, char[] s="moo") {
 class Foo {
     int m_i;
     this() { }
-    this(int i) { m_i = i; }
-    this(int i, int j) { m_i = i + j; }
+    this(int i) {
+        m_i = i;
+    }
+    this(int i, int j) {
+        m_i = i + j;
+    }
     void foo() {
         writefln("Foo.foo(): i = %s", m_i);
     }
@@ -108,7 +105,7 @@ Foo spam(Foo f) {
 
 extern (C)
 export void inittestdll() {
-    def!(foo, "foo");
+    def!(foo/*, "foo"*/);
     // Python does not support function overloading. This allows us to wrap
     // an overloading function under a different name. Note that if the
     // overload accepts a different number of minimum arguments, that number
@@ -131,7 +128,7 @@ export void inittestdll() {
 
     wrapped_class!(Foo, "Foo") f;
     // Constructor wrapping
-    f.init!(tuple!(int), tuple!(int, int));
+    f.init!(void function(int), void function(int, int));
     // Member function wrapping
     f.def!(Foo.foo, "foo");
     // Property wrapping

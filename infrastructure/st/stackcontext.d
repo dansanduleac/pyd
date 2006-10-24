@@ -18,8 +18,8 @@
  * for the ucontext bindings on Linux used in earlier
  * implementations.
  *
- * Version: 0.10
- * Date: June 30, 2006
+ * Version: 0.12
+ * Date: October 17, 2006
  * Authors: Mikola Lysenko, mclysenk@mtu.edu
  * License: Use/copy/modify freely, just give credit.
  * Copyright: Public domain.
@@ -29,8 +29,6 @@
  *  builds.  To prevent this, you can allocate some
  *  extra stack in debug mode.  This is not that tragic,
  *	since overflows are now trapped.
- *
- *  Implementation is not thread safe.
  *
  *  DMD has a bug on linux with multiple delegates in a
  *  scope.  Be aware that the linux version may have
@@ -47,7 +45,14 @@
  *  the default behavior, but due to issues with Phobos'
  *  removeRange I have set it as optional.
  *
+ *  GDC version does not support assembler optimizations, since
+ *  it uses a different calling convention. 
+ *
  * History:
+ *  v0.12 - Workaround for DMD bug.
+ *
+ *  v0.11 - Implementation is now thread safe.
+ *
  *  v0.10 - Added the LEAK_FIX flag to work around the
  *          slowness of std.gc.removeRange
  *
@@ -80,7 +85,21 @@ private import
     std.thread,
     std.stdio,
     std.string,
-    std.gc;
+    std.gc,
+    st.tls;
+
+//Handle versions
+version(D_InlineAsm_X86)
+{
+    version(DigitalMars)
+    {
+        version(Win32) version = SC_WIN_ASM;
+        version(linux) version = SC_LIN_ASM;
+    }
+    
+    //GDC uses a different calling conventions, need to reverse engineer them later
+}
+
 
 /// The default size of a StackContext's stack
 const size_t DEFAULT_STACK_SIZE = 0x40000;
@@ -135,6 +154,8 @@ public class ContextError : Error
         super(msg);
     }
 }
+
+
 
 
 /******************************************************
@@ -254,7 +275,7 @@ public class ContextError : Error
  * </pre></code>
  * 
  ******************************************************/
-public class StackContext
+public final class StackContext
 {
     /**
      * Create a StackContext with the given stack size,
@@ -334,7 +355,7 @@ public class StackContext
     in
     {
         assert(state != CONTEXT_STATE.RUNNING);
-        assert(current_context !is this);
+        assert(current_context.val !is this);
     }
     body
     {
@@ -356,19 +377,16 @@ public class StackContext
      *  Any exceptions generated in the context are 
      *  bubbled up through this method.
      */
-    public void run()
+    public final void run()
     {
         debug (StackContext) writefln("Running %s", this.toString);
         
         //We must be ready to run
-        if(state != CONTEXT_STATE.READY)
-        {
-            throw new ContextException(this, 
-                "Context is not in a runnable state");
-        }
+        assert(state == CONTEXT_STATE.READY, 
+            "Context is not in a runnable state");
         
         //Save the old context
-        StackContext tmp = current_context;
+        StackContext tmp = current_context.val;
         
         version(LEAK_FIX)
         {
@@ -378,9 +396,9 @@ public class StackContext
         }
         
         //Set new context
-        current_context = this;
+        current_context.val = this;
 		ctx.switchIn();
-        current_context = tmp;
+        current_context.val = tmp;
         
         assert(state != CONTEXT_STATE.RUNNING);
         
@@ -427,50 +445,51 @@ public class StackContext
      *  A ContextException when there is no currently
      *  running context.
      */
-    public static void yield()
+    public final static void yield()
     {
-        if(current_context is null)
-        {
-            throw new ContextException(
-                null,
-                "Tried to yield without any running contexts.");
-        }
+        StackContext cur_ctx = current_context.val;
         
-        debug (StackContext) writefln("Yielding %s", current_context.toString);
+        //Make sure we are actually running
+        assert(cur_ctx !is null,
+            "Tried to yield without any running contexts.");
         
-        assert(current_context.running);
+        debug (StackContext) writefln("Yielding %s", cur_ctx.toString);
+        
+        assert(cur_ctx.running);
         
         //Leave the current context
-        current_context.state = CONTEXT_STATE.READY;
-        StackContext tmp = current_context;
+        cur_ctx.state = CONTEXT_STATE.READY;
+        StackContext tmp = cur_ctx;
         
         version(LEAK_FIX)
         {
             //Save the GC range
-            current_context.gc_start = cast(void*)&tmp;
+            cur_ctx.gc_start = cast(void*)&tmp;
             debug (LogGC) writefln("Adding range: %8x-%8x",
-                current_context.gc_start, current_context.ctx.stack_top);
-            addRange(current_context.gc_start, current_context.ctx.stack_top);
+                cur_ctx.gc_start, cur_ctx.ctx.stack_top);
+            addRange(cur_ctx.gc_start, cur_ctx.ctx.stack_top);
         }
         
         //Swap
-        current_context.ctx.switchOut();
+        cur_ctx.ctx.switchOut();
         
         version(LEAK_FIX)
         {
+            StackContext t_ctx = current_context.val;
+            
             //Remove the GC range
             debug (LogGC) writefln("Removing range: %8x",
-                current_context.gc_start);
-            assert(current_context.gc_start !is null);
-            removeRange(current_context.gc_start);
-            current_context.gc_start = null;
+                t_ctx.gc_start);
+            assert(t_ctx.gc_start !is null);
+            removeRange(t_ctx.gc_start);
+            t_ctx.gc_start = null;
         }
         
         //Return
-        current_context = tmp;
-        current_context.state = CONTEXT_STATE.RUNNING;
+        current_context.val = tmp;
+        tmp.state = CONTEXT_STATE.RUNNING;
         
-        debug (StackContext) writefln("Resuming context: %s", current_context.toString);
+        debug (StackContext) writefln("Resuming context: %s", tmp.toString);
     }
     
     /**
@@ -483,9 +502,9 @@ public class StackContext
      * Params:
      *  t = The exception object we will propagate.
      */
-    public static void throwYield(Object t)
+    public final static void throwYield(Object t)
     {
-        last_exception = t;
+        current_context.val.last_exception = t;
         yield();
     }
     
@@ -495,17 +514,34 @@ public class StackContext
      * Throws:
      *  A ContextException if the context is running.
      */
-    public void restart()
+    public final void restart()
     {
         debug (StackContext) writefln("Restarting %s", this.toString);
         
-        if(state == CONTEXT_STATE.RUNNING)
-        {
-            throw new ContextException(this, 
-                "Cannot reset this context while it is running!");
-        }
+        assert(state != CONTEXT_STATE.RUNNING,
+            "Cannot restart a context while it is running");
         
         //Reset the context
+        restartStack();
+    }
+    
+    /**
+     * Recycles the context by restarting it with a new delegate. This
+     * can save resources by allowing a program to reuse previously
+     * allocated contexts.
+     *
+     * Params:
+     *  dg = The delegate which we will be running.
+     */
+    public final void recycle(void delegate() dg)
+    {
+        debug (StackContext) writefln("Recycling %s", this.toString);
+        
+        assert(state != CONTEXT_STATE.RUNNING,
+            "Cannot recycle a context while it is running");
+        
+        //Set the delegate and restart
+        proc = dg;
         restartStack();
     }
     
@@ -518,19 +554,19 @@ public class StackContext
      * Throws:
      *  A ContextException if the context is not READY.
      */
-    public void kill()
+    public final void kill()
     {
-        if(state == CONTEXT_STATE.RUNNING)
-        {
-            throw new ContextException(this, "Cannot kill a context if it is not ready");
-        }
-        else if(state == CONTEXT_STATE.DEAD)
-        {
-            return;
-        }
+        assert(state != CONTEXT_STATE.RUNNING,
+            "Cannot kill a context while it is running.");
+        
         
         version(LEAK_FIX)
         {
+            if(state == CONTEXT_STATE.DEAD)
+            {
+                return;
+            }
+            
             //Clear the GC ranges if necessary
             if(gc_start !is null)
             {
@@ -549,7 +585,7 @@ public class StackContext
      *
      * Returns: A string describing the context.
      */
-    public char[] toString()
+    public final char[] toString()
     {
         static char[][] state_names = 
         [
@@ -621,7 +657,7 @@ public class StackContext
      */
     public static StackContext getRunning()
     {
-        return current_context;
+        return current_context.val;
     }
     
     invariant
@@ -632,7 +668,7 @@ public class StackContext
             case CONTEXT_STATE.RUNNING:
                 //Make sure context is running
                 //assert(ctx.old_stack_pointer !is null);
-                assert(current_context !is null);
+                assert(current_context.val !is null);
             
             case CONTEXT_STATE.READY:
                 //Make sure state is ready
@@ -654,8 +690,7 @@ public class StackContext
             default: assert(false);
         }
     }
-    
-    
+        
     version(LEAK_FIX)
     {
         // Start of GC range
@@ -668,17 +703,14 @@ public class StackContext
     // Context state
     private CONTEXT_STATE state;
     
-//FIXME: All static objects should be in thread local 
-//storage.  Not sure how to do this effectively yet.
-
-/*BEGIN TLS {*/
-    
     // The last exception generated
     private static Object last_exception = null;
-
+    
+/*BEGIN TLS {*/
+        
     // The currently running stack context
-    private static StackContext current_context = null;
-
+    private static ThreadLocal!(StackContext) current_context = null;
+    
 /*} END TLS*/
     
     // The procedure this context is running
@@ -766,33 +798,35 @@ public class StackContext
     private static extern(C) void startContext()
     in
     {
-        assert(current_context !is null);
+        assert(current_context.val !is null);
 		version(LEAK_FIX)
-            assert(current_context.gc_start is null);
+            assert(current_context.val.gc_start is null);
     }
     body
     {
+        StackContext cur_ctx = current_context.val;
+        
         try
         {
             //Set state to running, enter the context
-            current_context.state = CONTEXT_STATE.RUNNING;
-            debug (StackContext) writefln("Starting %s", current_context.toString);
-            current_context.proc();
-            debug (StackContext) writefln("Finished %s", current_context.toString);
+            cur_ctx.state = CONTEXT_STATE.RUNNING;
+            debug (StackContext) writefln("Starting %s", cur_ctx.toString);
+            cur_ctx.proc();
+            debug (StackContext) writefln("Finished %s", cur_ctx.toString);
         }
         catch(Object o)
         {
             //Save exceptions so we can throw them later
-            debug (StackContext) writefln("Got an exception: %s, in %s", o.toString, current_context.toString);
-            last_exception = o;
+            debug (StackContext) writefln("Got an exception: %s, in %s", o.toString, cur_ctx.toString);
+            cur_ctx.last_exception = o;
         }
         finally
         {
             //Leave the object.  Don't need to worry about
             //GC, since it should already be released.
-            current_context.state = CONTEXT_STATE.DEAD;
-            debug (StackContext) writefln("Leaving %s", current_context.toString);
-            current_context.ctx.switchOut();
+            cur_ctx.state = CONTEXT_STATE.DEAD;
+            debug (StackContext) writefln("Leaving %s", cur_ctx.toString);
+            cur_ctx.ctx.switchOut();
         }
         
         //This should never be reached
@@ -806,10 +840,12 @@ public class StackContext
     {
         version(Win32)
         {
-            if(current_context is null)
+            StackContext cur = current_context.val;
+            
+            if(cur is null)
                 return os_query_stackBottom();
             
-            return current_context.ctx.stack_top;
+            return cur.ctx.stack_top;
         }
         else
         {
@@ -819,6 +855,20 @@ public class StackContext
     }
 }
 
+static this()
+{
+    StackContext.current_context = new ThreadLocal!(StackContext);
+
+    version(SC_WIN_ASM)
+    {
+        //Get the system's page size
+        SYSTEM_INFO sys_info;
+        GetSystemInfo(&sys_info);
+        page_size = sys_info.dwPageSize;
+    }
+}
+
+
 /********************************************************
  * SYSTEM SPECIFIC FUNCTIONS
  *  All information below this can be regarded as a
@@ -827,7 +877,7 @@ public class StackContext
  *  context data.
  ********************************************************/
 
-private version (Win32)
+private version (SC_WIN_ASM)
 {
 
 import std.windows.syserror;
@@ -903,13 +953,6 @@ const uint PAGE_WRITECOMBINE        = 0x400;
 // Size of a page on the system
 size_t page_size;
 
-static this()
-{
-    //Get the system's page size
-    SYSTEM_INFO sys_info;
-    GetSystemInfo(&sys_info);
-    page_size = sys_info.dwPageSize;
-}
 
 private struct SysContext
 {
@@ -1034,6 +1077,14 @@ private struct SysContext
      */
     void killStack()
     {
+        //Work around for bug in DMD 0.170
+        if(stack_bottom is null)
+        {
+            debug(StackContext)
+                writefln("WARNING!!!! Accidentally deleted a context twice");
+            return;
+        }
+        
         debug (LogStack)
         {
             static int log_num = 0;
@@ -1140,7 +1191,7 @@ private struct SysContext
     }
 }
 }
-else private version(linux)
+else private version(SC_LIN_ASM)
 {
 
 private extern(C)
@@ -1224,19 +1275,10 @@ private struct SysContext
 	{
 		//Initialize stack pointer
 		stack_pointer = stack_top;
-
-		 //Initialize stack state
-        void push(uint val)
-        {
-            stack_pointer -= 4;
-            *cast(uint*)stack_pointer = val;
-        }
         
-		push(cast(uint)&StackContext.startContext);	//Start point
-		push(0);		//EBP
-		push(0);		//EBX
-		push(0);		//ESI
-		push(0);		//EDI
+        //Initialize stack state
+        *cast(uint*)(stack_pointer-4) = cast(uint)&StackContext.startContext;
+        stack_pointer -= 20;
 	}
     
 	/**
@@ -1244,6 +1286,13 @@ private struct SysContext
 	 */
 	void killStack()
 	{
+        //Make sure the GC didn't accidentally double collect us...
+        if(stack_bottom is null)
+        {
+            debug(StackContext) writefln("WARNING!!! Accidentally killed stack twice");
+            return;
+        }
+        
         //Deallocate the stack
         if(munmap(stack_bottom, (stack_top - stack_bottom)))
 			throw new ContextException(null, "Could not deallocate stack");
@@ -1342,8 +1391,7 @@ private struct SysContext
 }
 else
 {
-    //Unsupported system
-    static assert(false, "Stack Context: System Unsupported");
+    static assert(false, "System currently unsupported");
 }
 
 
@@ -1392,18 +1440,7 @@ unittest
     assert(s0 == 1);
     assert(s1 == 0);
     assert(a.getState == CONTEXT_STATE.DEAD);
-    assert(b.getState == CONTEXT_STATE.READY);
-    
-    try
-    {
-        a.run();
-        assert(false);
-    }
-    catch(ContextException ce)
-    {
-        debug writefln("Generated exception correctly");
-    }
-    
+    assert(b.getState == CONTEXT_STATE.READY);    
     
     assert(b.getState == CONTEXT_STATE.READY);
     
@@ -1680,6 +1717,8 @@ unittest
         e.print;
     }
     
+    writefln("blah2");
+    
     assert(a);
     assert(b);
     assert(b.getState == CONTEXT_STATE.DEAD);
@@ -1899,34 +1938,6 @@ unittest
     
     delete a;
     
-    StackContext b;
-    
-    b = new StackContext(
-    delegate void()
-    {
-        b.restart();
-        assert(false);
-    });
-    
-    try
-    {
-        b.run();
-        assert(false);
-    }
-    catch(ContextException e)
-    {
-        e.print;
-    }
-    
-    try
-    {
-        StackContext.yield();
-        assert(false);
-    }
-    catch(ContextException e)
-    {
-        e.print;
-    }
     
     writefln("Standard exceptions passed");
 }
@@ -2212,5 +2223,61 @@ unittest
     assert(st0.dead);
     
     writefln("throwYield passed!");
+}
+
+unittest
+{
+    writefln("Testing thread safety");
+    
+    int x = 0, y = 0;
+    
+    StackContext sc0 = new StackContext(
+    {
+        while(true)
+        {
+            x++;
+            StackContext.yield;
+        }
+    });
+    
+    StackContext sc1 = new StackContext(
+    {
+        while(true)
+        {
+            y++;
+            StackContext.yield;
+        }
+    });
+    
+    Thread t0 = new Thread(
+    {
+        for(int i=0; i<10000; i++)
+            sc0.run();
+        
+        return 0;
+    });
+    
+    Thread t1 = new Thread(
+    {
+        for(int i=0; i<10000; i++)
+            sc1.run();
+        
+        return 0;
+    });
+    
+    assert(sc0);
+    assert(sc1);
+    assert(t0);
+    assert(t1);
+    
+    t0.start;
+    t1.start;
+    t0.wait;
+    t1.wait;
+    
+    assert(x == 10000);
+    assert(y == 10000);
+    
+    writefln("Thread safety passed!");
 }
 

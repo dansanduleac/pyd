@@ -26,9 +26,11 @@ private import python;
 private import pyd.class_wrap;
 private import pyd.dg_convert;
 private import pyd.exception;
-private import pyd.ftype;
 private import pyd.func_wrap;
 private import pyd.make_object;
+
+private import meta.Default;
+private import meta.Nameof;
 
 private import std.string;
 
@@ -76,7 +78,7 @@ PyObject* DPy_Module_p() {
  *>>> print testdll.foo(20)
  *It's greater than 10!)
  */
-template def(alias fn, char[] name, fn_t=typeof(&fn), uint MIN_ARGS = MIN_ARGS!(fn)) {
+template def(alias fn, char[] name = symbolnameof!(fn), fn_t=typeof(&fn), uint MIN_ARGS = minArgs!(fn, fn_t)) {
     pragma(msg, "def: " ~ name);
     void def() {
         PyMethodDef empty;

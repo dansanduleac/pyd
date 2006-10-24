@@ -26,9 +26,12 @@ private import pyd.class_wrap;
 private import pyd.exception;
 private import pyd.func_wrap;
 private import pyd.make_object;
-private import pyd.tuples;
 
-template outer(T) {
+private import meta.Tuple;
+private import meta.Bind;
+private import meta.Instantiate;
+
+template ctor_redirect(T) {
     T call_ctor()() {
         return new T();
     }
@@ -74,10 +77,52 @@ template outer(T) {
     }
 }
 
-// This template accepts a list of "ctor" templates and uses them to wrap a Python tp_init function.
-template wrapped_ctors(T, Tuple) {
+// This template accepts a Tuple of (either) function pointer types or other
+// Tuples, which each describe a ctor of T, and  uses them to wrap a Python
+// tp_init function.
+template wrapped_ctors(T, Tu) {
     alias wrapped_class_object!(T) wrap_object;
-    const uint ARGS = Tuple.length;
+
+    // The user can provide ctor footprints as either function pointer types
+    // or as tuples. This converts either to a tuple.
+    template ctorAsTuple(T) {
+        static if (isTuple!(T))
+            alias T ctorAsTuple;
+        else static if (is(typeof(*T) == function))
+            alias getFuncTuple!(T) ctorAsTuple;
+    }
+
+    // This loops through the passed Tuple type and extracts the actual ctor
+    // types.
+    template loop(uint current, NewTu = EmptyTuple) {
+        static if (current == Tu.length || is(typeof(Tu.mix.val!(current))==int)) {
+            alias NewTu type;
+        } else {
+            alias loop!(current+1, NewTu.mix.appendT!(ctorAsTuple!(typeof(Tu.mix.val!(current))))).type type;
+        }
+    }
+    alias loop!(0).type Ctors;
+
+    // Checks each element of the Ctors tuple against the number of arguments
+    // passed in from Python. Then, it calls the ctor with the passed-in
+    // arguments.
+    int findAndCallCtor(uint current) (PyObject* self, PyObject* args, int argCount) {
+        static if (current == Ctors.length) {
+            // No match, handle error
+            PyErr_SetString(PyExc_TypeError, "Unsupported number of constructor arguments.");
+            return -1;
+        } else {
+            alias typeof(Ctors.mix.val!(current)) Ctor;
+            if (Ctor.length == argCount) {
+                alias instantiateTemplate!(ctor_redirect!(T).call_ctor, Ctor) fn;
+                WrapPyObject_SetObj(self, py_call(&fn, args));
+                return 0;
+            } else {
+                return findAndCallCtor!(current+1)(self, args, argCount);
+            }
+        }
+    }
+
     extern(C)
     int init_func(PyObject* self, PyObject* args, PyObject* kwds) {
         int len = PyObject_Length(args);
@@ -90,93 +135,7 @@ template wrapped_ctors(T, Tuple) {
                     return 0;
                 }
             }
-            // We only match the first supplied ctor with the proper number of
-            // arguments. (Eventually, we'll do some more sophisticated matching,
-            // but this will do for now.)
-            static if (ARGS >= 1) {
-                if (len == TypeNo!(Tuple, 0).length) {
-                    // This works thusly:
-                    // 1) outer!(T).call_ctor is a series of template functions
-                    //    that call a constructor with its passed arguments, and
-                    //    return the new object.
-                    // 2) instant_from_tuple is a template that instantiates a
-                    //    template with the types in the passed tuple type. By
-                    //    combining call_ctor with the selected tuple representing
-                    //    the best match of constructor, we can get something like
-                    //    a pointer to a constructor function.
-                    // 3) This function pointer is sent off to py_call, which calls
-                    //    it with the PyTuple that args points to.
-                    alias instant_from_tuple!( outer!(T).call_ctor, TypeNo!(Tuple, 0) ) fn1;
-                    WrapPyObject_SetObj(self, py_call( &fn1, args ));
-                    return 0;
-                }
-            }
-            static if (ARGS >= 2) {
-                if (len == TypeNo!(Tuple, 1).length) {
-                    alias instant_from_tuple!( outer!(T).call_ctor, TypeNo!(Tuple, 1) ) fn2;
-                    WrapPyObject_SetObj(self, py_call( &fn2, args ));
-                    return 0;
-                }
-            }
-            static if (ARGS >= 3) {
-                if (len == TypeNo!(Tuple, 2).length) {
-                    alias instant_from_tuple!( outer!(T).call_ctor, TypeNo!(Tuple, 2) ) fn3;
-                    WrapPyObject_SetObj(self, py_call( &fn3, args ));
-                    return 0;
-                }
-            }
-            static if (ARGS >= 4) {
-                if (len == TypeNo!(Tuple, 3).length) {
-                    alias instant_from_tuple!( outer!(T).call_ctor, TypeNo!(Tuple, 3) ) fn4;
-                    WrapPyObject_SetObj(self, py_call( &fn4, args ));
-                    return 0;
-                }
-            }
-            static if (ARGS >= 5) {
-                if (len == TypeNo!(Tuple, 4).length) {
-                    alias instant_from_tuple!( outer!(T).call_ctor, TypeNo!(Tuple, 4) ) fn5;
-                    WrapPyObject_SetObj(self, py_call( &fn5, args ));
-                    return 0;
-                }
-            }
-            static if (ARGS >= 6) {
-                if (len == TypeNo!(Tuple, 5).length) {
-                    alias instant_from_tuple!( outer!(T).call_ctor, TypeNo!(Tuple, 5) ) fn6;
-                    WrapPyObject_SetObj(self, py_call( &fn6, args ));
-                    return 0;
-                }
-            }
-            static if (ARGS >= 7) {
-                if (len == TypeNo!(Tuple, 6).length) {
-                    alias instant_from_tuple!( outer!(T).call_ctor, TypeNo!(Tuple, 6) ) fn7;
-                    WrapPyObject_SetObj(self, py_call( &fn7, args ));
-                    return 0;
-                }
-            }
-            static if (ARGS >= 8) {
-                if (len == TypeNo!(Tuple, 7).length) {
-                    alias instant_from_tuple!( outer!(T).call_ctor, TypeNo!(Tuple, 7) ) fn8;
-                    WrapPyObject_SetObj(self, py_call( &fn8, args ));
-                    return 0;
-                }
-            }
-            static if (ARGS >= 9) {
-                if (len == TypeNo!(Tuple, 8).length) {
-                    alias instant_from_tuple!( outer!(T).call_ctor, TypeNo!(Tuple, 8) ) fn9;
-                    WrapPyObject_SetObj(self, py_call( &fn9, args ));
-                    return 0;
-                }
-            }
-            static if (ARGS >= 10) {
-                if (len == TypeNo!(Tuple, 9).length) {
-                    alias instant_from_tuple!( outer!(T).call_ctor, TypeNo!(Tuple, 9) ) fn10;
-                    WrapPyObject_SetObj(self, py_call( &fn10, args ));
-                    return 0;
-                }
-            } else {
-                PyErr_SetString(PyExc_TypeError, "Unsupported number of constructor arguments.");
-                return -1;
-            }
+            return findAndCallCtor!(0) (self, args, len);
         });
     }
 }

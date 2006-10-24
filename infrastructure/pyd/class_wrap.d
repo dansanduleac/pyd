@@ -21,19 +21,23 @@ SOFTWARE.
 */
 module pyd.class_wrap;
 
-private import python;
+private {
+    import python;
 
-private import pyd.ctor_wrap;
-private import pyd.def;
-private import pyd.exception;
-private import pyd.ftype;
-private import pyd.func_wrap;
-private import pyd.iteration;
-private import pyd.make_object;
-private import pyd.op_wrap;
-private import pyd.tuples;
+    import pyd.ctor_wrap;
+    import pyd.def;
+    import pyd.exception;
+    import pyd.func_wrap;
+    import pyd.iteration;
+    import pyd.make_object;
+    import pyd.op_wrap;
 
-private import std.string;
+    import meta.Default;
+    import meta.FuncMeta;
+    import meta.Tuple;
+
+    import std.string;
+}
 
 bool[TypeInfo] wrapped_classes;
 
@@ -167,15 +171,16 @@ template wrapped_init(T) {
 template property_parts(alias p) {
     // This may be either the getter or the setter
     alias typeof(&p) p_t;
+    alias funcDelegInfoT!(p_t) Info;
     // This means it's the getter
-    static if (NumberOfArgs!(p_t) == 0) {
+    static if (Info.numArgs == 0) {
         alias p_t getter_type;
         // The setter may return void, or it may return the newly set attribute.
-        alias typeof(p(ReturnType!(p_t).init)) function(ReturnType!(p_t)) setter_type;
+        alias typeof(p(RetType!(p_t).init)) function(RetType!(p_t)) setter_type;
     // This means it's the setter
     } else {
         alias p_t setter_type;
-        alias ArgType!(p_t, 1) function() getter_type;
+        alias Info.Meta.ArgType!(0) function() getter_type;
     }
 }
 
@@ -257,7 +262,7 @@ template wrapped_class(T, char[] classname) {
          * fn_t = The type of the function. It is only useful to specify this
          *        if more than one function has the same name as this one.
          */
-        template def(alias fn, char[] name, fn_t=typeof(&fn), uint MIN_ARGS = MIN_ARGS!(fn)) {
+        template def(alias fn, char[] name = symbolnameof!(fn), fn_t=typeof(&fn), uint MIN_ARGS = minArgs!(fn, fn_t)) {
             pragma(msg, "class.def: " ~ name);
             static void def() {
                 static PyMethodDef empty = { null, null, 0, null };
@@ -314,11 +319,37 @@ template wrapped_class(T, char[] classname) {
          * This currently does not support having multiple constructors with
          * the same number of arguments.
          */
-        template init(C1=Void, C2=Void, C3=Void, C4=Void, C5=Void, C6=Void, C7=Void, C8=Void, C9=Void, C10=Void) {
-            static void init() {
-                wrapped_class_type!(T).tp_init =
-                    &wrapped_ctors!(T, tuple!(C1, C2, C3, C4, C5, C6, C7, C8, C9, C10)).init_func;
-            }
+        static void init(C1=int, C2=int, C3=int, C4=int, C5=int, C6=int, C7=int, C8=int, C9=int, C10=int) () {
+            wrapped_class_type!(T).tp_init =
+                &wrapped_ctors!(T, Tuple!(C1, C2, C3, C4, C5, C6, C7, C8, C9, C10)).init_func;
+        }
+
+        /**
+         * Allows selection of alternate opApply overloads. iter_t should be
+         * the type of the delegate in the opApply function that the user wants
+         * to be the default.
+         */
+        static void iter(iter_t) () {
+            DPySC_Ready();
+            wrapped_class_type!(T).tp_iter = &wrapped_iter!(T, T.opApply, int function(iter_t)).iter;
+        }
+
+        /**
+         * Exposes alternate iteration methods, originally intended for use with
+         * D's delegate-as-iterator features, as methods returning a Python
+         * iterator.
+         */
+        static void alt_iter(alias fn, char[] name = symbolnameof!(fn), iter_t = funcDelegInfoT!(typeof(&fn)).Meta.ArgType!(0)) () {
+            static PyMethodDef empty = { null, null, 0, null };
+            alias wrapped_method_list!(T) list;
+            list[length-1].ml_name = name ~ \0;
+            list[length-1].ml_meth = cast(PyCFunction)&wrapped_iter!(T, fn, int function(iter_t)).iter;
+            list[length-1].ml_flags = METH_VARARGS;
+            list[length-1].ml_doc = "";
+            list ~= empty;
+            // It's possible that appending the empty item invalidated the
+            // pointer in the type struct, so we renew it here.
+            wrapped_class_type!(T).tp_methods = list;
         }
     }
 }
@@ -349,8 +380,10 @@ void finalize_class(CLS) (CLS cls) {
     }
 
     static if (is(typeof(&T.opApply))) {
-        DPySC_Ready();
-        type.tp_iter = &wrapped_iter!(T).iter;
+        if (type.tp_iter is null) {
+            DPySC_Ready();
+            type.tp_iter = &wrapped_iter!(T, T.opApply).iter;
+        }
     }
     
     // If a ctor wasn't supplied, try the default.

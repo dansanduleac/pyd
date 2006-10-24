@@ -31,19 +31,34 @@ _pydFiles = [
     'dg_convert.d',
     'dpyobject.d',
     'exception.d',
-    'ftype.d',
+#    'ftype.d',
     'func_wrap.d',
     'iteration.d',
     'make_object.d',
     'op_wrap.d',
     'pyd.d',
-    'tuples.d',
+#    'tuples.d',
 ]
 
 _stFiles = [
     'coroutine.d',
     'stackcontext.d',
     'stackthread.d',
+    'tls.d',
+]
+
+_metaFiles = [
+    'Apply.d',
+    'Bind.d',
+    'Default.d',
+    'Demangle.d',
+    'FuncMeta.d',
+    'Instantiate.d',
+    'Nameof.d',
+    'Tuple.d',
+    'Use.d',
+    'Util.d',
+    'VarArg.d',
 ]
 
 _pyVerXDotY = '.'.join(str(v) for v in sys.version_info[:2]) # e.g., '2.4'
@@ -161,7 +176,15 @@ class DCompiler(cc.CCompiler):
             filePath = os.path.join(_infraDir, 'st', file)
             if not os.path.isfile(filePath):
                 raise DistutilsPlatformError("Required StackThreads source"
-                    "file '%s' is missing." % filePath
+                    " file '%s' is missing." % filePath
+                )
+            sources.append(filePath)
+        # And meta
+        for file in _metaFiles:
+            filePath = os.path.join(_infraDir, 'meta', file)
+            if not os.path.isfile(filePath):
+                raise DistutilsPlatformError("Required meta source file"
+                    " '%s' is missing." % filePath
                 )
             sources.append(filePath)
         # Add the infraDir to the include path for Pyd and ST
@@ -379,9 +402,9 @@ class DMDDCompiler(DCompiler):
         # _debugOpt
         self._debugOpt = '-debug=%s'
         # _defaultOptimizeOpts
-        self._defaultOptimizeOpts = ['-debug', '-unittest']
+        self._defaultOptimizeOpts = ['-debug']
         # _debugOptimizeOpts
-        self._debugOptimizeOpts = self._defaultOptimizeOpts + ['-g']
+        self._debugOptimizeOpts = self._defaultOptimizeOpts + ['-unittest', '-g']
         # _releaseOptimizeOpts
         self._releaseOptimizeOpts = ['-version=Optimized', '-release', '-O', '-inline']
 

@@ -27,34 +27,39 @@ SOFTWARE.
  */
 module pyd.dg_convert;
 
-private import pyd.ftype;
+private import meta.FuncMeta;
 
 template fn_to_dgT(Fn) {
-    const uint ARGS = NumberOfArgs!(Fn);
-    alias ReturnType!(Fn) RetType;
+    alias funcDelegInfoT!(Fn) Info;
+    const uint ARGS = Info.numArgs;
+    alias RetType!(Fn) Ret;
+
+    template A(uint i) {
+        alias Info.Meta.ArgType!(i) A;
+    }
 
     static if (ARGS == 0) {
-        alias RetType delegate() type;
+        alias Ret delegate() type;
     } else static if (ARGS == 1) {
-        alias RetType delegate(ArgType!(Fn, 1)) type;
+        alias Ret delegate(A!(0)) type;
     } else static if (ARGS == 2) {
-        alias RetType delegate(ArgType!(Fn, 1), ArgType!(Fn, 2)) type;
+        alias Ret delegate(A!(0), A!(1)) type;
     } else static if (ARGS == 3) {
-        alias RetType delegate(ArgType!(Fn, 1), ArgType!(Fn, 2), ArgType!(Fn, 3)) type;
+        alias Ret delegate(A!(0), A!(1), A!(2)) type;
     } else static if (ARGS == 4) {
-        alias RetType delegate(ArgType!(Fn, 1), ArgType!(Fn, 2), ArgType!(Fn, 3), ArgType!(Fn, 4)) type;
+        alias Ret delegate(A!(0), A!(1), A!(2), A!(3)) type;
     } else static if (ARGS == 5) {
-        alias RetType delegate(ArgType!(Fn, 1), ArgType!(Fn, 2), ArgType!(Fn, 3), ArgType!(Fn, 4), ArgType!(Fn, 5)) type;
+        alias Ret delegate(A!(0), A!(1), A!(2), A!(3), A!(4)) type;
     } else static if (ARGS == 6) {
-        alias RetType delegate(ArgType!(Fn, 1), ArgType!(Fn, 2), ArgType!(Fn, 3), ArgType!(Fn, 4), ArgType!(Fn, 5), ArgType!(Fn, 6)) type;
+        alias Ret delegate(A!(0), A!(1), A!(2), A!(3), A!(4), A!(5)) type;
     } else static if (ARGS == 7) {
-        alias RetType delegate(ArgType!(Fn, 1), ArgType!(Fn, 2), ArgType!(Fn, 3), ArgType!(Fn, 4), ArgType!(Fn, 5), ArgType!(Fn, 6), ArgType!(Fn, 7)) type;
+        alias Ret delegate(A!(0), A!(1), A!(2), A!(3), A!(4), A!(5), A!(6)) type;
     } else static if (ARGS == 8) {
-        alias RetType delegate(ArgType!(Fn, 1), ArgType!(Fn, 2), ArgType!(Fn, 3), ArgType!(Fn, 4), ArgType!(Fn, 5), ArgType!(Fn, 6), ArgType!(Fn, 7), ArgType!(Fn, 8)) type;
+        alias Ret delegate(A!(0), A!(1), A!(2), A!(3), A!(4), A!(5), A!(6), A!(7)) type;
     } else static if (ARGS == 9) {
-        alias RetType delegate(ArgType!(Fn, 1), ArgType!(Fn, 2), ArgType!(Fn, 3), ArgType!(Fn, 4), ArgType!(Fn, 5), ArgType!(Fn, 6), ArgType!(Fn, 7), ArgType!(Fn, 8), ArgType!(Fn, 9)) type;
+        alias Ret delegate(A!(0), A!(1), A!(2), A!(3), A!(4), A!(5), A!(6), A!(7), A!(8)) type;
     } else static if (ARGS == 10) {
-        alias RetType delegate(ArgType!(Fn, 1), ArgType!(Fn, 2), ArgType!(Fn, 3), ArgType!(Fn, 4), ArgType!(Fn, 5), ArgType!(Fn, 6), ArgType!(Fn, 7), ArgType!(Fn, 8), ArgType!(Fn, 9), ArgType!(Fn, 10)) type;
+        alias Ret delegate(A!(0), A!(1), A!(2), A!(3), A!(4), A!(5), A!(6), A!(7), A!(8), A!(9)) type;
     }
 }
 
@@ -88,3 +93,4 @@ fn_to_dg!(Fn) dg_wrapper(T, Fn) (T t, Fn fn) {
 
     return u.real_dg;
 }
+

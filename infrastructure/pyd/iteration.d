@@ -28,9 +28,13 @@ module pyd.iteration;
 
 private import python;
 private import pyd.class_wrap;
+private import pyd.dg_convert;
 private import pyd.exception;
-private import pyd.ftype;
+//private import pyd.ftype;
 private import pyd.make_object;
+
+private import meta.FuncMeta;
+
 private import st.stackcontext;
 
 // This exception is for yielding a PyObject* from within a StackContext.
@@ -59,11 +63,14 @@ PyObject* _make_pytuple(PyObject*[] pyobjs ...) {
 }
 
 // Creates an iterator object from an object.
-PyObject* DPySC_FromWrapped(T) (T obj) {
+PyObject* DPySC_FromWrapped(T, alias Iter = T.opApply, iter_t = typeof(&Iter)) (T obj) {
     // Get the number of args the opApply's delegate argument takes
-    const uint ARGS = NumberOfArgsInout!(ArgType!(typeof(&T.opApply), 1));
+    alias funcDelegInfoT!(iter_t) IInfo;
+    alias funcDelegInoutInfoT!(IInfo.Meta.ArgType!(0)) Info;
+    const uint ARGS = Info.numArgs;
     auto sc = new StackContext(delegate void() {
-        T t = obj;
+        T o = obj;
+        fn_to_dg!(iter_t) t = dg_wrapper!(T, iter_t)(o, &Iter);
         // So we can get the variable in the enclosing function's stack frame
         StackContext.yield();
         PyObject* temp;
@@ -134,7 +141,7 @@ PyObject* DPySC_FromWrapped(T) (T obj) {
     return WrapPyObject_FromObject(sc);
 }
 
-template wrapped_iter(T) {
+template wrapped_iter(T, alias Iter, iter_t = typeof(&Iter)) {
     alias wrapped_class_object!(T) wrap_object;
 
     // Returns an iterator object for this class
@@ -143,7 +150,7 @@ template wrapped_iter(T) {
         return exception_catcher({
             wrap_object* self = cast(wrap_object*)_self;
 
-            return DPySC_FromWrapped(self.d_obj);
+            return DPySC_FromWrapped!(T, Iter, iter_t)(self.d_obj);
         });
     }
 }

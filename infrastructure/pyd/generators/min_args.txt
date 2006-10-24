@@ -1,20 +1,42 @@
-    else static if (is(typeof(fn(ArgType!(fn_t, 1).init))))
-        const uint MIN_ARGS = 1;
-    else static if (is(typeof(fn(ArgType!(fn_t, 1).init, ArgType!(fn_t, 2).init))))
-        const uint MIN_ARGS = 2;
-    else static if (is(typeof(fn(ArgType!(fn_t, 1).init, ArgType!(fn_t, 2).init, ArgType!(fn_t, 3).init))))
-        const uint MIN_ARGS = 3;
-    else static if (is(typeof(fn(ArgType!(fn_t, 1).init, ArgType!(fn_t, 2).init, ArgType!(fn_t, 3).init, ArgType!(fn_t, 4).init))))
-        const uint MIN_ARGS = 4;
-    else static if (is(typeof(fn(ArgType!(fn_t, 1).init, ArgType!(fn_t, 2).init, ArgType!(fn_t, 3).init, ArgType!(fn_t, 4).init, ArgType!(fn_t, 5).init))))
-        const uint MIN_ARGS = 5;
-    else static if (is(typeof(fn(ArgType!(fn_t, 1).init, ArgType!(fn_t, 2).init, ArgType!(fn_t, 3).init, ArgType!(fn_t, 4).init, ArgType!(fn_t, 5).init, ArgType!(fn_t, 6).init))))
-        const uint MIN_ARGS = 6;
-    else static if (is(typeof(fn(ArgType!(fn_t, 1).init, ArgType!(fn_t, 2).init, ArgType!(fn_t, 3).init, ArgType!(fn_t, 4).init, ArgType!(fn_t, 5).init, ArgType!(fn_t, 6).init, ArgType!(fn_t, 7).init))))
-        const uint MIN_ARGS = 7;
-    else static if (is(typeof(fn(ArgType!(fn_t, 1).init, ArgType!(fn_t, 2).init, ArgType!(fn_t, 3).init, ArgType!(fn_t, 4).init, ArgType!(fn_t, 5).init, ArgType!(fn_t, 6).init, ArgType!(fn_t, 7).init, ArgType!(fn_t, 8).init))))
-        const uint MIN_ARGS = 8;
-    else static if (is(typeof(fn(ArgType!(fn_t, 1).init, ArgType!(fn_t, 2).init, ArgType!(fn_t, 3).init, ArgType!(fn_t, 4).init, ArgType!(fn_t, 5).init, ArgType!(fn_t, 6).init, ArgType!(fn_t, 7).init, ArgType!(fn_t, 8).init, ArgType!(fn_t, 9).init))))
-        const uint MIN_ARGS = 9;
-    else static if (is(typeof(fn(ArgType!(fn_t, 1).init, ArgType!(fn_t, 2).init, ArgType!(fn_t, 3).init, ArgType!(fn_t, 4).init, ArgType!(fn_t, 5).init, ArgType!(fn_t, 6).init, ArgType!(fn_t, 7).init, ArgType!(fn_t, 8).init, ArgType!(fn_t, 9).init, ArgType!(fn_t, 10).init))))
-        const uint MIN_ARGS = 10;
+	else static if (is(typeof(fn())))
+		const uint minArgs = 0;
+	else static if (is(typeof(fn(I!(0)()))))
+		const uint minArgs = 1;
+	else static if (is(typeof(fn(I!(0)(), I!(1)()))))
+		const uint minArgs = 2;
+	else static if (is(typeof(fn(I!(0)(), I!(1)(), I!(2)()))))
+		const uint minArgs = 3;
+	else static if (is(typeof(fn(I!(0)(), I!(1)(), I!(2)(), I!(3)()))))
+		const uint minArgs = 4;
+	else static if (is(typeof(fn(I!(0)(), I!(1)(), I!(2)(), I!(3)(), I!(4)()))))
+		const uint minArgs = 5;
+	else static if (is(typeof(fn(I!(0)(), I!(1)(), I!(2)(), I!(3)(), I!(4)(), I!(5)()))))
+		const uint minArgs = 6;
+	else static if (is(typeof(fn(I!(0)(), I!(1)(), I!(2)(), I!(3)(), I!(4)(), I!(5)(), I!(6)()))))
+		const uint minArgs = 7;
+	else static if (is(typeof(fn(I!(0)(), I!(1)(), I!(2)(), I!(3)(), I!(4)(), I!(5)(), I!(6)(), I!(7)()))))
+		const uint minArgs = 8;
+	else static if (is(typeof(fn(I!(0)(), I!(1)(), I!(2)(), I!(3)(), I!(4)(), I!(5)(), I!(6)(), I!(7)(), I!(8)()))))
+		const uint minArgs = 9;
+	else static if (is(typeof(fn(I!(0)(), I!(1)(), I!(2)(), I!(3)(), I!(4)(), I!(5)(), I!(6)(), I!(7)(), I!(8)(), I!(9)()))))
+		const uint minArgs = 10;
+	else static if (is(typeof(fn(I!(0)(), I!(1)(), I!(2)(), I!(3)(), I!(4)(), I!(5)(), I!(6)(), I!(7)(), I!(8)(), I!(9)(), I!(10)()))))
+		const uint minArgs = 11;
+	else static if (is(typeof(fn(I!(0)(), I!(1)(), I!(2)(), I!(3)(), I!(4)(), I!(5)(), I!(6)(), I!(7)(), I!(8)(), I!(9)(), I!(10)(), I!(11)()))))
+		const uint minArgs = 12;
+	else static if (is(typeof(fn(I!(0)(), I!(1)(), I!(2)(), I!(3)(), I!(4)(), I!(5)(), I!(6)(), I!(7)(), I!(8)(), I!(9)(), I!(10)(), I!(11)(), I!(12)()))))
+		const uint minArgs = 13;
+	else static if (is(typeof(fn(I!(0)(), I!(1)(), I!(2)(), I!(3)(), I!(4)(), I!(5)(), I!(6)(), I!(7)(), I!(8)(), I!(9)(), I!(10)(), I!(11)(), I!(12)(), I!(13)()))))
+		const uint minArgs = 14;
+	else static if (is(typeof(fn(I!(0)(), I!(1)(), I!(2)(), I!(3)(), I!(4)(), I!(5)(), I!(6)(), I!(7)(), I!(8)(), I!(9)(), I!(10)(), I!(11)(), I!(12)(), I!(13)(), I!(14)()))))
+		const uint minArgs = 15;
+	else static if (is(typeof(fn(I!(0)(), I!(1)(), I!(2)(), I!(3)(), I!(4)(), I!(5)(), I!(6)(), I!(7)(), I!(8)(), I!(9)(), I!(10)(), I!(11)(), I!(12)(), I!(13)(), I!(14)(), I!(15)()))))
+		const uint minArgs = 16;
+	else static if (is(typeof(fn(I!(0)(), I!(1)(), I!(2)(), I!(3)(), I!(4)(), I!(5)(), I!(6)(), I!(7)(), I!(8)(), I!(9)(), I!(10)(), I!(11)(), I!(12)(), I!(13)(), I!(14)(), I!(15)(), I!(16)()))))
+		const uint minArgs = 17;
+	else static if (is(typeof(fn(I!(0)(), I!(1)(), I!(2)(), I!(3)(), I!(4)(), I!(5)(), I!(6)(), I!(7)(), I!(8)(), I!(9)(), I!(10)(), I!(11)(), I!(12)(), I!(13)(), I!(14)(), I!(15)(), I!(16)(), I!(17)()))))
+		const uint minArgs = 18;
+	else static if (is(typeof(fn(I!(0)(), I!(1)(), I!(2)(), I!(3)(), I!(4)(), I!(5)(), I!(6)(), I!(7)(), I!(8)(), I!(9)(), I!(10)(), I!(11)(), I!(12)(), I!(13)(), I!(14)(), I!(15)(), I!(16)(), I!(17)(), I!(18)()))))
+		const uint minArgs = 19;
+	else static if (is(typeof(fn(I!(0)(), I!(1)(), I!(2)(), I!(3)(), I!(4)(), I!(5)(), I!(6)(), I!(7)(), I!(8)(), I!(9)(), I!(10)(), I!(11)(), I!(12)(), I!(13)(), I!(14)(), I!(15)(), I!(16)(), I!(17)(), I!(18)(), I!(19)()))))
+		const uint minArgs = 20;

@@ -11,7 +11,8 @@ libraries on Linux, and so this package is largely only useful to Windows-
 users.
 
 Celerid is primarily written by David Rushby, and Pyd is primarily written by
-Kirk McDonald.
+Kirk McDonald. Pyd uses a number of additional libraries; see credits.txt for
+details. These libraries are contained in the "infrastructure" directory.
 
 INSTALLATION
 

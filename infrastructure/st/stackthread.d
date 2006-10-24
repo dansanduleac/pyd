@@ -20,7 +20,8 @@
  * Copyright: Public domain.
  *
  * Bugs:
- *  None known yet.
+ *  Not thread safe.  May be changed in future versions,
+ *  however this will require a radical refactoring.
  *
  * History:
  *  v0.7 - Switched timing resolution to milliseconds.
