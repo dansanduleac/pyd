@@ -37,7 +37,7 @@
 <dt><code>static void def(alias <span class="t_arg">fn</span>, char[] <span class="t_arg">name</span> = symbolnameof!(fn), <span class="t_arg">fn_t</span> = typeof(&amp;fn)) ();</code></dt>
 <dd>This wraps a method of the class. It functions exactly like the <code>def</code> function used to <a href="func_wrapping.html">wrap regular functions</a>, with one very important difference: There is no support for default arguments. (This is a side-effect of the fact that you cannot call an alias of a method in D, and delegates do not understand default arguments.)</dd>
 
-<dt><code>static void prop(alias <span class="t_arg">fn</span>, char[] <span class="t_arg">name</span>, bool <span class="t_arg">RO</span> = false) ();</code></dt>
+<dt><code>static void prop(alias <span class="t_arg">fn</span>, char[] <span class="t_arg">name</span> = symbolnameof!(fn), bool <span class="t_arg">RO</span> = false) ();</code></dt>
 <dd>This wraps a property. See the examples below for more details.
     <ul>
     <li><span class="t_arg">fn</span> is the name of the property. <code>prop</code> will automatically attempt to wrap both the "get" and "set" forms of the property, unless <span class="t_arg">RO</span> is specified.</li>
