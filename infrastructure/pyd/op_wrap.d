@@ -25,6 +25,10 @@ private import python;
 
 private import pyd.class_wrap;
 private import pyd.func_wrap;
+private import pyd.exception;
+private import pyd.make_object;
+
+private import meta.FuncMeta;
 
 template wrapped_class_as_number(T) {
     static PyNumberMethods wrapped_class_as_number = {
@@ -72,14 +76,14 @@ template wrapped_class_as_number(T) {
 template wrapped_class_as_sequence(T) {
     static PySequenceMethods wrapped_class_as_sequence = {
         null,                 /*sq_length*/
-        null,                 /*sq_concat*/
+        opCat_wrap!(T),       /*sq_concat*/
         null,                 /*sq_repeat*/
         null,                 /*sq_item*/
         null,                 /*sq_slice*/
         null,                 /*sq_ass_item*/
         null,                 /*sq_ass_slice*/
         null,                 /*sq_contains*/
-        null,                 /*sq_inplace_concat*/
+        opCatAssign_wrap!(T), /*sq_inplace_concat*/
         null,                 /*sq_inplace_repeat*/
     };
 }
@@ -112,6 +116,80 @@ template opfunc_unary_wrap(T, alias opfn) {
     PyObject* func(PyObject* self) {
         return func_wrap!(opfn, 0, T).func(self, null);
     }
+}
+
+template opindex_sequence_pyfunc(T) {
+    alias wrapped_class_object!(T) wrap_object;
+    
+    extern(C)
+    PyObject* func(PyObject* self, int i) {
+        return exception_catcher(delegate PyObject*() {
+            return _py((cast(wrap_object*)self).d_obj.opIndex(i));
+        });
+    }
+}
+
+template opindexassign_sequence_pyfunc(T) {
+    alias wrapped_class_object!(T) wrap_object;
+
+    extern(C)
+    int func(PyObject* self, int i, PyObject* o) {
+        
+    }
+}
+
+template opcmp_wrap(T) {
+    alias wrapped_class_object!(T) wrap_object;
+    alias funcDelegInfoT!(typeof(&T.opCmp)) Info;
+    alias Info.Meta.ArgType!(0) OtherT;
+    extern(C)
+    int func(PyObject* self, PyObject* other) {
+        return exception_catcher(delegate int() {
+            int result = (cast(wrap_object*)self).d_obj.opCmp(d_type!(OtherT)(other));
+            // The Python API reference specifies that tp_compare must return
+            // -1, 0, or 1. The D spec says opCmp may return any integer value,
+            // and just compares it with zero.
+            if (result < 0) return -1;
+            if (result == 0) return 0;
+            if (result > 0) return 1;
+        });
+    }
+}
+
+// The rest of the file is composed of these short stubs
+template opIndex_sequence_wrap(T) {
+    static if (is(typeof(&T.opIndex)) &&
+               funcDelegInfoT!(typeof(&T.opIndex)).numArgs == 1 &&
+               is(funcDelegInfoT!(typeof(&T.opIndex)).Meta.ArgType!(0) : int)
+    ) {
+        const intargfunc opIndex_sequence_wrap = &opindex_sequence_pyfunc!(T).func;
+    } else {
+        const intargfunc opIndex_sequence_wrap = null;
+    }
+}
+
+template opIndexAssign_sequence_wrap(T) {
+    static if (true) {
+        const intobjargproc opIndexAssign_sequence_wrap = null;
+    } else {
+        const intobjargproc opIndexAssign_sequence_wrap = null;
+    }
+}
+
+template opIndex_mapping_wrap(T) {
+
+}
+
+template opIndexAssign_mapping_wrap(T) {
+
+}
+
+template opSlice_wrap(T) {
+
+}
+
+template opSliceAssign_wrap(T) {
+
 }
 
 template opAdd_wrap(T) {

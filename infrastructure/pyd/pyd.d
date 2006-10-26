@@ -31,8 +31,6 @@ public import pyd.class_wrap;
 public import pyd.ctor_wrap;
 public import pyd.dpyobject;
 public import pyd.exception;
-public import pyd.ftype;
 public import pyd.func_wrap;
 public import pyd.make_object;
-public import pyd.tuples;
 

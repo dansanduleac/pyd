@@ -25,7 +25,7 @@
 
 <p>Exposing D classes to Python is easy! The heart of Pyd's class wrapping features is the <code>wrapped_class</code> template struct:</p>
 
-<p><code>struct wrapped_class(<span class="t_arg">T</span>, char[] <span class="t_arg">classname</span>);</code></p>
+<p><code>struct wrapped_class(<span class="t_arg">T</span>, char[] <span class="t_arg">classname</span> = symbolnameof!(T));</code></p>
     <ul>
     <li><span class="t_arg">T</span> is the class being wrapped.</li>
     <li><span class="t_arg">classname</span> is the name of the class as it will appear in Python.</li>
@@ -34,20 +34,27 @@
 <p>To expose the constructors, methods, and properties of the class, <code>wrapped_class</code> provides a series of template member functions.</p>
 
 <dl>
-<dt><code>static void def(alias <span class="t_arg">fn</span>, char[] <span class="t_arg">name</span>, <span class="t_arg">fn_t</span> = typeof(&amp;fn)) ();</code></dt>
+<dt><code>static void def(alias <span class="t_arg">fn</span>, char[] <span class="t_arg">name</span> = symbolnameof!(fn), <span class="t_arg">fn_t</span> = typeof(&amp;fn)) ();</code></dt>
 <dd>This wraps a method of the class. It functions exactly like the <code>def</code> function used to <a href="func_wrapping.html">wrap regular functions</a>, with one very important difference: There is no support for default arguments. (This is a side-effect of the fact that you cannot call an alias of a method in D, and delegates do not understand default arguments.)</dd>
 
 <dt><code>static void prop(alias <span class="t_arg">fn</span>, char[] <span class="t_arg">name</span>, bool <span class="t_arg">RO</span> = false) ();</code></dt>
 <dd>This wraps a property. See the examples below for more details.
     <ul>
     <li><span class="t_arg">fn</span> is the name of the property. <code>prop</code> will automatically attempt to wrap both the "get" and "set" forms of the property, unless <span class="t_arg">RO</span> is specified.</li>
-    <li><span class="t_arg">name</span> is the name of the property as it will appear in Python.</li>
+    <li><span class="t_arg">name</span> is the name of the property as it will appear in Python. As with <code>def</code>, <code>prop</code> will attempt to derive this automatically.</li>
     <li><span class="t_arg">RO</span> specifies whether this is a <i>read-only</i> property. If true, it will only wrap the "get" form of the property. If false, it will wrap both the "get" and "set" forms. (This is a little hackish, and I will probably try to make this detection more automatic in the future. It also means it cannot support a property that only has a "set" form.)</li>
     </ul>
 </dd>
 
 <dt><code>static void init(<span class="t_arg">C1</span>, <span class="t_arg">C2</span>, <span class="t_arg">C3</span>, ..., <span class="t_arg">C<i>n</i></span>) ();</code></dt>
-<dd>This allows you to expose anywhere from zero to 10 of the class's constructors to Python. If the class provides a zero-argument constructor, there is no need to specify it; it is always available. Each of <span class="t_arg">C<i>n</i></span> should be an instance of the <code>pyd.tuples.tuple</code> template (not an instance of the tuple struct <em>itself</em>, but an instance of the <em>template</em>), which in turn supports up to 10 arguments. Each tuple should correspond to a constructor. There is an additional limitation at this time: No two constructors may have the same number of arguments. Pyd will always attempt to call the first constructor with the right number of arguments. If you wish to support a constructor with default arguments, you must specify each possible constructor call as a different template argument to this function. The examples show a few uses of the <code>init</code> function.</dd>
+<dd>This allows you to expose anywhere from zero to 10 of the class's constructors to Python. If the class provides a zero-argument constructor, there is no need to specify it; it is always available. Each of <span class="t_arg">C<i>n</i></span> should be a function type. Each function type should correspond to a constructor. (That is, the arguments to the function should be the same as arguments to the class constructor. The return type is ignored.) There is an additional limitation at this time: No two constructors may have the same number of arguments. Pyd will always attempt to call the first constructor with the right number of arguments. If you wish to support a constructor with default arguments, you must specify each possible constructor call as a different template argument to this function. The examples show a few uses of the <code>init</code> function.</dd>
+
+<dt><code>static void iter(<span class="t_arg">iter_t</span>) ();</code></dt>
+<dd>This allows the user to specify a different overload of opApply than the default. (The default is always the one that is lexically first.) The <span class="t_arg">iter_t</span> argument should be the type of the delegate that forms the argument to opApply. This might be e.g. <code>int delegate(inout int)</code>. Don't forget the <code>inout</code> modifiers!</dd>
+
+<dt><code>static void alt_iter(alias <span class="t_arg">fn</span>, char[] <span class="t_arg">name</span> = symbolnameof!(fn), iter_t = <i>implementationDetail</i>) ();</code></dt>
+<dd>This wraps alternate iterator methods as Python methods that return iterator objects. The wrapped methods should have a signature like that of opApply. (In other words, they should be methods intended to be used with D's ability to iterate over delgates.) The <span class="t_arg">iter_t</span> argument should be the type of the delegate argument to the method. This will usually be derived automatically.
+</dd>
 </dl>
 
 <p>Once you have called all of the member functions of <code>wrapped_class</code> that you wish to, you must issue a call to <code>finalize_class</code>.</p>
@@ -73,9 +80,13 @@
 
 <p>At the moment, only the following operator overloads are supported:</p>
 
-<p><code>opAdd, opSub, opMul, opDiv, opMod, opAnd, opOr, opXor, opShl, opShr, opCat, opAddAssign, opSubAssign, opMulAssign, opDivAssign, opModAssign, opAndAssign, opOrAssign, opXorAssign, opShlAssign, opShrAssign, opCatAssign, opIn_r, opApply</code></p>
+<p><code>opAdd, opSub, opMul, opDiv, opMod, opAnd, opOr, opXor, opShl, opShr, opCat, opAddAssign, opSubAssign, opMulAssign, opDivAssign, opModAssign, opAndAssign, opOrAssign, opXorAssign, opShlAssign, opShrAssign, opCatAssign, opIn_r, opCmp, opCall, opApply</code></p>
 
-<p>Most notably missing from this list are <code>opIndex, opIndexAssign, opSlice, opSliceAssign</code>, and <code>opCall</code>. Support for these operators is forthcoming. Also missing from the list are <code>opUShr</code> and <code>opUShrAssign</code>. Python does not have an unsigned right-shift operator, so these operator overloads are not supported. (You may still wrap them with a normal method using <code>wrapped_class.def</code>, of course.)</p>
+<p>Most notably missing from this list are <code>opIndex, opIndexAssign, opSlice</code>, and <code>opSliceAssign</code>. Support for these operators is forthcoming. Also missing from the list are <code>opUShr</code> and <code>opUShrAssign</code>. Python does not have an unsigned right-shift operator, so these operator overloads are not supported. (You may still wrap them with a normal method using <code>wrapped_class.def</code>, of course.) Also missing from the list is <code>opApplyReverse</code>. This must be wrapped explicitly with <code>alt_iter</code>.</p>
+
+<!-- This is not yet implemented.
+<p>Additionally, if a class provides a <code>length</code> property, Pyd will automatically make it available via Python's built-in function <code>len</code>. You may still wrap it with <code>prop</code> if you wish it to be available as a normal property.</p>
+-->
 
 <p>Notably <em>included</em> in the list is <code>opApply</code>. Pyd wraps D's iteration protocol with the help of Mikola Lysenko's StackThreads package.</p>
 
@@ -107,13 +118,13 @@
 <p>We would expose this class to Python by putting this code in our init function after the call to <code>module_init</code>:</p>
 
 <pre class="code"><span class="comment">// Make an instance of wrapped_class</span>
-wrapped_class!(Foo, <span class="string">"Foo"</span>) f;
+wrapped_class!(Foo) f;
 <span class="comment">// Wrap the "foo" method</span>
-f.def!(Foo.foo, <span class="string">"foo"</span>);
+f.def!(Foo.foo);
 <span class="comment">// Wrap the "i" property</span>
-f.prop!(Foo.i, <span class="string">"i"</span>);
+f.prop!(Foo.i);
 <span class="comment">// Wrap the constructors.</span>
-f.init!(tuple!(<span class="keyword">int</span>), tuple!(<span class="keyword">int</span>, <span class="keyword">int</span>));
+f.init!(<span class="keyword">void function</span>(<span class="keyword">int</span>), <span class="keyword">void function</span>(<span class="keyword">int</span>, <span class="keyword">int</span>));
 finalize_class(f);</pre>
 
 <p>Now we can use this type from within Python like any other type.</p>

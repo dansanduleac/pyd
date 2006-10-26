@@ -35,6 +35,7 @@ private {
     import meta.Default;
     import meta.FuncMeta;
     import meta.Tuple;
+    import meta.Nameof;
 
     import std.string;
 }
@@ -82,12 +83,12 @@ template wrapped_class_type(T) {
         null,                         /*tp_as_buffer*/
         Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, /*tp_flags*/
         null,                         /*tp_doc*/
-        null,		              /* tp_traverse */
-        null,		              /* tp_clear */
-        null,		              /* tp_richcompare */
-        0,		              /* tp_weaklistoffset */
-        null,		              /* tp_iter */
-        null,		              /* tp_iternext */
+        null,                         /* tp_traverse */
+        null,                         /* tp_clear */
+        null,                         /* tp_richcompare */
+        0,                            /* tp_weaklistoffset */
+        null,                         /* tp_iter */
+        null,                         /* tp_iternext */
         null,                         /* tp_methods */
         null,                         /* tp_members */
         null,                         /* tp_getset */
@@ -247,7 +248,7 @@ template wrapped_prop_list(T) {
  * This struct wraps a D class. Its member functions are the primary way of
  * wrapping the specific parts of the class.
  */
-template wrapped_class(T, char[] classname) {
+template wrapped_class(T, char[] classname = symbolnameof!(T)) {
     pragma(msg, "wrapped_class: " ~ classname);
     struct wrapped_class {
         static const char[] _name = classname;
@@ -286,7 +287,7 @@ template wrapped_class(T, char[] classname) {
          * fn = The property to wrap.
          * RO = Whether this is a read-only property.
          */
-        template prop(alias fn, char[] name, bool RO=false) {
+        template prop(alias fn, char[] name = symbolnameof!(fn), bool RO=false) {
             pragma(msg, "class.prop: " ~ name);
             static void prop() {
                 static PyGetSetDef empty = { null, null, null, null, null };
@@ -375,17 +376,37 @@ void finalize_class(CLS) (CLS cls) {
     type.tp_repr      = &wrapped_repr!(T).repr;
     type.tp_methods   = wrapped_method_list!(T);
     type.tp_name      = module_name ~ "." ~ name ~ \0;
+
+    // Numerical operator overloads
     if (wrapped_class_as_number!(T) != PyNumberMethods.init) {
         type.tp_as_number = &wrapped_class_as_number!(T);
     }
+    // Sequence operator overloads
+    if (wrapped_class_as_sequence!(T) != PySequenceMethods.init) {
+        type.tp_as_sequence = &wrapped_class_as_sequence!(T);
+    }
+    // Mapping operator overloads
+    if (wrapped_class_as_mapping!(T) != PyMappingMethods.init) {
+        type.tp_as_mapping = &wrapped_class_as_mapping!(T);
+    }
 
+    // Standard operator overloads
+    // opApply
     static if (is(typeof(&T.opApply))) {
         if (type.tp_iter is null) {
             DPySC_Ready();
             type.tp_iter = &wrapped_iter!(T, T.opApply).iter;
         }
     }
-    
+    // opCmp
+    static if (is(typeof(&T.opCmp))) {
+        type.tp_compare = &opcmp_wrap!(T).func;
+    }
+    // opCall
+    static if (is(typeof(&T.opCall))) {
+        type.tp_call = cast(ternaryfunc)&func_wrap!(T.opCall, minArgs!(T.opCall), T).func;
+    }
+
     // If a ctor wasn't supplied, try the default.
     if (type.tp_init is null) {
         type.tp_init = &wrapped_init!(T).init;

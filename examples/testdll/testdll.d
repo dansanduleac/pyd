@@ -105,34 +105,29 @@ Foo spam(Foo f) {
 
 extern (C)
 export void inittestdll() {
-    def!(foo/*, "foo"*/);
+    def!(foo);
     // Python does not support function overloading. This allows us to wrap
     // an overloading function under a different name. Note that if the
     // overload accepts a different number of minimum arguments, that number
     // must be specified.
     def!(foo, "foo2", void function(int), 1);
-    def!(bar, "bar");
+    def!(bar);
     // Default argument support - Now implicit!
-    def!(baz, "baz");
-    def!(spam, "spam");
-    def!(iter_test, "iter_test");
-    def!(func_test, "func_test");
-    def!(dg_test, "dg_test");
+    def!(baz);
+    def!(spam);
+    def!(iter_test);
+    def!(func_test);
+    def!(dg_test);
 
     module_init("testdll");
 
-    auto t = func_range!(foo, 0)();
-    alias typeof(t) Tu;
-    writefln(typeid(TypeNo!(Tu, 1)));
-    writefln(MIN_ARGS!(bar));
-
-    wrapped_class!(Foo, "Foo") f;
+    wrapped_class!(Foo) f;
     // Constructor wrapping
     f.init!(void function(int), void function(int, int));
     // Member function wrapping
-    f.def!(Foo.foo, "foo");
+    f.def!(Foo.foo);
     // Property wrapping
-    f.prop!(Foo.i, "i");
+    f.prop!(Foo.i);
     finalize_class(f);
 }
 
