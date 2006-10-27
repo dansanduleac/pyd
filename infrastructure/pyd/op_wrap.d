@@ -24,6 +24,7 @@ module pyd.op_wrap;
 private import python;
 
 private import pyd.class_wrap;
+private import pyd.dg_convert;
 private import pyd.func_wrap;
 private import pyd.exception;
 private import pyd.make_object;
@@ -75,45 +76,43 @@ template wrapped_class_as_number(T) {
 
 template wrapped_class_as_sequence(T) {
     static PySequenceMethods wrapped_class_as_sequence = {
-        null,                 /*sq_length*/
-        opCat_wrap!(T),       /*sq_concat*/
-        null,                 /*sq_repeat*/
-        null,                 /*sq_item*/
-        null,                 /*sq_slice*/
-        null,                 /*sq_ass_item*/
-        null,                 /*sq_ass_slice*/
-        null,                 /*sq_contains*/
-        opCatAssign_wrap!(T), /*sq_inplace_concat*/
-        null,                 /*sq_inplace_repeat*/
+        null,                            /*sq_length*/
+        opCat_wrap!(T),                  /*sq_concat*/
+        null,                            /*sq_repeat*/
+        opIndex_sequence_wrap!(T),       /*sq_item*/
+        opSlice_wrap!(T),                /*sq_slice*/
+        opIndexAssign_sequence_wrap!(T), /*sq_ass_item*/
+        opSliceAssign_wrap!(T),          /*sq_ass_slice*/
+        null,                            /*sq_contains*/
+        opCatAssign_wrap!(T),            /*sq_inplace_concat*/
+        null,                            /*sq_inplace_repeat*/
     };
 }
 
 template wrapped_class_as_mapping(T) {
     static PyMappingMethods wrapped_class_as_mapping = {
-        null,                 /*mp_length*/
-        null,                 /*mp_subscript*/
-        null,                 /*mp_ass_subscript*/
+        null,                           /*mp_length*/
+        opIndex_mapping_wrap!(T),       /*mp_subscript*/
+        opIndexAssign_mapping_wrap!(T), /*mp_ass_subscript*/
     };
 }
 
 template opfunc_binary_wrap(T, alias opfn) {
     alias wrapped_class_object!(T) wrap_object;
+    alias funcDelegInfoT!(typeof(&opfn)) Info;
     extern(C)
     PyObject* func(PyObject* self, PyObject* o) {
-        PyObject* temp_tuple = PyTuple_New(1);
-        if (temp_tuple is null) return null;
-        Py_INCREF(o);
-        PyTuple_SetItem(temp_tuple, 0, o);
-        PyObject* res = func_wrap!(opfn, 1, T).func(self, temp_tuple);
-        Py_DECREF(temp_tuple);
-        return res;
+        return exception_catcher(delegate PyObject*() {
+            auto dg = dg_wrapper((cast(wrap_object*)self).d_obj, &opfn);
+            return _py(dg(d_type!(Info.Meta.ArgType!(0))(o)));
+        });
     }
 }
 
 template opfunc_unary_wrap(T, alias opfn) {
-    alias wrapped_class_object!(T) wrap_object;
     extern(C)
     PyObject* func(PyObject* self) {
+        // func_wrap takes care of exception handling
         return func_wrap!(opfn, 0, T).func(self, null);
     }
 }
@@ -131,10 +130,71 @@ template opindex_sequence_pyfunc(T) {
 
 template opindexassign_sequence_pyfunc(T) {
     alias wrapped_class_object!(T) wrap_object;
+    alias funcDelegInfoT!(typeof(&T.opIndexAssign)) Info;
+    alias Info.Meta.ArgType!(0) AssignT;
 
     extern(C)
     int func(PyObject* self, int i, PyObject* o) {
-        
+        return exception_catcher(delegate int() {
+            (cast(wrap_object*)self).d_obj.opIndexAssign(d_type!(AssignT)(o), i);
+            return 0;
+        });
+    }
+}
+
+template opindexassign_mapping_pyfunc(T) {
+    alias wrapped_class_object!(T) wrap_object;
+    alias funcDelegInfoT!(typeof(&T.opIndexAssign)) Info;
+    alias Info.Meta.ArgType!(0) ValT;
+    alias Info.Meta.ArgType!(1) KeyT;
+
+    extern(C)
+    int func(PyObject* self, PyObject* key, PyObject* val) {
+        return exception_catcher(delegate int() {
+            (cast(wrap_object*)self).d_obj.opIndexAssign(d_type!(ValT)(val), d_type!(KeyT)(key));
+            return 0;
+        });
+    }
+}
+
+template opslice_pyfunc(T) {
+    alias wrapped_class_object!(T) wrap_object;
+
+    extern(C)
+    PyObject* func(PyObject* self, int i1, int i2) {
+        return exception_catcher(delegate PyObject*() {
+            return _py((cast(wrap_object*)self).d_obj.opSlice(i1, i2));
+        });
+    }
+}
+
+template opsliceassign_pyfunc(T) {
+    alias wrapped_class_object!(T) wrap_object;
+    alias funcDelegInfoT!(typeof(&T.opSliceAssign)) Info;
+    alias Info.Meta.ArgType!(0) AssignT;
+
+    extern(C)
+    int func(PyObject* self, int i1, int i2, PyObject* o) {
+        return exception_catcher(delegate int() {
+            (cast(wrap_object*)self).d_obj.opSliceAssign(d_type!(AssignT)(o), i1, i2);
+            return 0;
+        });
+    }
+}
+
+template opin_wrap(T) {
+    alias wrapped_class_object!(T) wrap_object;
+    alias funcDelegInfoT!(typeof(&T.opIn_r)) Info;
+    alias Info.Meta.ArgType!(0) OtherT;
+    
+    extern(C)
+    int func(PyObject* self, PyObject* val) {
+        return exception_catcher(delegate int() {
+            if ((cast(wrap_object*)self).d_obj.opIn_r(d_type!(OtherT)(val)))
+                return 1;
+            else
+                return 0;
+        });
     }
 }
 
@@ -158,9 +218,10 @@ template opcmp_wrap(T) {
 
 // The rest of the file is composed of these short stubs
 template opIndex_sequence_wrap(T) {
-    static if (is(typeof(&T.opIndex)) &&
-               funcDelegInfoT!(typeof(&T.opIndex)).numArgs == 1 &&
-               is(funcDelegInfoT!(typeof(&T.opIndex)).Meta.ArgType!(0) : int)
+    static if (
+        is(typeof(&T.opIndex)) &&
+        funcDelegInfoT!(typeof(&T.opIndex)).numArgs == 1 &&
+        is(funcDelegInfoT!(typeof(&T.opIndex)).Meta.ArgType!(0) : int)
     ) {
         const intargfunc opIndex_sequence_wrap = &opindex_sequence_pyfunc!(T).func;
     } else {
@@ -169,27 +230,65 @@ template opIndex_sequence_wrap(T) {
 }
 
 template opIndexAssign_sequence_wrap(T) {
-    static if (true) {
-        const intobjargproc opIndexAssign_sequence_wrap = null;
+    static if (
+        is(typeof(&T.opIndexAssign)) &&
+        funcDelegInfoT!(typeof(&T.opIndexAssign)).numArgs == 2 &&
+        is(funcDelegInfoT!(typeof(&T.opIndexAssign)).Meta.ArgType!(1) : int)
+    ) {
+        const intobjargproc opIndexAssign_sequence_wrap = &opindexassign_sequence_pyfunc!(T).func;
     } else {
         const intobjargproc opIndexAssign_sequence_wrap = null;
     }
 }
 
 template opIndex_mapping_wrap(T) {
-
+    static if (
+        is(typeof(&T.opIndex)) &&
+        funcDelegInfoT!(typeof(&T.opIndex)).numArgs == 1 &&
+        !is(funcDelegInfoT!(typeof(&T.opIndex)).Meta.ArgType!(0) : int)
+    ) {
+        const binaryfunc opIndex_mapping_wrap = &opfunc_binary_wrap!(T, T.opIndex).func;
+    } else {
+        const binaryfunc opIndex_mapping_wrap = null;
+    }
 }
 
 template opIndexAssign_mapping_wrap(T) {
-
+    static if (
+        is(typeof(&T.opIndexAssign)) &&
+        funcDelegInfoT!(typeof(&T.opIndexAssign)).numArgs == 2 &&
+        !is(funcDelegInfoT!(typeof(&T.opIndexAssign)).Meta.ArgType!(1) : int)
+    ) {
+        const objobjargproc opIndexAssign_mapping_wrap = &opindexassign_mapping_pyfunc!(T).func;
+    } else {
+        const objobjargproc opIndexAssign_mapping_wrap = null;
+    }
 }
 
 template opSlice_wrap(T) {
-
+    static if (
+        is(typeof(&T.opSlice)) &&
+        funcDelegInfoT!(typeof(&T.opSlice)).numArgs == 2 &&
+        is(funcDelegInfoT!(typeof(&T.opSlice)).Meta.ArgType!(0) : int) &&
+        is(funcDelegInfoT!(typeof(&T.opSlice)).Meta.ArgType!(1) : int)
+    ) {
+        const intintargfunc opSlice_wrap = opslice_pyfunc!(T).func;
+    } else {
+        const intintargfunc opSlice_wrap = null;
+    }
 }
 
 template opSliceAssign_wrap(T) {
-
+    static if (
+        is(typeof(&T.opSlice)) &&
+        funcDelegInfoT!(typeof(&T.opSlice)).numArgs == 3 &&
+        is(funcDelegInfoT!(typeof(&T.opSlice)).Meta.ArgType!(1) : int) &&
+        is(funcDelegInfoT!(typeof(&T.opSlice)).Meta.ArgType!(2) : int)
+    ) {
+        const intintobjargproc opSliceAssign_wrap = opsliceassign_pyfunc!(T).func;
+    } else {
+        const intintobjargproc opSliceAssign_wrap = null;
+    }
 }
 
 template opAdd_wrap(T) {
@@ -409,7 +508,7 @@ template opCatAssign_wrap(T) {
 
 template opIn_wrap(T) {
     static if (is(typeof(&T.opIn_r))) {
-        const binaryfunc opIn_wrap = &opfunc_binary_wrap!(T, T.opIn_r).func;
+        const binaryfunc opIn_wrap = &opin_wrap.func;
     } else {
         const binaryfunc opIn_wrap = null;
     }
