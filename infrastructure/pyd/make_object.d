@@ -195,14 +195,14 @@ T d_type(T) (PyObject* o) {
     // type.
     //
     // This also means that:
-    //  (1) Conversion to Object will construct an object and return that.
+    //  (1) Conversion to DPyObject will construct an object and return that.
     //  (2) Any integral type smaller than a C_long (which is usually just
     //      an int, meaning short and byte) will use the bool conversion.
     //  (3) Conversion to a float shouldn't work.
     static if (is(PyObject* : T)) {
         return o;
     } else static if (is(DPyObject : T)) {
-        return new DPyObject(o);
+        return new DPyObject(o, true);
     } else static if (is(T == void)) {
         if (o != Py_None) could_not_convert!(T)(o);
         Py_INCREF(Py_None);

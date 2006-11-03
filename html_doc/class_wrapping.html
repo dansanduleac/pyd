@@ -84,16 +84,13 @@
 
 <p>Missing from this list are <code>opUShr</code> and <code>opUShrAssign</code>. Python does not have an unsigned right-shift operator, so these operator overloads are not supported. (You may still wrap them with a normal method using <code>wrapped_class.def</code>, of course.) Also missing from the list is <code>opApplyReverse</code>. This must be wrapped explicitly with <code>wrapped_class.alt_iter</code>.</p>
 
-<!-- This is not yet implemented.
-<p>Additionally, if a class provides a <code>length</code> property, Pyd will automatically make it available via Python's built-in function <code>len</code>. You may still wrap it with <code>prop</code> or <code>def</code> if you wish it to be available as a normal property or method.</p>
--->
+<p>Additionally, if a class provides a <code>length</code> property, Pyd will automatically make it available via Python's built-in function <code>len</code> and the special <code>__len__</code> method. You may still wrap it with <code>prop</code> or <code>def</code> if you wish it to be available as a normal property or method.</p>
 
 <p><b>Notes on wrapped operators</b></p>
 
 <dl>
 <dt><code>opApply</code></dt> <dd>Pyd wraps D's iteration protocol with the help of Mikola Lysenko's StackThreads package.</dd>
-<dt><code>opIndex, opIndexAssign</code></dt> <dd>Pyd only supports these overloads if they have precisely one index argument. This is a limitation of the Python/C API.</dd>
-<dt><code>opSlice, opSliceAssign</code></dt> <dd>Pyd only supports these overloads if both of their two indexes are implicitly convertable to type <code>int</code>. This is a limitation of the Python/C API.</dd>
+<dt><code>opSlice, opSliceAssign</code></dt> <dd>Pyd only supports these overloads if both of their two indexes are implicitly convertable to type <code>int</code>. This is a limitation of the Python/C API. Note that this means the zero-argument form of opSlice (for allowing the "empty slice," e.g. <code>foo[]</code>) cannot be wrapped. <i>(I may work around this in the future.)</i> Because Pyd can only automatically wrap the lexically-first method in a class, it will fail to wrap opSlice and opSliceAssign if you define an empty form first.</dd>
 <dt><code>opCat, opCatAssign</code></dt> <dd>Python does not have a dedicated array concatenation operator. The plus sign (<code>+</code>) is reused for this purpose. Therefore, odd behavior may result with classes that define both <code>opAdd/opAddAssign</code> and one or both of these operators. (Consider yourself warned.) However, the Python/C API considers addition and concatenation distinct operations, and so both of these sets of operator overloads are supported.</dd>
 <dt><code>opIn_r</code></dt> <dd>Python expects the <code>in</code> operator to return a boolean value (it is a containment test). D convention is for <code>in</code> to search for the value in the container, and to return a pointer to the found item, or <code>null</code> if the item is not found. That said, D does not enforce any particular signature on the <code>in</code> overload, while the Python/C API does. Pyd will check the boolean result of a call to <code>opIn_r</code>, and return that value to Python.</dd>
 </dl>

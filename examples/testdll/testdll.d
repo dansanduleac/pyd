@@ -48,6 +48,15 @@ class Foo {
     void foo() {
         writefln("Foo.foo(): i = %s", m_i);
     }
+    int length() { return 10; }
+    int opSlice(int i1, int i2) {
+        writefln(i1, " ", i2);
+        return 12;
+    }
+    int opIndex(int x, int y) {
+        writefln(x, " ", y);
+        return x+y;
+    }
     Foo opAdd(Foo f) { return new Foo(m_i + f.m_i); }
     int opApply(int delegate(inout int, inout int) dg) {
         int result = 0;

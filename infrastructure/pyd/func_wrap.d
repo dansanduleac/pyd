@@ -68,12 +68,36 @@ private void loop(T, uint i = 0) (T* t, PyObject* args) {
     }
 }
 
-private void setWrongArgsError(int gotArgs, uint minArgs, uint maxArgs) {
-    char[] str = "Wrong number of arguments. Got " ~
-        toString(gotArgs) ~
-        ", expected ";
-    if (minArgs == maxArgs) str ~= toString(minArgs) ~ ".";
-    else str ~= "between " ~ toString(minArgs) ~ " and " ~ toString(maxArgs) ~ ".";
+void setWrongArgsError(int gotArgs, uint minArgs, uint maxArgs, char[] funcName="") {
+    char[] str;
+    if (funcName == "") {
+        str ~= "function takes ";
+    } else {
+        str ~= funcName ~ "() takes ";
+    }
+
+    char[] argStr(int args) {
+        char[] temp = toString(args) ~ " argument";
+        if (args > 1) {
+            temp ~= "s";
+        }
+        return temp;
+    }
+
+    if (minArgs == maxArgs) {
+        if (minArgs == 0) {
+            str ~= "no arguments";
+        } else {
+            str ~= "exactly " ~ argStr(minArgs);
+        }
+    }
+    else if (gotArgs < minArgs) {
+        str ~= "at least " ~ argStr(minArgs);
+    } else {
+        str ~= "at most " ~ argStr(maxArgs);
+    }
+    str ~= " (" ~ toString(gotArgs) ~ " given)";
+
     PyErr_SetString(PyExc_TypeError, str ~ \0);
 }
 
