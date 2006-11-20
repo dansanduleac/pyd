@@ -452,7 +452,12 @@ public:
      */
     int opApply(int delegate(inout DPyObject, inout DPyObject) dg) {
         PyObject* key, value;
-        int pos = 0, result = 0;
+        version(Python_2_5_Or_Later) {
+            Py_ssize_t pos = 0;
+        } else {
+            int pos = 0;
+        }
+        int result = 0;
         DPyObject k, v;
 
         while (PyDict_Next(m_ptr, &pos, &key, &value)) {

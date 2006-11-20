@@ -26,16 +26,18 @@ SOFTWARE.
  */
 module pyd.iteration;
 
-private import python;
-private import pyd.class_wrap;
-private import pyd.dg_convert;
-private import pyd.exception;
-//private import pyd.ftype;
-private import pyd.make_object;
+private {
+    import python;
 
-private import meta.FuncMeta;
+    import pyd.class_wrap;
+    import pyd.dg_convert;
+    import pyd.exception;
+    import pyd.make_object;
 
-private import st.stackcontext;
+    import std.traits;
+
+    import st.stackcontext;
+}
 
 // This exception is for yielding a PyObject* from within a StackContext.
 class DPyYield : Exception {
@@ -47,94 +49,24 @@ class DPyYield : Exception {
     PyObject* item() { return m_py; }
 }
 
-// Makes a PyTuple and "steals" all of the passed references
-PyObject* _make_pytuple(PyObject*[] pyobjs ...) {
-    PyObject* temp = PyTuple_New(pyobjs.length);
-    if (temp is null) {
-        foreach (PyObject* o; pyobjs) {
-            Py_DECREF(o);
-        }
-        return null;
-    }
-    foreach (uint i, PyObject* o; pyobjs) {
-        PyTuple_SetItem(temp, i, o);
-    }
-    return temp;
-}
-
 // Creates an iterator object from an object.
 PyObject* DPySC_FromWrapped(T, alias Iter = T.opApply, iter_t = typeof(&Iter)) (T obj) {
     // Get the number of args the opApply's delegate argument takes
-    alias funcDelegInfoT!(iter_t) IInfo;
-    alias funcDelegInoutInfoT!(IInfo.Meta.ArgType!(0)) Info;
-    const uint ARGS = Info.numArgs;
+    alias ParameterTypeTuple!(iter_t) IInfo;
+    alias ParameterTypeTuple!(IInfo[0]) Info;
+    const uint ARGS = Info.length;
     auto sc = new StackContext(delegate void() {
         T o = obj;
         fn_to_dg!(iter_t) t = dg_wrapper!(T, iter_t)(o, &Iter);
-        // So we can get the variable in the enclosing function's stack frame
+        // We yield so we can be sure to get the local variables in the
+        // enclosing function's stack frame.
         StackContext.yield();
         PyObject* temp;
-        // I seriously doubt I need to support up to ten (10!) arguments to the
-        // opApply delegate, but everything else in Pyd does, so here we go.
-        static if (ARGS == 1) {
-            foreach (i; t) {
-                StackContext.throwYield(new DPyYield(_py(i)));
-            }
-        } else static if (ARGS == 2) {
-            foreach (a0, a1; t) {
-                temp = _make_pytuple(_py(a0), _py(a1));
-                if (temp is null) StackContext.throwYield(new DPyYield(null));
-                StackContext.throwYield(new DPyYield(temp));
-            }
-        } else static if (ARGS == 3) {
-            foreach (a0, a1, a2; t) {
-                temp = _make_pytuple(_py(a0), _py(a1), _py(a2));
-                if (temp is null) StackContext.throwYield(new DPyYield(null));
-                StackContext.throwYield(new DPyYield(temp));
-            }
-        } else static if (ARGS == 4) {
-            foreach (a0, a1, a2, a3; t) {
-                temp = _make_pytuple(_py(a0), _py(a1), _py(a2), _py(a3));
-                if (temp is null) StackContext.throwYield(new DPyYield(null));
-                StackContext.throwYield(new DPyYield(temp));
-            }
-        } else static if (ARGS == 5) {
-            foreach (a0, a1, a2, a3, a4; t) {
-                temp = _make_pytuple(_py(a0), _py(a1), _py(a2), _py(a3), _py(a4));
-                if (temp is null) StackContext.throwYield(new DPyYield(null));
-                StackContext.throwYield(new DPyYield(temp));
-            }
-        } else static if (ARGS == 6) {
-            foreach (a0, a1, a2, a3, a4, a5; t) {
-                temp = _make_pytuple(_py(a0), _py(a1), _py(a2), _py(a3), _py(a4), _py(a5));
-                if (temp is null) StackContext.throwYield(new DPyYield(null));
-                StackContext.throwYield(new DPyYield(temp));
-            }
-        } else static if (ARGS == 7) {
-            foreach (a0, a1, a2, a3, a4, a5, a6; t) {
-                temp = _make_pytuple(_py(a0), _py(a1), _py(a2), _py(a3), _py(a4), _py(a5), _py(a6));
-                if (temp is null) StackContext.throwYield(new DPyYield(null));
-                StackContext.throwYield(new DPyYield(temp));
-            }
-        } else static if (ARGS == 8) {
-            foreach (a0, a1, a2, a3, a4, a5, a6, a7; t) {
-                temp = _make_pytuple(_py(a0), _py(a1), _py(a2), _py(a3), _py(a4), _py(a5), _py(a6), _py(a7));
-                if (temp is null) StackContext.throwYield(new DPyYield(null));
-                StackContext.throwYield(new DPyYield(temp));
-            }
-        } else static if (ARGS == 9) {
-            foreach (a0, a1, a2, a3, a4, a5, a6, a7, a8; t) {
-                temp = _make_pytuple(_py(a0), _py(a1), _py(a2), _py(a3), _py(a4), _py(a5), _py(a6), _py(a7), _py(a8));
-                if (temp is null) StackContext.throwYield(new DPyYield(null));
-                StackContext.throwYield(new DPyYield(temp));
-            }
-        } else static if (ARGS == 10) {
-            foreach (a0, a1, a2, a3, a4, a5, a6, a7, a8, a9; t) {
-                temp = _make_pytuple(_py(a0), _py(a1), _py(a2), _py(a3), _py(a4), _py(a5), _py(a6), _py(a7), _py(a8), _py(a9));
-                if (temp is null) StackContext.throwYield(new DPyYield(null));
-                StackContext.throwYield(new DPyYield(temp));
-            }
-        }
+
+        t(delegate int(inout Info i) {
+            StackContext.throwYield(new DPyYield(PyTuple_FromItems(i)));
+            return 0;
+        });
     });
     // Initialize the StackContext
     sc.run();
@@ -185,9 +117,12 @@ void DPySC_Ready() {
     
     if (!is_wrapped!(StackContext)) {
         type.ob_type = PyType_Type_p;
+        //type.tp_new       = &wrapped_methods!(StackContext).wrapped_new;
+        //type.tp_dealloc   = &wrapped_methods!(StackContext).wrapped_dealloc;
         type.tp_basicsize = DPySC_object.sizeof;
+        type.tp_flags     = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE;
         //type.tp_doc = "";
-        type.tp_name = "DPyOpApplyWrapper";
+        type.tp_name = "PydOpApplyWrapper";
 
         type.tp_iter = &PyObject_SelfIter;
         type.tp_iternext = &sc_iternext;
@@ -199,3 +134,4 @@ void DPySC_Ready() {
         wrapped_classes[typeid(StackContext)] = true;
     }
 }
+

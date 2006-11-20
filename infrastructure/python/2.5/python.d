@@ -1,4 +1,5 @@
 /* DSR:2005.10.26.16.28:
+// Updated to Python 2.5 by Kirk McDonald
 
 XXX:
 
@@ -36,6 +37,15 @@ version(Windows) {
   }
 }
 
+/*
+ * Py_ssize_t is defined as a signed type which is 8 bytes on X86_64 and 4
+ * bytes on X86.
+ */
+version (X86_64) {
+    alias long Py_ssize_t;
+} else {
+    alias int Py_ssize_t;
+}
 
 extern (C) {
 ///////////////////////////////////////////////////////////////////////////////
@@ -62,7 +72,7 @@ extern (C) {
 
   template PyObject_HEAD() {
     mixin _PyObject_HEAD_EXTRA;
-    int ob_refcnt;
+    Py_ssize_t ob_refcnt;
     PyTypeObject *ob_type;
   }
 
@@ -72,7 +82,7 @@ extern (C) {
 
   template PyObject_VAR_HEAD() {
     mixin PyObject_HEAD;
-    int ob_size; /* Number of items in variable part */
+    Py_ssize_t ob_size; /* Number of items in variable part */
   }
 
   struct PyVarObject {
@@ -83,16 +93,29 @@ extern (C) {
   alias PyObject * (*binaryfunc)(PyObject *, PyObject *);
   alias PyObject * (*ternaryfunc)(PyObject *, PyObject *, PyObject *);
   alias int (*inquiry)(PyObject *);
+  alias Py_ssize_t (*lenfunc)(PyObject *);
   alias int (*coercion)(PyObject **, PyObject **);
   alias PyObject *(*intargfunc)(PyObject *, int);
   alias PyObject *(*intintargfunc)(PyObject *, int, int);
+  alias PyObject *(*ssizeargfunc)(PyObject *, Py_ssize_t);
+  alias PyObject *(*ssizessizeargfunc)(PyObject *, Py_ssize_t, Py_ssize_t);
   alias int(*intobjargproc)(PyObject *, int, PyObject *);
   alias int(*intintobjargproc)(PyObject *, int, int, PyObject *);
+  alias int(*ssizeobjargproc)(PyObject *, Py_ssize_t, PyObject *);
+  alias int(*ssizessizeobjargproc)(PyObject *, Py_ssize_t, Py_ssize_t, PyObject *);
   alias int(*objobjargproc)(PyObject *, PyObject *, PyObject *);
+
+  // int-based buffer interface
   alias int (*getreadbufferproc)(PyObject *, int, void **);
   alias int (*getwritebufferproc)(PyObject *, int, void **);
   alias int (*getsegcountproc)(PyObject *, int *);
   alias int (*getcharbufferproc)(PyObject *, int, char **);
+  // ssize_t-based buffer interface
+  alias Py_ssize_t (*readbufferproc)(PyObject *, Py_ssize_t, void **);
+  alias Py_ssize_t (*writebufferproc)(PyObject *, Py_ssize_t, void **);
+  alias Py_ssize_t (*segcountproc)(PyObject *, Py_ssize_t *);
+  alias Py_ssize_t (*charbufferproc)(PyObject *, Py_ssize_t, char **);
+
   alias int (*objobjproc)(PyObject *, PyObject *);
   alias int (*visitproc)(PyObject *, void *);
   alias int (*traverseproc)(PyObject *, visitproc, void *);
@@ -135,37 +158,39 @@ extern (C) {
     binaryfunc nb_inplace_xor;
     binaryfunc nb_inplace_or;
 
-
     binaryfunc nb_floor_divide;
     binaryfunc nb_true_divide;
     binaryfunc nb_inplace_floor_divide;
     binaryfunc nb_inplace_true_divide;
+
+    /* Added in release 2.5 */
+    unaryfunc nb_index;
   }
 
   struct PySequenceMethods {
-    inquiry sq_length;
+    lenfunc sq_length;
     binaryfunc sq_concat;
-    intargfunc sq_repeat;
-    intargfunc sq_item;
-    intintargfunc sq_slice;
-    intobjargproc sq_ass_item;
-    intintobjargproc sq_ass_slice;
+    ssizeargfunc sq_repeat;
+    ssizeargfunc sq_item;
+    ssizessizeargfunc sq_slice;
+    ssizeobjargproc sq_ass_item;
+    ssizessizeobjargproc sq_ass_slice;
     objobjproc sq_contains;
     binaryfunc sq_inplace_concat;
-    intargfunc sq_inplace_repeat;
+    ssizeargfunc sq_inplace_repeat;
   }
 
   struct PyMappingMethods {
-    inquiry mp_length;
+    lenfunc mp_length;
     binaryfunc mp_subscript;
     objobjargproc mp_ass_subscript;
   }
 
   struct PyBufferProcs {
-    getreadbufferproc bf_getreadbuffer;
-    getwritebufferproc bf_getwritebuffer;
-    getsegcountproc bf_getsegcount;
-    getcharbufferproc bf_getcharbuffer;
+    readbufferproc bf_getreadbuffer;
+    writebufferproc bf_getwritebuffer;
+    segcountproc bf_getsegcount;
+    charbufferproc bf_getcharbuffer;
   }
 
 
@@ -186,13 +211,13 @@ extern (C) {
   alias int (*descrsetfunc) (PyObject *, PyObject *, PyObject *);
   alias int (*initproc)(PyObject *, PyObject *, PyObject *);
   alias PyObject *(*newfunc)(PyTypeObject *, PyObject *, PyObject *);
-  alias PyObject *(*allocfunc)(PyTypeObject *, int);
+  alias PyObject *(*allocfunc)(PyTypeObject *, Py_ssize_t);
 
   struct PyTypeObject {
     mixin PyObject_VAR_HEAD;
 
     char *tp_name;
-    int tp_basicsize, tp_itemsize;
+    Py_ssize_t tp_basicsize, tp_itemsize;
 
     destructor tp_dealloc;
     printfunc tp_print;
@@ -223,7 +248,7 @@ extern (C) {
 
     richcmpfunc tp_richcompare;
 
-    C_long tp_weaklistoffset;
+    Py_ssize_t tp_weaklistoffset;
 
     getiterfunc tp_iter;
     iternextfunc tp_iternext;
@@ -235,7 +260,7 @@ extern (C) {
     PyObject *tp_dict;
     descrgetfunc tp_descr_get;
     descrsetfunc tp_descr_set;
-    C_long tp_dictoffset;
+    Py_ssize_t tp_dictoffset;
     initproc tp_init;
     allocfunc tp_alloc;
     newfunc tp_new;
@@ -252,13 +277,13 @@ extern (C) {
   //alias _typeobject PyTypeObject;
 
   struct _heaptypeobject {
-    PyTypeObject type;
+    PyTypeObject ht_type;
     PyNumberMethods as_number;
     PyMappingMethods as_mapping;
     PySequenceMethods as_sequence;
     PyBufferProcs as_buffer;
-    PyObject *name;
-    PyObject *slots;
+    PyObject *ht_name;
+    PyObject *ht_slots;
   }
   alias _heaptypeobject PyHeapTypeObject;
 
@@ -294,7 +319,7 @@ extern (C) {
   }
 
   int PyType_Ready(PyTypeObject *);
-  PyObject * PyType_GenericAlloc(PyTypeObject *, int);
+  PyObject * PyType_GenericAlloc(PyTypeObject *, Py_ssize_t);
   PyObject * PyType_GenericNew(PyTypeObject *, PyObject *, PyObject *);
 
 
@@ -355,6 +380,7 @@ extern (C) {
   //#else
   const int Py_TPFLAGS_HAVE_STACKLESS_EXTENSION = 0;
   //#endif
+  const int Py_TPFLAGS_HAVE_INDEX               = 1L<<17;
 
   const int Py_TPFLAGS_DEFAULT =
       Py_TPFLAGS_HAVE_GETCHARBUFFER |
@@ -365,6 +391,7 @@ extern (C) {
       Py_TPFLAGS_HAVE_ITER |
       Py_TPFLAGS_HAVE_CLASS |
       Py_TPFLAGS_HAVE_STACKLESS_EXTENSION |
+      Py_TPFLAGS_HAVE_INDEX |
       0
     ;
 
@@ -442,7 +469,7 @@ extern (C) {
   struct PyUnicodeObject {
     mixin PyObject_HEAD;
 
-    int length;
+    Py_ssize_t length;
     Py_UNICODE *str;
     C_long hash;
     PyObject *defenc;
@@ -475,17 +502,17 @@ extern (C) {
   // YYY: Unfortunately, we have to do it the tedious way since there's no
   // preprocessor in D:
   version (Python_Unicode_UCS2) {
-    PyObject *PyUnicodeUCS2_FromUnicode(Py_UNICODE *u, int size);
+    PyObject *PyUnicodeUCS2_FromUnicode(Py_UNICODE *u, Py_ssize_t size);
     Py_UNICODE *PyUnicodeUCS2_AsUnicode(PyObject *unicode);
-    int PyUnicodeUCS2_GetSize(PyObject *unicode);
+    Py_ssize_t PyUnicodeUCS2_GetSize(PyObject *unicode);
     Py_UNICODE PyUnicodeUCS2_GetMax();
 
-    int PyUnicodeUCS2_Resize(PyObject **unicode, int length);
+    int PyUnicodeUCS2_Resize(PyObject **unicode, Py_ssize_t length);
     PyObject *PyUnicodeUCS2_FromEncodedObject(PyObject *obj, char *encoding, char *errors);
     PyObject *PyUnicodeUCS2_FromObject(PyObject *obj);
 
-    PyObject *PyUnicodeUCS2_FromWideChar(wchar *w, int size);
-    int PyUnicodeUCS2_AsWideChar(PyUnicodeObject *unicode, wchar *w, int size);
+    PyObject *PyUnicodeUCS2_FromWideChar(wchar *w, Py_ssize_t size);
+    Py_ssize_t PyUnicodeUCS2_AsWideChar(PyUnicodeObject *unicode, wchar *w, Py_ssize_t size);
 
     PyObject *PyUnicodeUCS2_FromOrdinal(int ordinal);
 
@@ -494,83 +521,85 @@ extern (C) {
     char *PyUnicodeUCS2_GetDefaultEncoding();
     int PyUnicodeUCS2_SetDefaultEncoding(char *encoding);
 
-    PyObject *PyUnicodeUCS2_Decode(char *s, int size, char *encoding, char *errors);
-    PyObject *PyUnicodeUCS2_Encode(Py_UNICODE *s, int size, char *encoding, char *errors);
+    PyObject *PyUnicodeUCS2_Decode(char *s, Py_ssize_t size, char *encoding, char *errors);
+    PyObject *PyUnicodeUCS2_Encode(Py_UNICODE *s, Py_ssize_t size, char *encoding, char *errors);
     PyObject *PyUnicodeUCS2_AsEncodedObject(PyObject *unicode, char *encoding, char *errors);
     PyObject *PyUnicodeUCS2_AsEncodedString(PyObject *unicode, char *encoding, char *errors);
 
-    PyObject *PyUnicodeUCS2_DecodeUTF7(char *string, int length, char *errors);
-    PyObject *PyUnicodeUCS2_EncodeUTF7(Py_UNICODE *data, int length,
+    PyObject *PyUnicodeUCS2_DecodeUTF7(char *string, Py_ssize_t length, char *errors);
+    PyObject *PyUnicodeUCS2_EncodeUTF7(Py_UNICODE *data, Py_ssize_t length,
         int encodeSetO, int encodeWhiteSpace, char *errors
       );
 
-    PyObject *PyUnicodeUCS2_DecodeUTF8(char *string, int length, char *errors);
-    PyObject *PyUnicodeUCS2_DecodeUTF8Stateful(char *string, int length,
-        char *errors, int *consumed
+    PyObject *PyUnicodeUCS2_DecodeUTF8(char *string, Py_ssize_t length, char *errors);
+    PyObject *PyUnicodeUCS2_DecodeUTF8Stateful(char *string, Py_ssize_t length,
+        char *errors, Py_ssize_t *consumed
       );
     PyObject *PyUnicodeUCS2_AsUTF8String(PyObject *unicode);
-    PyObject *PyUnicodeUCS2_EncodeUTF8(Py_UNICODE *data, int length, char *errors);
+    PyObject *PyUnicodeUCS2_EncodeUTF8(Py_UNICODE *data, Py_ssize_t length, char *errors);
 
-    PyObject *PyUnicodeUCS2_DecodeUTF16(char *string, int length, char *errors, int *byteorder);
-    PyObject *PyUnicodeUCS2_DecodeUTF16Stateful(char *string, int length,
-        char *errors, int *byteorder, int *consumed
+    PyObject *PyUnicodeUCS2_DecodeUTF16(char *string, Py_ssize_t length, char *errors, int *byteorder);
+    PyObject *PyUnicodeUCS2_DecodeUTF16Stateful(char *string, Py_ssize_t length,
+        char *errors, int *byteorder, Py_ssize_t *consumed
       );
     PyObject *PyUnicodeUCS2_AsUTF16String(PyObject *unicode);
-    PyObject *PyUnicodeUCS2_EncodeUTF16(Py_UNICODE *data, int length,
+    PyObject *PyUnicodeUCS2_EncodeUTF16(Py_UNICODE *data, Py_ssize_t length,
         char *errors, int byteorder
       );
 
-    PyObject *PyUnicodeUCS2_DecodeUnicodeEscape(char *string, int length, char *errors);
+    PyObject *PyUnicodeUCS2_DecodeUnicodeEscape(char *string, Py_ssize_t length, char *errors);
     PyObject *PyUnicodeUCS2_AsUnicodeEscapeString(PyObject *unicode);
-    PyObject *PyUnicodeUCS2_EncodeUnicodeEscape(Py_UNICODE *data, int length);
-    PyObject *PyUnicodeUCS2_DecodeRawUnicodeEscape(char *string, int length, char *errors);
+    PyObject *PyUnicodeUCS2_EncodeUnicodeEscape(Py_UNICODE *data, Py_ssize_t length);
+    PyObject *PyUnicodeUCS2_DecodeRawUnicodeEscape(char *string, Py_ssize_t length, char *errors);
     PyObject *PyUnicodeUCS2_AsRawUnicodeEscapeString(PyObject *unicode);
-    PyObject *PyUnicodeUCS2_EncodeRawUnicodeEscape(Py_UNICODE *data, int length);
+    PyObject *PyUnicodeUCS2_EncodeRawUnicodeEscape(Py_UNICODE *data, Py_ssize_t length);
 
-    PyObject *_PyUnicodeUCS2_DecodeUnicodeInternal(char *string, int length, char *errors);
+    PyObject *_PyUnicodeUCS2_DecodeUnicodeInternal(char *string, Py_ssize_t length, char *errors);
 
-    PyObject *PyUnicodeUCS2_DecodeLatin1(char *string, int length, char *errors);
+    PyObject *PyUnicodeUCS2_DecodeLatin1(char *string, Py_ssize_t length, char *errors);
     PyObject *PyUnicodeUCS2_AsLatin1String(PyObject *unicode);
-    PyObject *PyUnicodeUCS2_EncodeLatin1(Py_UNICODE *data, int length, char *errors);
+    PyObject *PyUnicodeUCS2_EncodeLatin1(Py_UNICODE *data, Py_ssize_t length, char *errors);
 
-    PyObject *PyUnicodeUCS2_DecodeASCII(char *string, int length, char *errors);
+    PyObject *PyUnicodeUCS2_DecodeASCII(char *string, Py_ssize_t length, char *errors);
     PyObject *PyUnicodeUCS2_AsASCIIString(PyObject *unicode);
-    PyObject *PyUnicodeUCS2_EncodeASCII(Py_UNICODE *data, int length, char *errors);
+    PyObject *PyUnicodeUCS2_EncodeASCII(Py_UNICODE *data, Py_ssize_t length, char *errors);
 
-    PyObject *PyUnicodeUCS2_DecodeCharmap(char *string, int length,
+    PyObject *PyUnicodeUCS2_DecodeCharmap(char *string, Py_ssize_t length,
         PyObject *mapping, char *errors
       );
     PyObject *PyUnicodeUCS2_AsCharmapString(PyObject *unicode, PyObject *mapping);
-    PyObject *PyUnicodeUCS2_EncodeCharmap(Py_UNICODE *data, int length,
+    PyObject *PyUnicodeUCS2_EncodeCharmap(Py_UNICODE *data, Py_ssize_t length,
         PyObject *mapping, char *errors
       );
-    PyObject *PyUnicodeUCS2_TranslateCharmap(Py_UNICODE *data, int length,
+    PyObject *PyUnicodeUCS2_TranslateCharmap(Py_UNICODE *data, Py_ssize_t length,
         PyObject *table, char *errors
       );
 
     version (Windows) {
-      PyObject *PyUnicodeUCS2_DecodeMBCS(char *string, int length, char *errors);
+      PyObject *PyUnicodeUCS2_DecodeMBCS(char *string, Py_ssize_t length, char *errors);
       PyObject *PyUnicodeUCS2_AsMBCSString(PyObject *unicode);
-      PyObject *PyUnicodeUCS2_EncodeMBCS(Py_UNICODE *data, int length, char *errors);
+      PyObject *PyUnicodeUCS2_EncodeMBCS(Py_UNICODE *data, Py_ssize_t length, char *errors);
     }
 
-    int PyUnicodeUCS2_EncodeDecimal(Py_UNICODE *s, int length, char *output, char *errors);
+    int PyUnicodeUCS2_EncodeDecimal(Py_UNICODE *s, Py_ssize_t length, char *output, char *errors);
 
     PyObject *PyUnicodeUCS2_Concat(PyObject *left, PyObject *right);
-    PyObject *PyUnicodeUCS2_Split(PyObject *s, PyObject *sep, int maxsplit);
+    PyObject *PyUnicodeUCS2_Split(PyObject *s, PyObject *sep, Py_ssize_t maxsplit);
     PyObject *PyUnicodeUCS2_Splitlines(PyObject *s, int keepends);
-    PyObject *PyUnicodeUCS2_RSplit(PyObject *s, PyObject *sep, int maxsplit);
+    PyObject *PyUnicodeUCS2_Partition(PyObject* s, PyObject* sep);
+    PyObject *PyUnicodeUCS2_RPartition(PyObject* s, PyObject* sep);
+    PyObject *PyUnicodeUCS2_RSplit(PyObject *s, PyObject *sep, Py_ssize_t maxsplit);
     PyObject *PyUnicodeUCS2_Translate(PyObject *str, PyObject *table, char *errors);
     PyObject *PyUnicodeUCS2_Join(PyObject *separator, PyObject *seq);
-    int PyUnicodeUCS2_Tailmatch(PyObject *str, PyObject *substr,
-        int start, int end, int direction
+    Py_ssize_t PyUnicodeUCS2_Tailmatch(PyObject *str, PyObject *substr,
+        Py_ssize_t start, Py_ssize_t end, int direction
       );
-    int PyUnicodeUCS2_Find(PyObject *str, PyObject *substr,
-        int start, int end, int direction
+    Py_ssize_t PyUnicodeUCS2_Find(PyObject *str, PyObject *substr,
+        Py_ssize_t start, Py_ssize_t end, int direction
       );
-    int PyUnicodeUCS2_Count(PyObject *str, PyObject *substr, int start, int end);
+    Py_ssize_t PyUnicodeUCS2_Count(PyObject *str, PyObject *substr, Py_ssize_t start, Py_ssize_t end);
     PyObject *PyUnicodeUCS2_Replace(PyObject *str, PyObject *substr,
-        PyObject *replstr, int maxcount
+        PyObject *replstr, Py_ssize_t maxcount
       );
     int PyUnicodeUCS2_Compare(PyObject *left, PyObject *right);
     PyObject *PyUnicodeUCS2_Format(PyObject *format, PyObject *args);
@@ -594,18 +623,20 @@ extern (C) {
     int _PyUnicodeUCS2_IsDigit(Py_UNICODE ch);
     int _PyUnicodeUCS2_IsNumeric(Py_UNICODE ch);
     int _PyUnicodeUCS2_IsAlpha(Py_UNICODE ch);
+
   } else { /* not Python_Unicode_UCS2: */
-    PyObject *PyUnicodeUCS4_FromUnicode(Py_UNICODE *u, int size);
+
+    PyObject *PyUnicodeUCS4_FromUnicode(Py_UNICODE *u, Py_ssize_t size);
     Py_UNICODE *PyUnicodeUCS4_AsUnicode(PyObject *unicode);
-    int PyUnicodeUCS4_GetSize(PyObject *unicode);
+    Py_ssize_t PyUnicodeUCS4_GetSize(PyObject *unicode);
     Py_UNICODE PyUnicodeUCS4_GetMax();
 
-    int PyUnicodeUCS4_Resize(PyObject **unicode, int length);
+    int PyUnicodeUCS4_Resize(PyObject **unicode, Py_ssize_t length);
     PyObject *PyUnicodeUCS4_FromEncodedObject(PyObject *obj, char *encoding, char *errors);
     PyObject *PyUnicodeUCS4_FromObject(PyObject *obj);
 
-    PyObject *PyUnicodeUCS4_FromWideChar(wchar *w, int size);
-    int PyUnicodeUCS4_AsWideChar(PyUnicodeObject *unicode, wchar *w, int size);
+    PyObject *PyUnicodeUCS4_FromWideChar(wchar *w, Py_ssize_t size);
+    Py_ssize_t PyUnicodeUCS4_AsWideChar(PyUnicodeObject *unicode, wchar *w, Py_ssize_t size);
 
     PyObject *PyUnicodeUCS4_FromOrdinal(int ordinal);
 
@@ -614,83 +645,85 @@ extern (C) {
     char *PyUnicodeUCS4_GetDefaultEncoding();
     int PyUnicodeUCS4_SetDefaultEncoding(char *encoding);
 
-    PyObject *PyUnicodeUCS4_Decode(char *s, int size, char *encoding, char *errors);
-    PyObject *PyUnicodeUCS4_Encode(Py_UNICODE *s, int size, char *encoding, char *errors);
+    PyObject *PyUnicodeUCS4_Decode(char *s, Py_ssize_t size, char *encoding, char *errors);
+    PyObject *PyUnicodeUCS4_Encode(Py_UNICODE *s, Py_ssize_t size, char *encoding, char *errors);
     PyObject *PyUnicodeUCS4_AsEncodedObject(PyObject *unicode, char *encoding, char *errors);
     PyObject *PyUnicodeUCS4_AsEncodedString(PyObject *unicode, char *encoding, char *errors);
 
-    PyObject *PyUnicodeUCS4_DecodeUTF7(char *string, int length, char *errors);
-    PyObject *PyUnicodeUCS4_EncodeUTF7(Py_UNICODE *data, int length,
+    PyObject *PyUnicodeUCS4_DecodeUTF7(char *string, Py_ssize_t length, char *errors);
+    PyObject *PyUnicodeUCS4_EncodeUTF7(Py_UNICODE *data, Py_ssize_t length,
         int encodeSetO, int encodeWhiteSpace, char *errors
       );
 
-    PyObject *PyUnicodeUCS4_DecodeUTF8(char *string, int length, char *errors);
-    PyObject *PyUnicodeUCS4_DecodeUTF8Stateful(char *string, int length,
-        char *errors, int *consumed
+    PyObject *PyUnicodeUCS4_DecodeUTF8(char *string, Py_ssize_t length, char *errors);
+    PyObject *PyUnicodeUCS4_DecodeUTF8Stateful(char *string, Py_ssize_t length,
+        char *errors, Py_ssize_t *consumed
       );
     PyObject *PyUnicodeUCS4_AsUTF8String(PyObject *unicode);
-    PyObject *PyUnicodeUCS4_EncodeUTF8(Py_UNICODE *data, int length, char *errors);
+    PyObject *PyUnicodeUCS4_EncodeUTF8(Py_UNICODE *data, Py_ssize_t length, char *errors);
 
-    PyObject *PyUnicodeUCS4_DecodeUTF16(char *string, int length, char *errors, int *byteorder);
-    PyObject *PyUnicodeUCS4_DecodeUTF16Stateful(char *string, int length,
-        char *errors, int *byteorder, int *consumed
+    PyObject *PyUnicodeUCS4_DecodeUTF16(char *string, Py_ssize_t length, char *errors, int *byteorder);
+    PyObject *PyUnicodeUCS4_DecodeUTF16Stateful(char *string, Py_ssize_t length,
+        char *errors, int *byteorder, Py_ssize_t *consumed
       );
     PyObject *PyUnicodeUCS4_AsUTF16String(PyObject *unicode);
-    PyObject *PyUnicodeUCS4_EncodeUTF16(Py_UNICODE *data, int length,
+    PyObject *PyUnicodeUCS4_EncodeUTF16(Py_UNICODE *data, Py_ssize_t length,
         char *errors, int byteorder
       );
 
-    PyObject *PyUnicodeUCS4_DecodeUnicodeEscape(char *string, int length, char *errors);
+    PyObject *PyUnicodeUCS4_DecodeUnicodeEscape(char *string, Py_ssize_t length, char *errors);
     PyObject *PyUnicodeUCS4_AsUnicodeEscapeString(PyObject *unicode);
-    PyObject *PyUnicodeUCS4_EncodeUnicodeEscape(Py_UNICODE *data, int length);
-    PyObject *PyUnicodeUCS4_DecodeRawUnicodeEscape(char *string, int length, char *errors);
+    PyObject *PyUnicodeUCS4_EncodeUnicodeEscape(Py_UNICODE *data, Py_ssize_t length);
+    PyObject *PyUnicodeUCS4_DecodeRawUnicodeEscape(char *string, Py_ssize_t length, char *errors);
     PyObject *PyUnicodeUCS4_AsRawUnicodeEscapeString(PyObject *unicode);
-    PyObject *PyUnicodeUCS4_EncodeRawUnicodeEscape(Py_UNICODE *data, int length);
+    PyObject *PyUnicodeUCS4_EncodeRawUnicodeEscape(Py_UNICODE *data, Py_ssize_t length);
 
-    PyObject *_PyUnicodeUCS4_DecodeUnicodeInternal(char *string, int length, char *errors);
+    PyObject *_PyUnicodeUCS4_DecodeUnicodeInternal(char *string, Py_ssize_t length, char *errors);
 
-    PyObject *PyUnicodeUCS4_DecodeLatin1(char *string, int length, char *errors);
+    PyObject *PyUnicodeUCS4_DecodeLatin1(char *string, Py_ssize_t length, char *errors);
     PyObject *PyUnicodeUCS4_AsLatin1String(PyObject *unicode);
-    PyObject *PyUnicodeUCS4_EncodeLatin1(Py_UNICODE *data, int length, char *errors);
+    PyObject *PyUnicodeUCS4_EncodeLatin1(Py_UNICODE *data, Py_ssize_t length, char *errors);
 
-    PyObject *PyUnicodeUCS4_DecodeASCII(char *string, int length, char *errors);
+    PyObject *PyUnicodeUCS4_DecodeASCII(char *string, Py_ssize_t length, char *errors);
     PyObject *PyUnicodeUCS4_AsASCIIString(PyObject *unicode);
-    PyObject *PyUnicodeUCS4_EncodeASCII(Py_UNICODE *data, int length, char *errors);
+    PyObject *PyUnicodeUCS4_EncodeASCII(Py_UNICODE *data, Py_ssize_t length, char *errors);
 
-    PyObject *PyUnicodeUCS4_DecodeCharmap(char *string, int length,
+    PyObject *PyUnicodeUCS4_DecodeCharmap(char *string, Py_ssize_t length,
         PyObject *mapping, char *errors
       );
     PyObject *PyUnicodeUCS4_AsCharmapString(PyObject *unicode, PyObject *mapping);
-    PyObject *PyUnicodeUCS4_EncodeCharmap(Py_UNICODE *data, int length,
+    PyObject *PyUnicodeUCS4_EncodeCharmap(Py_UNICODE *data, Py_ssize_t length,
         PyObject *mapping, char *errors
       );
-    PyObject *PyUnicodeUCS4_TranslateCharmap(Py_UNICODE *data, int length,
+    PyObject *PyUnicodeUCS4_TranslateCharmap(Py_UNICODE *data, Py_ssize_t length,
         PyObject *table, char *errors
       );
 
     version (Windows) {
-      PyObject *PyUnicodeUCS4_DecodeMBCS(char *string, int length, char *errors);
+      PyObject *PyUnicodeUCS4_DecodeMBCS(char *string, Py_ssize_t length, char *errors);
       PyObject *PyUnicodeUCS4_AsMBCSString(PyObject *unicode);
-      PyObject *PyUnicodeUCS4_EncodeMBCS(Py_UNICODE *data, int length, char *errors);
+      PyObject *PyUnicodeUCS4_EncodeMBCS(Py_UNICODE *data, Py_ssize_t length, char *errors);
     }
 
-    int PyUnicodeUCS4_EncodeDecimal(Py_UNICODE *s, int length, char *output, char *errors);
+    int PyUnicodeUCS4_EncodeDecimal(Py_UNICODE *s, Py_ssize_t length, char *output, char *errors);
 
     PyObject *PyUnicodeUCS4_Concat(PyObject *left, PyObject *right);
-    PyObject *PyUnicodeUCS4_Split(PyObject *s, PyObject *sep, int maxsplit);
+    PyObject *PyUnicodeUCS4_Split(PyObject *s, PyObject *sep, Py_ssize_t maxsplit);
     PyObject *PyUnicodeUCS4_Splitlines(PyObject *s, int keepends);
-    PyObject *PyUnicodeUCS4_RSplit(PyObject *s, PyObject *sep, int maxsplit);
+    PyObject *PyUnicodeUCS4_Partition(PyObject* s, PyObject* sep);
+    PyObject *PyUnicodeUCS4_RPartition(PyObject* s, PyObject* sep);
+    PyObject *PyUnicodeUCS4_RSplit(PyObject *s, PyObject *sep, Py_ssize_t maxsplit);
     PyObject *PyUnicodeUCS4_Translate(PyObject *str, PyObject *table, char *errors);
     PyObject *PyUnicodeUCS4_Join(PyObject *separator, PyObject *seq);
-    int PyUnicodeUCS4_Tailmatch(PyObject *str, PyObject *substr,
-        int start, int end, int direction
+    Py_ssize_t PyUnicodeUCS4_Tailmatch(PyObject *str, PyObject *substr,
+        Py_ssize_t start, Py_ssize_t end, int direction
       );
-    int PyUnicodeUCS4_Find(PyObject *str, PyObject *substr,
-        int start, int end, int direction
+    Py_ssize_t PyUnicodeUCS4_Find(PyObject *str, PyObject *substr,
+        Py_ssize_t start, Py_ssize_t end, int direction
       );
-    int PyUnicodeUCS4_Count(PyObject *str, PyObject *substr, int start, int end);
+    Py_ssize_t PyUnicodeUCS4_Count(PyObject *str, PyObject *substr, Py_ssize_t start, Py_ssize_t end);
     PyObject *PyUnicodeUCS4_Replace(PyObject *str, PyObject *substr,
-        PyObject *replstr, int maxcount
+        PyObject *replstr, Py_ssize_t maxcount
       );
     int PyUnicodeUCS4_Compare(PyObject *left, PyObject *right);
     PyObject *PyUnicodeUCS4_Format(PyObject *format, PyObject *args);
@@ -765,10 +798,12 @@ extern (C) {
     alias PyUnicodeUCS2_GetMax PyUnicode_GetMax;
     alias PyUnicodeUCS2_GetSize PyUnicode_GetSize;
     alias PyUnicodeUCS2_Join PyUnicode_Join;
+    alias PyUnicodeUCS2_Partition PyUnicode_Partition;
     alias PyUnicodeUCS2_Replace PyUnicode_Replace;
     alias PyUnicodeUCS2_Resize PyUnicode_Resize;
     alias PyUnicodeUCS2_SetDefaultEncoding PyUnicode_SetDefaultEncoding;
     alias PyUnicodeUCS2_Split PyUnicode_Split;
+    alias PyUnicodeUCS2_RPartition PyUnicode_RPartition;
     alias PyUnicodeUCS2_RSplit PyUnicode_RSplit;
     alias PyUnicodeUCS2_Splitlines PyUnicode_Splitlines;
     alias PyUnicodeUCS2_Tailmatch PyUnicode_Tailmatch;
@@ -838,8 +873,11 @@ extern (C) {
     alias PyUnicodeUCS4_GetMax PyUnicode_GetMax;
     alias PyUnicodeUCS4_GetSize PyUnicode_GetSize;
     alias PyUnicodeUCS4_Join PyUnicode_Join;
+    alias PyUnicodeUCS4_Partition PyUnicode_Partition;
     alias PyUnicodeUCS4_Replace PyUnicode_Replace;
     alias PyUnicodeUCS4_Resize PyUnicode_Resize;
+    alias PyUnicodeUCS4_RPartition PyUnicode_RPartition;
+    alias PyUnicodeUCS4_RSplit PyUnicode_RSplit;
     alias PyUnicodeUCS4_SetDefaultEncoding PyUnicode_SetDefaultEncoding;
     alias PyUnicodeUCS4_Split PyUnicode_Split;
     alias PyUnicodeUCS4_Splitlines PyUnicode_Splitlines;
@@ -891,17 +929,17 @@ extern (C) {
       );
   }
 
-  void Py_UNICODE_COPY(void *target, void *source, int length) {
+  void Py_UNICODE_COPY(void *target, void *source, size_t length) {
     std.c.string.memcpy(target, source, cast(uint)(length * Py_UNICODE.sizeof));
   }
 
-  void Py_UNICODE_FILL(Py_UNICODE *target, Py_UNICODE value, int length) {
-    for (int i = 0; i < length; i++) {
+  void Py_UNICODE_FILL(Py_UNICODE *target, Py_UNICODE value, size_t length) {
+    for (size_t i = 0; i < length; i++) {
       target[i] = value;
     }
   }
 
-  int Py_UNICODE_MATCH(PyUnicodeObject *string, int offset,
+  int Py_UNICODE_MATCH(PyUnicodeObject *string, size_t offset,
       PyUnicodeObject *substring
     )
   {
@@ -937,8 +975,10 @@ extern (C) {
   }
 
   PyObject *PyInt_FromString(char *, char **, int);
-  PyObject *PyInt_FromUnicode(Py_UNICODE *, int, int);
+  PyObject *PyInt_FromUnicode(Py_UNICODE *, Py_ssize_t, int);
   PyObject *PyInt_FromLong(C_long);
+  PyObject *PyInt_FromSize_t(size_t);
+  PyObject *PyInt_FromSsize_t(Py_ssize_t);
 
   C_long PyInt_AsLong(PyObject *);
   C_ulong PyInt_AsUnsignedLongMask(PyObject *);
@@ -1004,6 +1044,7 @@ extern (C) {
   C_ulonglong PyLong_AsUnsignedLongLongMask(PyObject *);
 
   double PyLong_AsDouble(PyObject *);
+  PyObject * PyLong_FromVoidPtr(void *);
   void * PyLong_AsVoidPtr(PyObject *);
 
   PyObject * PyLong_FromString(char *, char **, int);
@@ -1094,7 +1135,8 @@ extern (C) {
     return op.ob_type == PyRange_Type_p;
   }
 
-  PyObject * PyRange_New(C_long, C_long, C_long, int);
+  // Removed in 2.5
+  //PyObject * PyRange_New(C_long, C_long, C_long, int);
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1110,6 +1152,9 @@ extern (C) {
     // DSR:XXX:LAYOUT:
     // Will the D layout for a 1-char array be the same as the C layout?  I
     // think the D array will be larger.
+    // KGM:XXX:
+    // Almost added PyString_AS_STRING and friends, but realized this would
+    // probably cause problems.
     char ob_sval[1];
   }
 
@@ -1125,17 +1170,17 @@ extern (C) {
     return op.ob_type == PyString_Type_p;
   }
 
-  PyObject * PyString_FromStringAndSize(char *, int);
+  PyObject * PyString_FromStringAndSize(char *, Py_ssize_t);
   PyObject * PyString_FromString(char *);
   // PyString_FromFormatV omitted
   PyObject * PyString_FromFormat(char*, ...);
-  int PyString_Size(PyObject *);
+  Py_ssize_t PyString_Size(PyObject *);
   char * PyString_AsString(PyObject *);
   PyObject * PyString_Repr(PyObject *, int);
   void PyString_Concat(PyObject **, PyObject *);
   void PyString_ConcatAndDel(PyObject **, PyObject *);
   PyObject * PyString_Format(PyObject *, PyObject *);
-  PyObject * PyString_DecodeEscape(char *, int, char *, int, char *);
+  PyObject * PyString_DecodeEscape(char *, Py_ssize_t, char *, Py_ssize_t, char *);
 
   void PyString_InternInPlace(PyObject **);
   void PyString_InternImmortal(PyObject **);
@@ -1144,8 +1189,8 @@ extern (C) {
   PyObject * _PyString_Join(PyObject *sep, PyObject *x);
 
 
-  PyObject* PyString_Decode(char *s, int size, char *encoding, char *errors);
-  PyObject* PyString_Encode(char *s, int size, char *encoding, char *errors);
+  PyObject* PyString_Decode(char *s, Py_ssize_t size, char *encoding, char *errors);
+  PyObject* PyString_Encode(char *s, Py_ssize_t size, char *encoding, char *errors);
 
   PyObject* PyString_AsEncodedObject(PyObject *str, char *encoding, char *errors);
   PyObject* PyString_AsDecodedObject(PyObject *str, char *encoding, char *errors);
@@ -1171,13 +1216,13 @@ extern (C) {
 
   const int Py_END_OF_BUFFER = -1;
 
-  PyObject * PyBuffer_FromObject(PyObject *base, int offset, int size);
-  PyObject * PyBuffer_FromReadWriteObject(PyObject *base, int offset, int size);
+  PyObject * PyBuffer_FromObject(PyObject *base, Py_ssize_t offset, Py_ssize_t size);
+  PyObject * PyBuffer_FromReadWriteObject(PyObject *base, Py_ssize_t offset, Py_ssize_t size);
 
-  PyObject * PyBuffer_FromMemory(void *ptr, int size);
-  PyObject * PyBuffer_FromReadWriteMemory(void *ptr, int size);
+  PyObject * PyBuffer_FromMemory(void *ptr, Py_ssize_t size);
+  PyObject * PyBuffer_FromReadWriteMemory(void *ptr, Py_ssize_t size);
 
-  PyObject * PyBuffer_New(int size);
+  PyObject * PyBuffer_New(Py_ssize_t size);
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1205,23 +1250,23 @@ extern (C) {
     return op.ob_type == PyTuple_Type_p;
   }
 
-  PyObject * PyTuple_New(int size);
-  int PyTuple_Size(PyObject *);
-  PyObject * PyTuple_GetItem(PyObject *, int);
-  int PyTuple_SetItem(PyObject *, int, PyObject *);
-  PyObject * PyTuple_GetSlice(PyObject *, int, int);
-  int _PyTuple_Resize(PyObject **, int);
-  PyObject * PyTuple_Pack(int, ...);
+  PyObject * PyTuple_New(Py_ssize_t size);
+  Py_ssize_t PyTuple_Size(PyObject *);
+  PyObject * PyTuple_GetItem(PyObject *, Py_ssize_t);
+  int PyTuple_SetItem(PyObject *, Py_ssize_t, PyObject *);
+  PyObject * PyTuple_GetSlice(PyObject *, Py_ssize_t, Py_ssize_t);
+  int _PyTuple_Resize(PyObject **, Py_ssize_t);
+  PyObject * PyTuple_Pack(Py_ssize_t, ...);
 
   // D translations of C macros:
-  // XXX: This does not work.
-  PyObject *PyTuple_GET_ITEM(PyObject *op, int i) {
+  // XXX: These do not work.
+  PyObject *PyTuple_GET_ITEM(PyObject *op, Py_ssize_t i) {
     return (cast(PyTupleObject *) op).ob_item[i];
   }
   int PyTuple_GET_SIZE(PyObject *op) {
     return (cast(PyTupleObject *) op).ob_size;
   }
-  PyObject *PyTuple_SET_ITEM(PyObject *op, int i, PyObject *v) {
+  PyObject *PyTuple_SET_ITEM(PyObject *op, Py_ssize_t i, PyObject *v) {
     PyTupleObject *opAsTuple = cast(PyTupleObject *) op;
     opAsTuple.ob_item[i] = v;
     return v;
@@ -1237,7 +1282,7 @@ extern (C) {
     mixin PyObject_VAR_HEAD;
 
     PyObject **ob_item;
-    int allocated;
+    Py_ssize_t allocated;
   }
 
   // &PyList_Type is accessible via PyList_Type_p.
@@ -1252,26 +1297,24 @@ extern (C) {
   }
 
   PyObject * PyList_New(int size);
-  int PyList_Size(PyObject *);
+  Py_ssize_t PyList_Size(PyObject *);
 
-  PyObject * PyList_GetItem(PyObject *, int);
-  int PyList_SetItem(PyObject *, int, PyObject *);
-  int PyList_Insert(PyObject *, int, PyObject *);
+  PyObject * PyList_GetItem(PyObject *, Py_ssize_t);
+  int PyList_SetItem(PyObject *, Py_ssize_t, PyObject *);
+  int PyList_Insert(PyObject *, Py_ssize_t, PyObject *);
   int PyList_Append(PyObject *, PyObject *);
-  PyObject * PyList_GetSlice(PyObject *, int, int);
-  int PyList_SetSlice(PyObject *, int, int, PyObject *);
+  PyObject * PyList_GetSlice(PyObject *, Py_ssize_t, Py_ssize_t);
+  int PyList_SetSlice(PyObject *, Py_ssize_t, Py_ssize_t, PyObject *);
   int PyList_Sort(PyObject *);
   int PyList_Reverse(PyObject *);
   PyObject * PyList_AsTuple(PyObject *);
 
   // D translations of C macros:
-  PyObject *PyList_GET_ITEM(PyObject *op, int i) {
+  PyObject *PyList_GET_ITEM(PyObject *op, Py_ssize_t i) {
     return (cast(PyListObject *) op).ob_item[i];
   }
-  PyObject *PyList_SET_ITEM(PyObject *op, int i, PyObject *v) {
-    PyListObject *opAsList = cast(PyListObject *) op;
-    opAsList.ob_item[i] = v;
-    return v;
+  void PyList_SET_ITEM(PyObject *op, Py_ssize_t i, PyObject *v) {
+    (cast(PyListObject*)op).ob_item[i] = v;
   }
   int PyList_GET_SIZE(PyObject *op) {
     return (cast(PyListObject *) op).ob_size;
@@ -1286,7 +1329,7 @@ extern (C) {
   const int PyDict_MINSIZE = 8;
 
   struct PyDictEntry {
-    C_long me_hash;
+    Py_ssize_t me_hash;
     PyObject *me_key;
     PyObject *me_value;
   }
@@ -1294,9 +1337,9 @@ extern (C) {
   struct _dictobject {
     mixin PyObject_HEAD;
 
-    int ma_fill;
-    int ma_used;
-    int ma_mask;
+    Py_ssize_t ma_fill;
+    Py_ssize_t ma_used;
+    Py_ssize_t ma_mask;
     PyDictEntry *ma_table;
     PyDictEntry *(*ma_lookup)(PyDictObject *mp, PyObject *key, C_long hash);
     PyDictEntry ma_smalltable[PyDict_MINSIZE];
@@ -1319,11 +1362,11 @@ extern (C) {
   int PyDict_SetItem(PyObject *mp, PyObject *key, PyObject *item);
   int PyDict_DelItem(PyObject *mp, PyObject *key);
   void PyDict_Clear(PyObject *mp);
-  int PyDict_Next(PyObject *mp, int *pos, PyObject **key, PyObject **value);
+  int PyDict_Next(PyObject *mp, Py_ssize_t *pos, PyObject **key, PyObject **value);
   PyObject * PyDict_Keys(PyObject *mp);
   PyObject * PyDict_Values(PyObject *mp);
   PyObject * PyDict_Items(PyObject *mp);
-  int PyDict_Size(PyObject *mp);
+  Py_ssize_t PyDict_Size(PyObject *mp);
   PyObject * PyDict_Copy(PyObject *mp);
   int PyDict_Contains(PyObject *mp, PyObject *key);
 
@@ -1367,6 +1410,9 @@ extern (C) {
 
   PyObject * Py_FindMethod(PyMethodDef[], PyObject *, char *);
   PyObject * PyCFunction_NewEx(PyMethodDef *, PyObject *,PyObject *);
+  PyObject * PyCFunction_New(PyMethodDef* ml, PyObject* self) {
+    return PyCFunction_NewEx(ml, self, null);
+  }
 
   const int METH_OLDARGS = 0x0000;
   const int METH_VARARGS = 0x0001;
@@ -1413,17 +1459,18 @@ extern (C) {
   PyObject * PyModule_GetDict(PyObject *);
   char * PyModule_GetName(PyObject *);
   char * PyModule_GetFilename(PyObject *);
+  void _PyModule_Clear(PyObject *);
 
   // Python-header-file: Include/modsupport.h:
 
-  const int PYTHON_API_VERSION = 1012;
-  const char[] PYTHON_API_STRING = "1012";
+  const int PYTHON_API_VERSION = 1013;
+  const char[] PYTHON_API_STRING = "1013";
 
   int PyArg_Parse(PyObject *, char *, ...);
   int PyArg_ParseTuple(PyObject *, char *, ...);
   int PyArg_ParseTupleAndKeywords(PyObject *, PyObject *,
                             char *, char **, ...);
-  int PyArg_UnpackTuple(PyObject *, char *, int, int, ...);
+  int PyArg_UnpackTuple(PyObject *, char *, Py_ssize_t, Py_ssize_t, ...);
   PyObject * Py_BuildValue(char *, ...);
 
   int PyModule_AddObject(PyObject *, char *, PyObject *);
@@ -1439,7 +1486,7 @@ extern (C) {
       cast(PyObject *)(null), PYTHON_API_VERSION);
   }
 
-  PyObject *Py_InitModule3(char *name, PyMethodDef *methods, char *doc) {
+  PyObject * Py_InitModule3(char *name, PyMethodDef *methods, char *doc) {
     return Py_InitModule4(name, methods, doc, cast(PyObject *)null,
       PYTHON_API_VERSION);
   }
@@ -1479,6 +1526,22 @@ extern (C) {
   int PyFunction_SetDefaults(PyObject *, PyObject *);
   PyObject * PyFunction_GetClosure(PyObject *);
   int PyFunction_SetClosure(PyObject *, PyObject *);
+
+  PyObject* PyFunction_GET_CODE(PyObject* func) {
+    return (cast(PyFunctionObject*)func).func_code;
+  }
+  PyObject* PyFunction_GET_GLOBALS(PyObject* func) {
+    return (cast(PyFunctionObject*)func).func_globals;
+  }
+  PyObject* PyFunction_GET_MODULE(PyObject* func) {
+    return (cast(PyFunctionObject*)func).func_module;
+  }
+  PyObject* PyFunction_GET_DEFAULTS(PyObject* func) {
+    return (cast(PyFunctionObject*)func).func_defaults;
+  }
+  PyObject* PyFunction_GET_CLOSURE(PyObject* func) {
+    return (cast(PyFunctionObject*)func).func_closure;
+  }
 
   // &PyClassMethod_Type is accessible via PyClassMethod_Type_p.
   // &PyStaticMethod_Type is accessible via PyStaticMethod_Type_p.
@@ -1550,6 +1613,16 @@ extern (C) {
   PyObject * PyMethod_Class(PyObject *);
 
   PyObject * _PyInstance_Lookup(PyObject *pinst, PyObject *name);
+
+  PyObject * PyMethod_GET_FUNCTION(PyObject* meth) {
+    return (cast(PyMethodObject*)meth).im_func;
+  }
+  PyObject * PyMethod_GET_SELF(PyObject* meth) {
+    return (cast(PyMethodObject*)meth).im_self;
+  }
+  PyObject * PyMethod_GET_CLASS(PyObject* meth) {
+    return (cast(PyMethodObject*)meth).im_class;
+  }
 
   int PyClass_IsSubclass(PyObject *, PyObject *);
 
@@ -1681,8 +1754,11 @@ extern (C) {
   }
 
   PyObject * PySlice_New(PyObject *start, PyObject *stop, PyObject *step);
-  int PySlice_GetIndices(PySliceObject *r, int length, int *start, int *stop, int *step);
-  int PySlice_GetIndicesEx(PySliceObject *r, int length, int *start, int *stop, int *step, int *slicelength);
+  int PySlice_GetIndices(PySliceObject *r, Py_ssize_t length,
+                Py_ssize_t *start, Py_ssize_t *stop, Py_ssize_t *step);
+  int PySlice_GetIndicesEx(PySliceObject *r, Py_ssize_t length,
+                Py_ssize_t *start, Py_ssize_t *stop,
+                Py_ssize_t *step, Py_ssize_t *slicelength);
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1842,7 +1918,7 @@ extern (C) {
   PyObject * PyWeakref_NewProxy(PyObject *ob, PyObject *callback);
   PyObject * PyWeakref_GetObject(PyObject *ref);
 
-  C_long _PyWeakref_GetWeakrefCount(PyWeakReference *head);
+  Py_ssize_t _PyWeakref_GetWeakrefCount(PyWeakReference *head);
   void _PyWeakref_ClearRef(PyWeakReference *self);
 
   PyObject *PyWeakref_GET_OBJECT(PyObject *ref) {
@@ -1881,6 +1957,71 @@ extern (C) {
 // ERROR HANDLING INTERFACE
 ///////////////////////////////////////////////////////////////////////////////
   // Python-header-file: Include/pyerrors.h:
+
+  /* Error objects */
+
+  struct PyBaseExceptionObject {
+      mixin PyObject_HEAD;
+      PyObject *dict;
+      PyObject *args;
+      PyObject *message;
+  }
+
+  struct PySyntaxErrorObject {
+      mixin PyObject_HEAD;
+      PyObject *dict;
+      PyObject *args;
+      PyObject *message;
+      PyObject *msg;
+      PyObject *filename;
+      PyObject *lineno;
+      PyObject *offset;
+      PyObject *text;
+      PyObject *print_file_and_line;
+  }
+
+  struct PyUnicodeErrorObject {
+      mixin PyObject_HEAD;
+      PyObject *dict;
+      PyObject *args;
+      PyObject *message;
+      PyObject *encoding;
+      PyObject *object;
+      PyObject *start;
+      PyObject *end;
+      PyObject *reason;
+  }
+
+  struct PySystemExitObject {
+      mixin PyObject_HEAD;
+      PyObject *dict;
+      PyObject *args;
+      PyObject *message;
+      PyObject *code;
+  }
+
+  struct PyEnvironmentErrorObject {
+      mixin PyObject_HEAD;
+      PyObject *dict;
+      PyObject *args;
+      PyObject *message;
+      PyObject *myerrno;
+      PyObject *strerror;
+      PyObject *filename;
+  }
+
+  version(Windows) {
+    struct PyWindowsErrorObject {
+        mixin PyObject_HEAD;
+        PyObject *dict;
+        PyObject *args;
+        PyObject *message;
+        PyObject *myerrno;
+        PyObject *strerror;
+        PyObject *filename;
+        PyObject *winerror;
+    }
+  }
 
   void PyErr_SetNone(PyObject *);
   void PyErr_SetObject(PyObject *, PyObject *);
@@ -1922,7 +2063,8 @@ extern (C) {
   PyObject * PyErr_NewException(char *name, PyObject *base, PyObject *dict);
   void PyErr_WriteUnraisable(PyObject *);
 
-  int PyErr_Warn(PyObject *, char *);
+  //int PyErr_Warn(PyObject *, char *);
+  int PyErr_WarnEx(PyObject*, char*, Py_ssize_t);
   int PyErr_WarnExplicit(PyObject *, char *, char *, int, char *, PyObject *);
 
   int PyErr_CheckSignals();
@@ -1934,11 +2076,11 @@ extern (C) {
   /////////////////////////////////////////////////////////////////////////////
   // UNICODE ENCODING ERROR HANDLING INTERFACE
   /////////////////////////////////////////////////////////////////////////////
-  PyObject *PyUnicodeDecodeError_Create(char *, char *, int, int, int, char *);
+  PyObject *PyUnicodeDecodeError_Create(char *, char *, Py_ssize_t, Py_ssize_t, Py_ssize_t, char *);
 
-  PyObject *PyUnicodeEncodeError_Create(char *, Py_UNICODE *, int, int, int, char *);
+  PyObject *PyUnicodeEncodeError_Create(char *, Py_UNICODE *, Py_ssize_t, Py_ssize_t, Py_ssize_t, char *);
 
-  PyObject *PyUnicodeTranslateError_Create(Py_UNICODE *, int, int, int, char *);
+  PyObject *PyUnicodeTranslateError_Create(Py_UNICODE *, Py_ssize_t, Py_ssize_t, Py_ssize_t, char *);
 
   PyObject *PyUnicodeEncodeError_GetEncoding(PyObject *);
   PyObject *PyUnicodeDecodeError_GetEncoding(PyObject *);
@@ -1947,21 +2089,21 @@ extern (C) {
   PyObject *PyUnicodeDecodeError_GetObject(PyObject *);
   PyObject *PyUnicodeTranslateError_GetObject(PyObject *);
 
-  int PyUnicodeEncodeError_GetStart(PyObject *, int *);
-  int PyUnicodeDecodeError_GetStart(PyObject *, int *);
-  int PyUnicodeTranslateError_GetStart(PyObject *, int *);
+  int PyUnicodeEncodeError_GetStart(PyObject *, Py_ssize_t *);
+  int PyUnicodeDecodeError_GetStart(PyObject *, Py_ssize_t *);
+  int PyUnicodeTranslateError_GetStart(PyObject *, Py_ssize_t *);
 
-  int PyUnicodeEncodeError_SetStart(PyObject *, int);
-  int PyUnicodeDecodeError_SetStart(PyObject *, int);
-  int PyUnicodeTranslateError_SetStart(PyObject *, int);
+  int PyUnicodeEncodeError_SetStart(PyObject *, Py_ssize_t);
+  int PyUnicodeDecodeError_SetStart(PyObject *, Py_ssize_t);
+  int PyUnicodeTranslateError_SetStart(PyObject *, Py_ssize_t);
 
-  int PyUnicodeEncodeError_GetEnd(PyObject *, int *);
-  int PyUnicodeDecodeError_GetEnd(PyObject *, int *);
-  int PyUnicodeTranslateError_GetEnd(PyObject *, int *);
+  int PyUnicodeEncodeError_GetEnd(PyObject *, Py_ssize_t *);
+  int PyUnicodeDecodeError_GetEnd(PyObject *, Py_ssize_t *);
+  int PyUnicodeTranslateError_GetEnd(PyObject *, Py_ssize_t *);
 
-  int PyUnicodeEncodeError_SetEnd(PyObject *, int);
-  int PyUnicodeDecodeError_SetEnd(PyObject *, int);
-  int PyUnicodeTranslateError_SetEnd(PyObject *, int);
+  int PyUnicodeEncodeError_SetEnd(PyObject *, Py_ssize_t);
+  int PyUnicodeDecodeError_SetEnd(PyObject *, Py_ssize_t);
+  int PyUnicodeTranslateError_SetEnd(PyObject *, Py_ssize_t);
 
   PyObject *PyUnicodeEncodeError_GetReason(PyObject *);
   PyObject *PyUnicodeDecodeError_GetReason(PyObject *);
@@ -1975,9 +2117,9 @@ extern (C) {
 
 
 ///////////////////////////////////////////////////////////////////////////////
-// COMPILATION INTERFACE
+// BYTECODE INTERFACE
 ///////////////////////////////////////////////////////////////////////////////
-  // Python-header-file: Include/compile.h:
+  // Python-header-file: Include/code.h:
 
   struct PyCodeObject { /* Bytecode object */
     mixin PyObject_HEAD;
@@ -1997,6 +2139,7 @@ extern (C) {
     PyObject *co_name;
     int co_firstlineno;
     PyObject *co_lnotab;
+    void *co_zombieframe;
   }
 
   /* Masks for co_flags above */
@@ -2008,8 +2151,13 @@ extern (C) {
   const int CO_GENERATOR   = 0x0020;
   const int CO_NOFREE      = 0x0040;
 
-  const int CO_GENERATOR_ALLOWED = 0x1000;
-  const int CO_FUTURE_DIVISION   = 0x2000;
+  // Removed in 2.5
+  //const int CO_GENERATOR_ALLOWED      = 0x1000;
+  const int CO_FUTURE_DIVISION        = 0x2000;
+  const int CO_FUTURE_ABSOLUTE_IMPORT = 0x4000;
+  const int CO_FUTURE_WITH_STATEMENT  = 0x8000;
+
+  const int CO_MAXBLOCKS = 20;
 
   // &PyCode_Type is accessible via PyCode_Type_p.
   // D translations of C macros:
@@ -2020,35 +2168,68 @@ extern (C) {
     return PyObject_Length((cast(PyCodeObject *) op).co_freevars);
   }
 
-  const int CO_MAXBLOCKS = 20;
-
-  struct node {
-    short	n_type;
-    char	*n_str;
-    int		n_lineno;
-    int		n_nchildren;
-    node	*n_child;
-  }
-
-  PyCodeObject *PyNode_Compile(node *, char *);
   PyCodeObject *PyCode_New(
     int, int, int, int, PyObject *, PyObject *, PyObject *, PyObject *,
     PyObject *, PyObject *, PyObject *, PyObject *, int, PyObject *);
   int PyCode_Addr2Line(PyCodeObject *, int);
 
-  struct PyFutureFeatures {
-    int ff_found_docstring;
-    int ff_last_lineno;
-    int ff_features;
+  struct PyAddrPair {
+    int ap_lower;
+    int ap_upper;
   }
 
-  PyFutureFeatures *PyNode_Future(node *, char *);
-  PyCodeObject *PyNode_CompileFlags(node *, char *, PyCompilerFlags *);
+  int PyCode_CheckLineNumber(PyCodeObject* co, int lasti, PyAddrPair *bounds);
+
+  // Python-header-file: Include/pyarena.h:
+  struct PyArena;
+
+  PyArena* PyArena_New();
+  void PyArena_Free(PyArena*);
+
+  void* PyArena_Malloc(PyArena*, size_t);
+  int PyArena_AddPyObject(PyArena*, PyObject*);
+
+///////////////////////////////////////////////////////////////////////////////
+// COMPILATION INTERFACE
+///////////////////////////////////////////////////////////////////////////////
+  // Python-header-file: Include/node.h
+  struct node {
+    short	n_type;
+    char	*n_str;
+    int		n_lineno;
+    int		n_col_offset;
+    int		n_nchildren;
+    node	*n_child;
+  }
+  node * PyNode_New(int type);
+  int PyNode_AddChild(node *n, int type,
+        char *str, int lineno, int col_offset);
+  void PyNode_Free(node *n);
+  void PyNode_ListTree(node *);
+
+  // Python-header-file: Include/compile.h:
+  PyCodeObject *PyNode_Compile(node *, char *);
+
+  struct PyFutureFeatures {
+    int ff_features;
+    int ff_lineno;
+  }
+
+//  PyFutureFeatures *PyNode_Future(node *, char *);
+//  PyCodeObject *PyNode_CompileFlags(node *, char *, PyCompilerFlags *);
 
   const char[] FUTURE_NESTED_SCOPES = "nested_scopes";
   const char[] FUTURE_GENERATORS = "generators";
   const char[] FUTURE_DIVISION = "division";
+  const char[] FUTURE_ABSOLUTE_IMPORT = "absolute_import";
+  const char[] FUTURE_WITH_STATEMENT = "with_statement";
 
+  struct _mod; /* Declare the existence of this type */
+  PyCodeObject * PyAST_Compile(_mod *, char *, PyCompilerFlags *, PyArena *);
+  PyFutureFeatures * PyFuture_FromAST(_mod *, char *);
+
+  // Python-header-file: Include/ast.h
+  _mod* PyAST_FromNode(node*, PyCompilerFlags*, char*, PyArena*);
 
 ///////////////////////////////////////////////////////////////////////////////
 // CODE EXECUTION INTERFACE
@@ -2072,37 +2253,74 @@ extern (C) {
   PyThreadState *Py_NewInterpreter();
   void Py_EndInterpreter(PyThreadState *);
 
-  int PyRun_AnyFile(FILE *, char *);
-  int PyRun_AnyFileEx(FILE *, char *, int);
-
-  int PyRun_AnyFileFlags(FILE *, char *, PyCompilerFlags *);
   int PyRun_AnyFileExFlags(FILE *, char *, int, PyCompilerFlags *);
 
-  int PyRun_SimpleString(char *);
+  int PyRun_AnyFile(FILE *fp, char *name) {
+    return PyRun_AnyFileExFlags(fp, name, 0, null);
+  }
+  int PyRun_AnyFileEx(FILE *fp, char *name, int closeit) {
+    return PyRun_AnyFileExFlags(fp, name, closeit, null);
+  }
+  int PyRun_AnyFileFlags(FILE *fp, char *name, PyCompilerFlags *flags) {
+    return PyRun_AnyFileExFlags(fp, name, 0, flags);
+  }
+
   int PyRun_SimpleStringFlags(char *, PyCompilerFlags *);
-  int PyRun_SimpleFile(FILE *, char *);
-  int PyRun_SimpleFileEx(FILE *, char *, int);
+  int PyRun_SimpleString(char *s) {
+    return PyRun_SimpleStringFlags(s, null);
+  }
+
   int PyRun_SimpleFileExFlags(FILE *,  char *, int, PyCompilerFlags *);
-  int PyRun_InteractiveOne(FILE *, char *);
+  int PyRun_SimpleFile(FILE *f, char *p) {
+    return PyRun_SimpleFileExFlags(f, p, 0, null);
+  }
+  int PyRun_SimpleFileEx(FILE *f, char *p, int c) {
+    return PyRun_SimpleFileExFlags(f, p, c, null);
+  }
+
   int PyRun_InteractiveOneFlags(FILE *, char *, PyCompilerFlags *);
-  int PyRun_InteractiveLoop(FILE *, char *);
+  int PyRun_InteractiveOne(FILE *f, char *p) {
+    return PyRun_InteractiveOneFlags(f, p, null);
+  }
   int PyRun_InteractiveLoopFlags(FILE *, char *, PyCompilerFlags *);
+  int PyRun_InteractiveLoop(FILE *f, char *p) {
+    return PyRun_InteractiveLoopFlags(f, p, null);
+  }
 
-  node *PyParser_SimpleParseString(char *, int);
-  node *PyParser_SimpleParseFile(FILE *, char *, int);
+  _mod* PyParser_ASTFromString(char *, char *, 
+                        int, PyCompilerFlags *, PyArena *);
+  _mod* PyParser_ASTFromFile(FILE *, char *, int, 
+                        char *, char *, PyCompilerFlags *, int *, PyArena *);
+
   node *PyParser_SimpleParseStringFlags(char *, int, int);
-  node *PyParser_SimpleParseStringFlagsFilename(char *, char *, int, int);
+  node *PyParser_SimpleParseString(char *s, int b) {
+    return PyParser_SimpleParseStringFlags(s, b, 0);
+  }
   node *PyParser_SimpleParseFileFlags(FILE *, char *,int, int);
+  node *PyParser_SimpleParseFile(FILE *f, char *s, int b) {
+    return PyParser_SimpleParseFileFlags(f, s, b, 0);
+  }
+//  node *PyParser_SimpleParseStringFlagsFilename(char *, char *, int, int);
 
-  PyObject *PyRun_String(char *, int, PyObject *, PyObject *);
-  PyObject *PyRun_File(FILE *, char *, int, PyObject *, PyObject *);
-  PyObject *PyRun_FileEx(FILE *, char *, int, PyObject *, PyObject *, int);
   PyObject *PyRun_StringFlags( char *, int, PyObject *, PyObject *, PyCompilerFlags *);
-  PyObject *PyRun_FileFlags(FILE *, char *, int, PyObject *, PyObject *, PyCompilerFlags *);
+  PyObject *PyRun_String(char *str, int s, PyObject *g, PyObject *l) {
+    return PyRun_StringFlags(str, s, g, l, null);
+  }
   PyObject *PyRun_FileExFlags(FILE *, char *, int, PyObject *, PyObject *, int, PyCompilerFlags *);
+  PyObject *PyRun_File(FILE *fp, char *p, int s, PyObject *g, PyObject *l) {
+    return PyRun_FileExFlags(fp, p, s, g, l, 0, null);
+  }
+  PyObject *PyRun_FileEx(FILE *fp, char *p, int s, PyObject *g, PyObject *l, int c) {
+    return PyRun_FileExFlags(fp, p, s, g, l, c, null);
+  }
+  PyObject *PyRun_FileFlags(FILE *fp, char *p, int s, PyObject *g, PyObject *l, PyCompilerFlags *flags) {
+    return PyRun_FileExFlags(fp, p, s, g, l, 0, flags);
+  }
 
-  PyObject *Py_CompileString(char *, char *, int);
   PyObject *Py_CompileStringFlags(char *, char *, int, PyCompilerFlags *);
+  PyObject *Py_CompileString(char *str, char *p, int s) {
+    return Py_CompileStringFlags(str, p, s, null);
+  }
   // Py_SymtableString is undocumented, so it's omitted here.
 
   void PyErr_Print();
@@ -2114,7 +2332,6 @@ extern (C) {
   void Py_Exit(int);
 
   int Py_FdIsInteractive(FILE *, char *);
-
 
 ///////////////////////////////////////////////////////////////////////////////
 // BOOTSTRAPPING INTERFACE (for embedding Python in D)
@@ -2133,6 +2350,9 @@ extern (C) {
   char *Py_GetCopyright();
   char *Py_GetCompiler();
   char *Py_GetBuildInfo();
+  char * _Py_svnversion();
+  char * Py_SubversionRevision();
+  char * Py_SubversionShortBranch();
 
   /////////////////////////////////////////////////////////////////////////////
   // ONE-TIME INITIALIZERS
@@ -2185,7 +2405,9 @@ extern (C) {
 ///////////////////////////////////////////////////////////////////////////////
   // Python-header-file: Include/ceval.h:
   PyObject *PyEval_CallObjectWithKeywords(PyObject *, PyObject *, PyObject *);
-  PyObject *PyEval_CallObject(PyObject *, PyObject *);
+  PyObject *PyEval_CallObject(PyObject *func, PyObject *arg) {
+    return PyEval_CallObjectWithKeywords(func, arg, null);
+  }
   PyObject *PyEval_CallFunction(PyObject *obj, char *format, ...);
   PyObject *PyEval_CallMethod(PyObject *obj, char *methodname, char *format, ...);
 
@@ -2218,6 +2440,7 @@ extern (C) {
 
   PyObject *PyEval_GetCallStats(PyObject *);
   PyObject *PyEval_EvalFrame(PyFrameObject *);
+  PyObject *PyEval_EvalFrameEx(PyFrameObject *, int);
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2276,13 +2499,8 @@ extern (C) {
     PyThreadState *f_tstate;
     int f_lasti;
     int f_lineno;
-    int f_restricted;
     int f_iblock;
     PyTryBlock f_blockstack[CO_MAXBLOCKS];
-    int f_nlocals;
-    int f_ncells;
-    int f_nfreevars;
-    int f_stacksize;
     PyObject *f_localsplus[1];
   }
 
@@ -2290,6 +2508,9 @@ extern (C) {
   // D translation of C macro:
   int PyFrame_Check(PyObject *op) {
     return op.ob_type == PyFrame_Type_p;
+  }
+  int PyFrame_IsRestricted(PyFrameObject* f) {
+    return f.f_builtins != f.f_tstate.interp.builtins;
   }
 
   PyFrameObject *PyFrame_New(PyThreadState *, PyCodeObject *,
@@ -2426,7 +2647,11 @@ extern (C) {
   PyObject *PyImport_GetModuleDict();
   PyObject *PyImport_AddModule(char *name);
   PyObject *PyImport_ImportModule(char *name);
-  PyObject *PyImport_ImportModuleEx(char *name, PyObject *globals, PyObject *locals, PyObject *fromlist);
+  PyObject *PyImport_ImportModuleLevel(char *name,
+    PyObject *globals, PyObject *locals, PyObject *fromlist, int level);
+  PyObject *PyImport_ImportModuleEx(char *n, PyObject *g, PyObject *l, PyObject *f) {
+    return PyImport_ImportModuleLevel(n, g, l, f, -1);
+  }
   PyObject *PyImport_Import(PyObject *name);
   PyObject *PyImport_ReloadModule(PyObject *m);
   void PyImport_Cleanup();
@@ -2480,8 +2705,12 @@ extern (C) {
 
   PyObject *PyObject_Call(PyObject *callable_object, PyObject *args, PyObject *kw);
   PyObject *PyObject_CallObject(PyObject *callable_object, PyObject *args);
-  PyObject *PyObject_CallFunction(PyObject *callable_object, char *format, ...);
-  PyObject *PyObject_CallMethod(PyObject *o, char *m, char *format, ...);
+//  PyObject *PyObject_CallFunction(PyObject *callable_object, char *format, ...);
+//  PyObject *PyObject_CallMethod(PyObject *o, char *m, char *format, ...);
+  PyObject *_PyObject_CallFunction_SizeT(PyObject *callable, char *format, ...);
+  PyObject *_PyObject_CallMethod_SizeT(PyObject *o, char *name, char *format, ...);
+  alias _PyObject_CallFunction_SizeT PyObject_CallFunction;
+  alias _PyObject_CallMethod_SizeT PyObject_CallMethod;
   PyObject *PyObject_CallFunctionObjArgs(PyObject *callable, ...);
   PyObject *PyObject_CallMethodObjArgs(PyObject *o,PyObject *m, ...);
 
@@ -2494,18 +2723,19 @@ extern (C) {
   // CONTAINERS
   /////////////////////////////////////////////////////////////////////////////
 
-  int PyObject_Size(PyObject *o);
-  int PyObject_Length(PyObject *o);
+  Py_ssize_t PyObject_Size(PyObject *o);
+  //int PyObject_Length(PyObject *o);
+  alias PyObject_Size PyObject_Length;
 
   PyObject *PyObject_GetItem(PyObject *o, PyObject *key);
   int PyObject_SetItem(PyObject *o, PyObject *key, PyObject *v);
   int PyObject_DelItemString(PyObject *o, char *key);
   int PyObject_DelItem(PyObject *o, PyObject *key);
 
-  int PyObject_AsCharBuffer(PyObject *obj, char **buffer, int *buffer_len);
+  int PyObject_AsCharBuffer(PyObject *obj, char **buffer, Py_ssize_t *buffer_len);
   int PyObject_CheckReadBuffer(PyObject *obj);
-  int PyObject_AsReadBuffer(PyObject *obj, void **buffer, int *buffer_len);
-  int PyObject_AsWriteBuffer(PyObject *obj, void **buffer, int *buffer_len);
+  int PyObject_AsReadBuffer(PyObject *obj, void **buffer, Py_ssize_t *buffer_len);
+  int PyObject_AsWriteBuffer(PyObject *obj, void **buffer, Py_ssize_t *buffer_len);
 
   /////////////////////////////////////////////////////////////////////////////
   // ITERATORS
@@ -2545,6 +2775,13 @@ extern (C) {
   PyObject *PyNumber_Xor(PyObject *o1, PyObject *o2);
   PyObject *PyNumber_Or(PyObject *o1, PyObject *o2);
 
+  int PyIndex_Check(PyObject* obj) {
+    return obj.ob_type.tp_as_number !is null &&
+        PyType_HasFeature(obj.ob_type, Py_TPFLAGS_HAVE_INDEX) &&
+        obj.ob_type.tp_as_number.nb_index !is null;
+  }
+  PyObject *PyNumber_Index(PyObject *o);
+  Py_ssize_t PyNumber_AsSsize_t(PyObject* o, PyObject* exc);
   PyObject *PyNumber_Int(PyObject *o);
   PyObject *PyNumber_Long(PyObject *o);
   PyObject *PyNumber_Float(PyObject *o);
@@ -2568,31 +2805,32 @@ extern (C) {
   /////////////////////////////////////////////////////////////////////////////
 
   int PySequence_Check(PyObject *o);
-  int PySequence_Size(PyObject *o);
-  int PySequence_Length(PyObject *o);
+  Py_ssize_t PySequence_Size(PyObject *o);
+  //int PySequence_Length(PyObject *o);
+  alias PySequence_Size PySequence_Length;
 
   PyObject *PySequence_Concat(PyObject *o1, PyObject *o2);
-  PyObject *PySequence_Repeat(PyObject *o, int count);
-  PyObject *PySequence_GetItem(PyObject *o, int i);
-  PyObject *PySequence_GetSlice(PyObject *o, int i1, int i2);
+  PyObject *PySequence_Repeat(PyObject *o, Py_ssize_t count);
+  PyObject *PySequence_GetItem(PyObject *o, Py_ssize_t i);
+  PyObject *PySequence_GetSlice(PyObject *o, Py_ssize_t i1, Py_ssize_t i2);
 
-  int PySequence_SetItem(PyObject *o, int i, PyObject *v);
-  int PySequence_DelItem(PyObject *o, int i);
-  int PySequence_SetSlice(PyObject *o, int i1, int i2, PyObject *v);
-  int PySequence_DelSlice(PyObject *o, int i1, int i2);
+  int PySequence_SetItem(PyObject *o, Py_ssize_t i, PyObject *v);
+  int PySequence_DelItem(PyObject *o, Py_ssize_t i);
+  int PySequence_SetSlice(PyObject *o, Py_ssize_t i1, Py_ssize_t i2, PyObject *v);
+  int PySequence_DelSlice(PyObject *o, Py_ssize_t i1, Py_ssize_t i2);
 
   PyObject *PySequence_Tuple(PyObject *o);
   PyObject *PySequence_List(PyObject *o);
 
   PyObject *PySequence_Fast(PyObject *o,  char* m);
   // D translations of C macros:
-  int PySequence_Fast_GET_SIZE(PyObject *o) {
+  Py_ssize_t PySequence_Fast_GET_SIZE(PyObject *o) {
     return PyList_Check(o) ? PyList_GET_SIZE(o) : PyTuple_GET_SIZE(o);
   }
-  PyObject *PySequence_Fast_GET_ITEM(PyObject *o, int i) {
+  PyObject *PySequence_Fast_GET_ITEM(PyObject *o, Py_ssize_t i) {
     return PyList_Check(o) ? PyList_GET_ITEM(o, i) : PyTuple_GET_ITEM(o, i);
   }
-  PyObject *PySequence_ITEM(PyObject *o, int i) {
+  PyObject *PySequence_ITEM(PyObject *o, Py_ssize_t i) {
     return o.ob_type.tp_as_sequence.sq_item(o, i);
   }
   PyObject **PySequence_Fast_ITEMS(PyObject *sf) {
@@ -2603,27 +2841,28 @@ extern (C) {
       ;
   }
 
-  int PySequence_Count(PyObject *o, PyObject *value);
+  Py_ssize_t PySequence_Count(PyObject *o, PyObject *value);
   int PySequence_Contains(PyObject *seq, PyObject *ob);
 
   int PY_ITERSEARCH_COUNT    = 1;
   int PY_ITERSEARCH_INDEX    = 2;
   int PY_ITERSEARCH_CONTAINS = 3;
 
-  int _PySequence_IterSearch(PyObject *seq, PyObject *obj, int operation);
-  int PySequence_In(PyObject *o, PyObject *value);
-  int PySequence_Index(PyObject *o, PyObject *value);
+  Py_ssize_t _PySequence_IterSearch(PyObject *seq, PyObject *obj, int operation);
+  //int PySequence_In(PyObject *o, PyObject *value);
+  alias PySequence_Contains PySequence_In;
+  Py_ssize_t PySequence_Index(PyObject *o, PyObject *value);
 
   PyObject * PySequence_InPlaceConcat(PyObject *o1, PyObject *o2);
-  PyObject * PySequence_InPlaceRepeat(PyObject *o, int count);
+  PyObject * PySequence_InPlaceRepeat(PyObject *o, Py_ssize_t count);
 
   /////////////////////////////////////////////////////////////////////////////
   // MAPPINGS
   /////////////////////////////////////////////////////////////////////////////
   int PyMapping_Check(PyObject *o);
-  int PyMapping_Size(PyObject *o);
-  int PyMapping_Length(PyObject *o);
-  //alias PyMapping_Size PyMapping_Length;
+  Py_ssize_t PyMapping_Size(PyObject *o);
+  //int PyMapping_Length(PyObject *o);
+  alias PyMapping_Size PyMapping_Length;
 
   // D translations of C macros:
   int PyMapping_DelItemString(PyObject *o, char *k) {
@@ -2668,13 +2907,20 @@ extern (C) {
 
   PyObject * PyObject_Init(PyObject *, PyTypeObject *);
   PyVarObject * PyObject_InitVar(PyVarObject *,
-                           PyTypeObject *, int);
+                           PyTypeObject *, Py_ssize_t);
   /* Without macros, DSR knows of no way to translate PyObject_New and
    * PyObject_NewVar to D; the lower-level _PyObject_New and _PyObject_NewVar
    * will have to suffice.
-   * YYY: Perhaps D's mixins could be used? */
+   * YYY: Perhaps D's mixins could be used?
+   * KGM: Pfft, it's a simple template function. */
   PyObject * _PyObject_New(PyTypeObject *);
-  PyVarObject * _PyObject_NewVar(PyTypeObject *, int);
+  PyVarObject * _PyObject_NewVar(PyTypeObject *, Py_ssize_t);
+  type* PyObject_New(type)(PyTypeObject* o) {
+    return cast(type*)_PyObject_New(o);
+  }
+  type* PyObject_NewVar(type)(PyTypeObject* o, Py_ssize_t n) {
+    return cast(type*)_PyObject_NewVar(o, n);
+  }
 
 
   C_long PyGC_Collect();
@@ -2687,14 +2933,19 @@ extern (C) {
     return PyType_IS_GC(o.ob_type)
         && (o.ob_type.tp_is_gc == null || o.ob_type.tp_is_gc(o));
   }
-  PyVarObject *_PyObject_GC_Resize(PyVarObject *, int);
+  PyVarObject *_PyObject_GC_Resize(PyVarObject *, Py_ssize_t);
   // XXX: Can D mixins allows trans of PyObject_GC_Resize?
+  // KGM: No, but template functions can.
+  type* PyObject_GC_Resize(type) (PyVarObject *op, Py_ssize_t n) {
+	return cast(type*)_PyObject_GC_Resize(op, n);
+  }
+
 
   union PyGC_Head {
     struct gc {
       PyGC_Head *gc_next;
       PyGC_Head *gc_prev;
-      int gc_refs;
+      Py_ssize_t gc_refs;
     }
     real dummy; // XXX: C type was long double; is this equiv?
   }
@@ -2704,13 +2955,20 @@ extern (C) {
 
   PyObject *_PyObject_GC_Malloc(size_t);
   PyObject *_PyObject_GC_New(PyTypeObject *);
-  PyVarObject *_PyObject_GC_NewVar(PyTypeObject *, int);
+  PyVarObject *_PyObject_GC_NewVar(PyTypeObject *, Py_ssize_t);
   void PyObject_GC_Track(void *);
   void PyObject_GC_UnTrack(void *);
   void PyObject_GC_Del(void *);
 
   // XXX: DSR currently knows of no way to translate the PyObject_GC_New and
   // PyObject_GC_NewVar macros to D.
+  // KGM does, though.
+  type* PyObject_GC_New(type) (PyTypeObject* o) {
+    return cast(type*)_PyObject_GC_New(o);
+  }
+  type* PyObject_GC_NewVar(type) (PyTypeObject* o, Py_ssize_t n) {
+    return cast(type*)_PyObject_GC_NewVar(o, n);
+  }
 
   /////////////////////////////////////////////////////////////////////////////
   // MISCELANEOUS
@@ -2735,9 +2993,9 @@ PycStringIO_CAPI *PycString_IMPORT() {
 }
 
 struct PycStringIO_CAPI {
-  int(*cread)(PyObject *, char **, int);
+  int(*cread)(PyObject *, char **, Py_ssize_t);
   int(*creadline)(PyObject *, char **);
-  int(*cwrite)(PyObject *, char *, int);
+  int(*cwrite)(PyObject *, char *, Py_ssize_t);
   PyObject *(*cgetvalue)(PyObject *);
   PyObject *(*NewOutput)(int);
   PyObject *(*NewInput)(PyObject *);
@@ -2990,6 +3248,7 @@ int PyGen_CheckExact(PyObject *op) {
 }
 
 PyObject *PyGen_New(PyFrameObject *);
+int PyGen_NeedsFinalizing(PyGenObject *);
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2997,7 +3256,7 @@ PyObject *PyGen_New(PyFrameObject *);
 ///////////////////////////////////////////////////////////////////////////////
 // Python-header-file: Include/marshal.h:
 
-const int Py_MARSHAL_VERSION = 1;
+const int Py_MARSHAL_VERSION = 2;
 
 void PyMarshal_WriteLongToFile(C_long, FILE *, int);
 void PyMarshal_WriteObjectToFile(PyObject *, FILE *, int);
@@ -3007,7 +3266,7 @@ C_long PyMarshal_ReadLongFromFile(FILE *);
 int PyMarshal_ReadShortFromFile(FILE *);
 PyObject *PyMarshal_ReadObjectFromFile(FILE *);
 PyObject *PyMarshal_ReadLastObjectFromFile(FILE *);
-PyObject *PyMarshal_ReadObjectFromString(char *, int);
+PyObject *PyMarshal_ReadObjectFromString(char *, Py_ssize_t);
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -3017,7 +3276,7 @@ PyObject *PyMarshal_ReadObjectFromString(char *, int);
 
 double PyOS_ascii_strtod(char *str, char **ptr);
 double PyOS_ascii_atof(char *str);
-char *PyOS_ascii_formatd(char *buffer, int buf_len, char *format, double d);
+char *PyOS_ascii_formatd(char *buffer, size_t buf_len, char *format, double d);
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -3041,6 +3300,9 @@ const int WAIT_LOCK = 1;
 const int NOWAIT_LOCK = 0;
 void PyThread_release_lock(PyThread_type_lock);
 
+size_t PyThread_get_stacksize();
+int PyThread_set_stacksize(size_t);
+
 void PyThread_exit_prog(int);
 void PyThread__PyThread_exit_prog(int);
 
@@ -3056,22 +3318,41 @@ void PyThread_delete_key_value(int key);
 ///////////////////////////////////////////////////////////////////////////////
 // Python-header-file: Include/setobject.h:
 
-struct PySetObject {
-  mixin PyObject_HEAD;
+const int PySet_MINSIZE = 8;
 
-  PyObject *data;
-  C_long hash;
-  PyObject *weakreflist;
+struct setentry {
+    C_long hash;
+    PyObject *key;
+}
+
+struct PySetObject {
+    mixin PyObject_HEAD;
+
+    Py_ssize_t fill;
+    Py_ssize_t used;
+
+    Py_ssize_t mask;
+
+    setentry *table;
+    setentry *(*lookup)(PySetObject *so, PyObject *key, C_long hash);
+    setentry smalltable[PySet_MINSIZE];
+
+    C_long hash;
+    PyObject *weakreflist;
 }
 
 // &PySet_Type is accessible via PySet_Type_p.
 // &PyFrozenSet_Type is accessible via PyFrozenSet_Type_p.
+
 // D translations of C macros:
 int PyFrozenSet_CheckExact(PyObject *ob) {
-  return ob.ob_type == PyFrozenSet_Type_p;
+    return ob.ob_type == PyFrozenSet_Type_p;
+}
+int PyAnySet_CheckExact(PyObject* ob) {
+    return ob.ob_type == PySet_Type_p || ob.ob_type == PyFrozenSet_Type_p;
 }
 int PyAnySet_Check(PyObject *ob) {
-  return (
+    return (
          ob.ob_type == PySet_Type_p
       || ob.ob_type == PyFrozenSet_Type_p
       || PyType_IsSubtype(ob.ob_type, PySet_Type_p)
@@ -3079,6 +3360,19 @@ int PyAnySet_Check(PyObject *ob) {
     );
 }
 
+PyObject *PySet_New(PyObject *);
+PyObject *PyFrozenSet_New(PyObject *);
+Py_ssize_t PySet_Size(PyObject *anyset);
+Py_ssize_t PySet_GET_SIZE(PyObject* so) {
+    return (cast(PySetObject*)so).used;
+}
+int PySet_Clear(PyObject *set);
+int PySet_Contains(PyObject *anyset, PyObject *key);
+int PySet_Discard(PyObject *set, PyObject *key);
+int PySet_Add(PyObject *set, PyObject *key);
+int _PySet_Next(PyObject *set, Py_ssize_t *pos, PyObject **entry);
+PyObject *PySet_Pop(PyObject *set);
+int _PySet_Update(PyObject *set, PyObject *iterable);
 
 ///////////////////////////////////////////////////////////////////////////////
 // Interface to map C struct members to Python object attributes
@@ -3088,7 +3382,7 @@ int PyAnySet_Check(PyObject *ob) {
 struct PyMemberDef {
   char *name;
   int type;
-  int offset;
+  Py_ssize_t offset;
   int flags;
   char *doc;
 }
@@ -3108,6 +3402,8 @@ const int T_UINT = 11;
 const int T_ULONG = 12;
 const int T_STRING_INPLACE = 13;
 const int T_OBJECT_EX = 16;
+const int T_LONGLONG = 17;
+const int T_ULONGLONG = 18;
 
 const int READONLY = 1;
 alias READONLY RO;

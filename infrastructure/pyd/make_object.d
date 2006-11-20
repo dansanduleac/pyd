@@ -28,19 +28,19 @@ SOFTWARE.
  *
  * D type -> PyObject*
  *
- * The former is handled by d_type, the latter by __py. The py function is
+ * The former is handled by d_type, the latter by _py. The py function is
  * provided as a convenience to directly convert a D type into an instance of
  * DPyObject.
  */
 module pyd.make_object;
 
 private import python;
+
 private import std.string;
-// Base type
+
 private import pyd.dpyobject;
 private import pyd.class_wrap;
 private import pyd.func_wrap;
-
 private import pyd.exception;
 
 private template isArray(T) {
@@ -150,6 +150,24 @@ PyObject* _py(T) (T t) {
     }
     PyErr_SetString(PyExc_RuntimeError, "D conversion function _py failed with type " ~ typeid(T).toString());
     return null;
+}
+
+/**
+ * Helper function for creating a PyTuple from a series of D items.
+ */
+PyObject* PyTuple_FromItems(T ...)(T t) {
+    PyObject* tuple = PyTuple_New(t.length);
+    PyObject* temp;
+    if (tuple is null) return null;
+    foreach(i, arg; t) {
+        temp = _py(arg);
+        if (temp is null) {
+            Py_DECREF(tuple);
+            return null;
+        }
+        PyTuple_SetItem(tuple, i, temp);
+    }
+    return tuple;
 }
 
 /**

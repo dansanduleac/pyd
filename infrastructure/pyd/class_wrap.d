@@ -33,11 +33,10 @@ private {
     import pyd.op_wrap;
 
     import meta.Default;
-    import meta.FuncMeta;
-    import meta.Tuple;
     import meta.Nameof;
 
     import std.string;
+    import std.traits;
 }
 
 bool[TypeInfo] wrapped_classes;
@@ -60,8 +59,8 @@ template wrapped_class_object(T) {
 template wrapped_class_type(T) {
 /// The type object, an instance of PyType_Type
     static PyTypeObject wrapped_class_type = {
-        1,
-        null,
+        1,                            /*ob_refcnt*/
+        null,                         /*ob_type*/
         0,                            /*ob_size*/
         null,                         /*tp_name*/
         0,                            /*tp_basicsize*/
@@ -81,35 +80,68 @@ template wrapped_class_type(T) {
         null,                         /*tp_getattro*/
         null,                         /*tp_setattro*/
         null,                         /*tp_as_buffer*/
-        Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, /*tp_flags*/
+        0, /*tp_flags*/
         null,                         /*tp_doc*/
-        null,                         /* tp_traverse */
-        null,                         /* tp_clear */
-        null,                         /* tp_richcompare */
-        0,                            /* tp_weaklistoffset */
-        null,                         /* tp_iter */
-        null,                         /* tp_iternext */
-        null,                         /* tp_methods */
-        null,                         /* tp_members */
-        null,                         /* tp_getset */
-        null,                         /* tp_base */
-        null,                         /* tp_dict */
-        null,                         /* tp_descr_get */
-        null,                         /* tp_descr_set */
-        0,                            /* tp_dictoffset */
-        null,                         /* tp_init */
-        null,                         /* tp_alloc */
-        &wrapped_methods!(T).wrapped_new, /* tp_new */
-        null,                         /* tp_free */
-        null,                         /* tp_is_gc */
-        null,                         /* tp_bases */
-        null,                         /* tp_mro */
-        null,                         /* tp_cache */
-        null,                         /* tp_subclasses */
-        null,                         /* tp_weaklist */
-        null,                         /* tp_del */
+        null,                         /*tp_traverse*/
+        null,                         /*tp_clear*/
+        null,                         /*tp_richcompare*/
+        0,                            /*tp_weaklistoffset*/
+        null,                         /*tp_iter*/
+        null,                         /*tp_iternext*/
+        null,                         /*tp_methods*/
+        null,                         /*tp_members*/
+        null,                         /*tp_getset*/
+        null,                         /*tp_base*/
+        null,                         /*tp_dict*/
+        null,                         /*tp_descr_get*/
+        null,                         /*tp_descr_set*/
+        0,                            /*tp_dictoffset*/
+        null,                         /*tp_init*/
+        null,                         /*tp_alloc*/
+        &wrapped_methods!(T).wrapped_new, /*tp_new*/
+        null,                         /*tp_free*/
+        null,                         /*tp_is_gc*/
+        null,                         /*tp_bases*/
+        null,                         /*tp_mro*/
+        null,                         /*tp_cache*/
+        null,                         /*tp_subclasses*/
+        null,                         /*tp_weaklist*/
+        null,                         /*tp_del*/
     };
 }
+
+// The set of all instances of this class that are passed into Python. Keeping
+// references here in D is needed to keep the GC happy. The integer value is
+// used to make this a sort of poor man's multiset.
+template wrap_class_instances(T) {
+    int[T] wrap_class_instances;
+}
+
+/**
+ * A useful check for whether a given class has been wrapped. Mainly used by
+ * the conversion functions (see make_object.d), but possibly useful elsewhere.
+ */
+template is_wrapped(T) {
+    bool is_wrapped = false;
+}
+
+// The list of wrapped methods for this class.
+template wrapped_method_list(T) {
+    PyMethodDef[] wrapped_method_list = [
+        { null, null, 0, null }
+    ];
+}
+
+// The list of wrapped properties for this class.
+template wrapped_prop_list(T) {
+    static PyGetSetDef[] wrapped_prop_list = [
+        { null, null, null, null, null }
+    ];
+}
+
+//////////////////////
+// STANDARD METHODS //
+//////////////////////
 
 /// Various wrapped methods
 template wrapped_methods(T) {
@@ -132,11 +164,13 @@ template wrapped_methods(T) {
     /// The generic dealloc method.
     extern(C)
     void wrapped_dealloc(PyObject* self) {
-        exception_catcher(delegate PyObject*() {
+        //exception_catcher(delegate PyObject*() {
+        try {
             WrapPyObject_SetObj(self, null);
-            self.ob_type.tp_free(self);
-            return null;
-        });
+        } catch { }
+        self.ob_type.tp_free(self);
+        return null;
+        //});
     }
 }
 
@@ -153,35 +187,22 @@ template wrapped_repr(T) {
     }
 }
 
-///
-template wrapped_init(T) {
-    alias wrapped_class_object!(T) wrap_object;
-    /// The default _init method calls the class's zero-argument constructor.
-    extern(C)
-    int init(PyObject* self, PyObject* args, PyObject* kwds) {
-        return exception_catcher({
-            WrapPyObject_SetObj(self, new T);
-            return 0;
-        });
-    }
-}
-
 // This template gets an alias to a property and derives the types of the
 // getter form and the setter form. It requires that the getter form return the
 // same type that the setter form accepts.
 template property_parts(alias p) {
     // This may be either the getter or the setter
     alias typeof(&p) p_t;
-    alias funcDelegInfoT!(p_t) Info;
+    alias ParameterTypeTuple!(p_t) Info;
     // This means it's the getter
-    static if (Info.numArgs == 0) {
+    static if (Info.length == 0) {
         alias p_t getter_type;
         // The setter may return void, or it may return the newly set attribute.
-        alias typeof(p(RetType!(p_t).init)) function(RetType!(p_t)) setter_type;
+        alias typeof(p(ReturnType!(p_t).init)) function(ReturnType!(p_t)) setter_type;
     // This means it's the setter
     } else {
         alias p_t setter_type;
-        alias Info.Meta.ArgType!(0) function() getter_type;
+        alias Info[0] function() getter_type;
     }
 }
 
@@ -215,34 +236,9 @@ template wrapped_set(T, alias Fn) {
     }
 }
 
-// The set of all instances of this class that are passed into Python. Keeping
-// references here in D is needed to keep the GC happy. The integer value is
-// used to make this a sort of poor man's multiset.
-template wrap_class_instances(T) {
-    int[T] wrap_class_instances;
-}
-
-/**
- * A useful check for whether a given class has been wrapped. Mainly used by
- * the conversion functions (see make_object.d), but possibly useful elsewhere.
- */
-template is_wrapped(T) {
-    bool is_wrapped = false;
-}
-
-// The list of wrapped methods for this class.
-template wrapped_method_list(T) {
-    static PyMethodDef[] wrapped_method_list = [
-        { null, null, 0, null }
-    ];
-}
-
-// The list of wrapped properties for this class.
-template wrapped_prop_list(T) {
-    static PyGetSetDef[] wrapped_prop_list = [
-        { null, null, null, null, null }
-    ];
-}
+//////////////////////////////
+// CLASS WRAPPING INTERFACE //
+//////////////////////////////
 
 /**
  * This struct wraps a D class. Its member functions are the primary way of
@@ -320,9 +316,9 @@ template wrapped_class(T, char[] classname = symbolnameof!(T)) {
          * This currently does not support having multiple constructors with
          * the same number of arguments.
          */
-        static void init(C1=int, C2=int, C3=int, C4=int, C5=int, C6=int, C7=int, C8=int, C9=int, C10=int) () {
+        static void init(C ...) () {
             wrapped_class_type!(T).tp_init =
-                &wrapped_ctors!(T, Tuple!(C1, C2, C3, C4, C5, C6, C7, C8, C9, C10)).init_func;
+                &wrapped_ctors!(T, C).init_func;
         }
 
         /**
@@ -366,14 +362,16 @@ void finalize_class(CLS) (CLS cls) {
     pragma(msg, "finalize_class: " ~ name);
     
     assert(DPy_Module_p !is null, "Must initialize module before wrapping classes.");
-    char[] module_name = .toString(PyModule_GetName(DPy_Module_p));
-    
+    char[] module_name = toString(PyModule_GetName(DPy_Module_p));
     // Fill in missing values
-    type.ob_type      = PyType_Type_p;
+    type.ob_type      = PyType_Type_p();
+    //type.tp_new       = &(wrapped_methods!(T).wrapped_new);
+    //type.tp_dealloc   = &(wrapped_methods!(T).wrapped_dealloc);
     type.tp_basicsize = (wrapped_class_object!(T)).sizeof;
     type.tp_doc       = name ~ " objects" ~ \0;
+    type.tp_flags     = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE;
     //type.tp_new       = &PyType_GenericNew;
-    type.tp_repr      = &wrapped_repr!(T).repr;
+    //type.tp_repr      = &wrapped_repr!(T).repr;
     type.tp_methods   = wrapped_method_list!(T);
     type.tp_name      = module_name ~ "." ~ name ~ \0;
 
@@ -408,9 +406,9 @@ void finalize_class(CLS) (CLS cls) {
     }
 
     // If a ctor wasn't supplied, try the default.
-    if (type.tp_init is null) {
-        type.tp_init = &wrapped_init!(T).init;
-    }
+    //if (type.tp_init is null) {
+    //    type.tp_init = &wrapped_init!(T).init;
+    //}
     if (PyType_Ready(&type) < 0) {
         // XXX: This will probably crash the interpreter, as it isn't normally
         // caught and translated.
@@ -421,6 +419,10 @@ void finalize_class(CLS) (CLS cls) {
     is_wrapped!(T) = true;
     wrapped_classes[typeid(T)] = true;
 }
+
+///////////////////////
+// PYD API FUNCTIONS //
+///////////////////////
 
 /**
  * Returns a new Python object of a wrapped type.
@@ -441,6 +443,9 @@ PyObject* WrapPyObject_FromObject(T) (T t) {
     }
 }
 
+/**
+ * Returns the object contained in a Python wrapped type.
+ */
 T WrapPyObject_AsObject(T) (PyObject* _self) {
     alias wrapped_class_object!(T) wrapped_object;
     alias wrapped_class_type!(T) type;
@@ -468,3 +473,4 @@ void WrapPyObject_SetObj(PY, T) (PY* _self, T t) {
     // Handle the new one, if there is one
     if (t !is null) wrap_class_instances!(T)[t]++;
 }
+

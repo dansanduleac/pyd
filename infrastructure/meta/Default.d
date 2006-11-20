@@ -3,10 +3,8 @@
 */
 module meta.Default;
 
-private import meta.FuncMeta;
-private import meta.Tuple;
-private import meta.Nameof;
-private import meta.Util;
+private import std.traits;
+private import std.typetuple;
 
 /**
 	Derives a function that only calls the first n arguments of fn.
@@ -16,78 +14,26 @@ template firstArgs(alias fn, uint n, fn_t = typeof(&fn)) {
 }
 
 template firstArgsT(alias fn, uint args, fn_t = typeof(&fn)) {
-	alias RetType!(fn_t) R;
-	alias funcDelegInfoT!(fn_t) Info;
+	alias ReturnType!(fn_t) R;
+	alias ParameterTypeTuple!(fn_t) T;
 
-	// Shortcut for ArgType
-	template A(uint a) {
-		// The -1 is pointless; it dates from a time the function
-		// metaprogramming module was 1-indexed for function arguments.
-		alias Info.Meta.ArgType!(a-1) A;
-	}
-
-	static if (args == 0) {
-		R func() {
-			return fn();
-		}
-	} else static if (args == 1) {
-		R func(A!(1) a1) {
-			return fn(a1);
-		}
-	} else static if (args == 2) {
-		R func(A!(1) a1, A!(2) a2) {
-			return fn(a1, a2);
-		}
-	} else static if (args == 3) {
-		R func(A!(1) a1, A!(2) a2, A!(3) a3) {
-			return fn(a1, a2, a3);
-		}
-	} else static if (args == 4) {
-		R func(A!(1) a1, A!(2) a2, A!(3) a3, A!(4) a4) {
-			return fn(a1, a2, a3, a4);
-		}
-	} else static if (args == 5) {
-		R func(A!(1) a1, A!(2) a2, A!(3) a3, A!(4) a4, A!(5) a5) {
-			return fn(a1, a2, a3, a4, a5);
-		}
-	} else static if (args == 6) {
-		R func(A!(1) a1, A!(2) a2, A!(3) a3, A!(4) a4, A!(5) a5, A!(6) a6) {
-			return fn(a1, a2, a3, a4, a5, a6);
-		}
-	} else static if (args == 7) {
-		R func(A!(1) a1, A!(2) a2, A!(3) a3, A!(4) a4, A!(5) a5, A!(6) a6, A!(7) a7) {
-			return fn(a1, a2, a3, a4, a5, a6, a7);
-		}
-	} else static if (args == 8) {
-		R func(A!(1) a1, A!(2) a2, A!(3) a3, A!(4) a4, A!(5) a5, A!(6) a6, A!(7) a7, A!(8) a8) {
-			return fn(a1, a2, a3, a4, a5, a6, a7, a8);
-		}
-	} else static if (args == 9) {
-		R func(A!(1) a1, A!(2) a2, A!(3) a3, A!(4) a4, A!(5) a5, A!(6) a6, A!(7) a7, A!(8) a8, A!(9) a9) {
-			return fn(a1, a2, a3, a4, a5, a6, a7, a8, a9);
-		}
-	} else static if (args == 10) {
-		R func(A!(1) a1, A!(2) a2, A!(3) a3, A!(4) a4, A!(5) a5, A!(6) a6, A!(7) a7, A!(8) a8, A!(9) a9, A!(10) a10) {
-			return fn(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10);
+	R func(T[0 .. args] t) {
+		static if (is(R == void)) {
+			fn(t);
+			return;
+		} else {
+			return fn(t);
 		}
 	}
 }
 
-template defaultsTupleT(alias fn, uint MIN_ARGS, fn_t = typeof(&fn), uint current=MIN_ARGS, T = EmptyTuple) {
-	alias funcDelegInfoT!(fn_t) Meta;
-	const uint MAX_ARGS = Meta.numArgs;
+template defaultsTupleT(alias fn, uint MIN_ARGS, fn_t = typeof(&fn), uint current=MIN_ARGS, T ...) {
+	alias ParameterTypeTuple!(fn_t) Tu;
+	const uint MAX_ARGS = Tu.length;
 	static if (current > MAX_ARGS) {
 		alias T type;
 	} else {
-		alias defaultsTupleT!(fn, MIN_ARGS, fn_t, current+1, T.mix.appendT!(typeof(&firstArgs!(fn, current, fn_t)))).type type;
-	}
-}
-
-void loop(alias fn, fn_t, uint i, T)(T* t) {
-	static if (i < T.length) {
-		const uint args = funcDelegInfoT!(typeof(t.val!(i))).numArgs;
-		t.val!(i) = &firstArgs!(fn, args, fn_t);
-		loop!(fn, fn_t, i+1, T)(t);
+		alias defaultsTupleT!(fn, MIN_ARGS, fn_t, current+1, T, typeof(&firstArgs!(fn, current, fn_t))).type type;
 	}
 }
 
@@ -95,11 +41,15 @@ void loop(alias fn, fn_t, uint i, T)(T* t) {
 	Returns a tuple of function pointers to fn representing all of the valid
 	calls to that function, as per its default arguments.
 */
-defaultsTupleT!(fn, MIN_ARGS, fn_t).type defaultsTuple(alias fn, uint MIN_ARGS, fn_t = typeof(&fn)) () {
+void defaultsTuple(alias fn, uint MIN_ARGS, fn_t = typeof(&fn)) (
+	void delegate(defaultsTupleT!(fn, MIN_ARGS, fn_t).type) dg
+) {
 	alias defaultsTupleT!(fn, MIN_ARGS, fn_t).type T;
 	T t;
-	loop!(fn, fn_t, 0, T)(&t);
-	return t;
+	foreach(i, arg; t) {
+		t[i] = &firstArgs!(fn, ParameterTypeTuple!(typeof(t[i])).length, fn_t);
+	}
+	dg(t);
 }
 
 /**
@@ -124,14 +74,10 @@ template minArgs(alias fn, fn_t = typeof(&fn)) {
 }
 
 template minArgsT(alias fn, fn_t = typeof(&fn)) {
-	alias funcDelegInfoT!(fn_t) Info;
+	alias ParameterTypeTuple!(fn_t) T;
 
-	template A(uint i) {
-		alias Info.Meta.ArgType!(i) A;
-	}
-
-	A!(i) I(uint i)() {
-		return A!(i).init;
+	T[i] I(uint i)() {
+		return T[i].init;
 	}
 
 	static if (is(typeof(fn())))

@@ -10,28 +10,20 @@
 <div id="nav">
 <p><big>Contents</big></p>
 <a class="nav" href="index.html">Main</a><br />
+<a class="nav" href="install.html">Installation</a><br />
 <a class="navcur" href="basics.html">The basics</a><br />
 <a class="nav" href="celerid.html">CeleriD</a><br />
 <a class="nav" href="conversion.html">Type conversion</a><br />
 <a class="nav" href="func_wrapping.html">Function wrapping</a><br />
 <a class="nav" href="class_wrapping.html">Class wrapping</a><br />
 <a class="nav" href="except_wrapping.html">Exception wrapping</a><br />
-<a class="nav" href="dpyobject.html">DPyObject</a>
+<a class="nav" href="dpyobject.html">DPyObject</a><br />
+<a class="nav" href="credits.html">Credits</a>
 </div>
 
 <div id="content">
 
 <h1>The basics</h1>
-
-<h3>Installation and requirements</h3>
-
-<p>Pyd requires Python 2.4 or newer and the latest version of DMD.</p>
-
-<p>At the moment, Pyd is only supported on Windows using the <a href="http://digitalmars.com/d/index.html">DMD</a> compiler. GDC support has been written, but Pyd cannot yet be compiled with GDC (due to <a href="http://d.puremagic.com/issues/show_bug.cgi?id=311">this bug</a>). Once GDC support is available, Pyd should work on Linux. Support for Derek Parnell's Build is also planned.</p>
-
-<p>Because Pyd is still in development, it is only available via Subversion. The repository is located <a href="http://svn.dsource.org/projects/pyd/trunk">here</a>.</p>
-
-<p>Pyd installs itself as a Python package called <a href="celerid.html"><code>celerid</code></a>. Once you have downloaded the "trunk" directory, simply run <code>python setup.py install</code>, and the <code>celerid</code> directory will be created in Python's site-packages directory.</p>
 
 <h3>Module basics</h3>
 
@@ -59,6 +51,8 @@
 <p>It does little more than call <a href="http://docs.python.org/api/allocating-objects.html">Py_InitModule</a> and return the new module object. This object is also available via the <code>DPy_Module_p</code> property once you've called <code>module_init</code>.</p>
 
 <p>Due to the way in which Pyd implements function and class wrapping, any calls to <code>def</code> must occur <em>before</em> the call to <code>module_init</code>, and any calls to <code>finalize_class</code> must occur <em>after</em> the call. I know this seems like a rather arbitrary rule, but it is important. Calls to <code>def</code> in the wrong place will simply be ignored, and calls to <code>finalize_class</code> in the wrong place will throw an assert. (And this assert will cause the Python interpreter to crash. So be warned.)</p>
+
+<p>It is important that no D exceptions escape from the init function. If you put any of your own code in the init function, be sure to guard it aginst exceptions. The <a href="except_wrapping.html">exception wrapping</a> facilities of Pyd provide some useful functions for this purpose.</p>
 </div>
 
 </body>

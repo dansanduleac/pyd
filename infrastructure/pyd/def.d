@@ -23,16 +23,10 @@ module pyd.def;
 
 private import python;
 
-private import pyd.class_wrap;
-private import pyd.dg_convert;
-private import pyd.exception;
 private import pyd.func_wrap;
-private import pyd.make_object;
 
 private import meta.Default;
 private import meta.Nameof;
-
-private import std.string;
 
 private
 PyMethodDef module_global_methods[] = [

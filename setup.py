@@ -20,7 +20,7 @@ includedPaths, excludedPaths = build_manifest.listFiles(isSourceDist)
 allFiles = [
     build_manifest.convertPathToDistutilsStandard(path)
     for path in includedPaths
-  ]
+]
 
 # Only Python code files *within the celerid package* should go into
 # packageFiles (Python code files in examples shouldn't).  A module named
@@ -31,7 +31,7 @@ packageDataFiles = [f for f in allFiles if f not in packageCodeFiles]
 packageModules = [
     PACKAGE_NAME + '.' + os.path.splitext(f)[0]
     for f in packageCodeFiles
-  ]
+]
 
 distutils.core.setup(
     name=PACKAGE_NAME,
@@ -39,9 +39,10 @@ distutils.core.setup(
     packages=[PACKAGE_NAME],
 
     version=file('version.txt').read().strip(),
-    url='XXX',
-    maintainer='David Rushby',
-    maintainer_email='davidrushby@yahoo.com',
+    url='http://pyd.dsource.org/',
+    maintainer='Kirk McDonald',
+    maintainer_email='kirklin.mcdonald@gmail.com',
     py_modules=packageModules,
     package_data={PACKAGE_NAME: packageDataFiles},
-  )
+)
+

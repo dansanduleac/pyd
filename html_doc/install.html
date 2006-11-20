@@ -1,0 +1,43 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=iso-8859-1">
+    <link href="pyd.css" rel="stylesheet" type="text/css">
+    <title>Installing Pyd</title>
+</head>
+
+<body>
+<div id="nav">
+<p><big>Contents</big></p>
+<a class="nav" href="index.html">Main</a><br />
+<a class="navcur" href="install.html">Installation</a><br />
+<a class="nav" href="basics.html">The basics</a><br />
+<a class="nav" href="celerid.html">CeleriD</a><br />
+<a class="nav" href="conversion.html">Type conversion</a><br />
+<a class="nav" href="func_wrapping.html">Function wrapping</a><br />
+<a class="nav" href="class_wrapping.html">Class wrapping</a><br />
+<a class="nav" href="except_wrapping.html">Exception wrapping</a><br />
+<a class="nav" href="dpyobject.html">DPyObject</a><br />
+<a class="nav" href="credits.html">Credits</a>
+</div>
+
+<div id="content">
+<h1>Installing Pyd</h1>
+
+<h3>Requirements</h3>
+
+<p>Pyd requires Python 2.4 or newer and the latest version of DMD.</p>
+
+<p>At the moment, Pyd is only supported on Windows using the <a href="http://digitalmars.com/d/index.html">DMD</a> compiler. GDC support has been written, but Pyd cannot yet be compiled with GDC (due to <a href="http://d.puremagic.com/issues/show_bug.cgi?id=311">this bug</a>). Once GDC support is available, Pyd should work on Linux. Support for Derek Parnell's <code>bud</code> is also planned.</p>
+
+<p>Because Pyd is still in development, it is only available via Subversion. The repository is located <a href="http://svn.dsource.org/projects/pyd/trunk">here</a>.</p>
+
+<h3>Installation</h3>
+
+<p>Pyd installs itself as a Python package called <a href="celerid.html"><code>celerid</code></a>. Once you have downloaded the "trunk" directory, simply run <code>python setup.py install</code> in that directory, and the <code>celerid</code> directory will be created in Python's site-packages directory.</p>
+
+<p>CeleriD is an extension to distutils. It tells Python how to use DMD. By default, it uses the first version of DMD it can find on the system PATH. If DMD is not on your PATH, or you wish to specify a specific version of DMD, you may set the DMD_BIN environment variable to point to the DMD executable you wish to use.</p>
+</div>
+
+</body>
+</html>

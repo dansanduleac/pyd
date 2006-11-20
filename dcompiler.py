@@ -31,13 +31,11 @@ _pydFiles = [
     'dg_convert.d',
     'dpyobject.d',
     'exception.d',
-#    'ftype.d',
     'func_wrap.d',
     'iteration.d',
     'make_object.d',
     'op_wrap.d',
     'pyd.d',
-#    'tuples.d',
 ]
 
 _stFiles = [
@@ -48,17 +46,10 @@ _stFiles = [
 ]
 
 _metaFiles = [
-    'Apply.d',
-    'Bind.d',
     'Default.d',
     'Demangle.d',
-    'FuncMeta.d',
-    'Instantiate.d',
     'Nameof.d',
-    'Tuple.d',
-    'Use.d',
     'Util.d',
-    'VarArg.d',
 ]
 
 _pyVerXDotY = '.'.join(str(v) for v in sys.version_info[:2]) # e.g., '2.4'
@@ -152,10 +143,10 @@ class DCompiler(cc.CCompiler):
         
         # To sources, add the appropriate D header file python.d, as well as
         # any platform-specific boilerplate.
-        pythonHeaderPath = os.path.join(_infraDir, 'python', 'headers', 'python.d')
+        pythonHeaderPath = os.path.join(_infraDir, 'python', _pyVerXDotY, 'python.d')
         # Add the python header's directory to the include path
         includePathOpts += self._includeOpts
-        includePathOpts[-1] = includePathOpts[-1] % os.path.join(_infraDir, 'python', 'headers')
+        includePathOpts[-1] = includePathOpts[-1] % os.path.join(_infraDir, 'python', _pyVerXDotY)
         if not os.path.isfile(pythonHeaderPath):
             raise DistutilsPlatformError('Required D translation of Python'
                 ' header files "%s" is missing.' % pythonHeaderPath
@@ -187,7 +178,7 @@ class DCompiler(cc.CCompiler):
                     " '%s' is missing." % filePath
                 )
             sources.append(filePath)
-        # Add the infraDir to the include path for Pyd and ST
+        # Add the infraDir to the include path for pyd, st, and meta.
         includePathOpts += self._includeOpts
         includePathOpts[-1] = includePathOpts[-1] % os.path.join(_infraDir)
         
@@ -450,8 +441,8 @@ class DMDDCompiler(DCompiler):
             # code because Python X.Y releases are fairly infrequent, so it's
             # more convenient to distribute a pre-extracted .lib file to the
             # users and spare them the need for the "Basic Utilities" package.
-            pythonDMDLibPath = _qp(os.path.join(_infraDir, 'python', 'libs',
-                _pyVerXDotY, 'python%s_digitalmars.lib' % _pyVerXY
+            pythonDMDLibPath = _qp(os.path.join(_infraDir, 'python', _pyVerXDotY,
+                'python%s_digitalmars.lib' % _pyVerXY
             ))
             if not os.path.isfile(pythonDMDLibPath):
                 raise DistutilsFileError('The DMD-compatible Python .lib file'

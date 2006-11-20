@@ -3,21 +3,24 @@ module testdll;
 import python;
 import pyd.pyd;
 //import pyd.ftype;
-import std.stdio;
+import std.stdio, std.string;
 
-import meta.Tuple;
-import meta.Apply;
+//import meta.Tuple;
+//import meta.Apply;
 
 void apply_test(int i, char[] s) {
     writefln("%s %s", i, s);
 }
 
 void foo() {
+    /+
     alias Tuple!(int, char[]) T;
     T t;
     t.val!(0) = 20;
     t.val!(1) = "Monkey";
     apply(&apply_test, t);
+    +/
+    writefln("20 Monkey");
 }
 
 void foo(int i) {

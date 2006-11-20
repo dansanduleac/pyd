@@ -10,21 +10,29 @@
 <div id="nav">
 <p><big>Contents</big></p>
 <a class="navcur" href="index.html">Main</a><br />
+<a class="nav" href="install.html">Installation</a><br />
 <a class="nav" href="basics.html">The basics</a><br />
 <a class="nav" href="celerid.html">CeleriD</a><br />
 <a class="nav" href="conversion.html">Type conversion</a><br />
 <a class="nav" href="func_wrapping.html">Function wrapping</a><br />
 <a class="nav" href="class_wrapping.html">Class wrapping</a><br />
 <a class="nav" href="except_wrapping.html">Exception wrapping</a><br />
-<a class="nav" href="dpyobject.html">DPyObject</a>
+<a class="nav" href="dpyobject.html">DPyObject</a><br />
+<a class="nav" href="credits.html">Credits</a>
 </div>
 
 <div id="content">
 
 <h1>Pyd</h1>
-<p>Pyd is a library for the D programming language that wraps the raw <a href="http://docs.python.org/api/api.html">Python/C API</a> with a cleaner, simpler interface. It makes exposing raw D functions and classes to Python almost trivially simple. It bears certain similarities to <a href="http://www.boost.org/libs/python/doc/">Boost.Python</a>, and indeed Boost.Python is a major influence on Pyd.</p>
+<p>Pyd is a library for the D programming language that wraps the raw <a href="http://docs.python.org/api/api.html">Python/C API</a> with a cleaner, simpler interface. It makes exposing raw D functions and classes to Python almost trivially simple. It bears certain similarities to <a href="http://www.boost.org/libs/python/doc/">Boost.Python</a>, and indeed Boost.Python is a major influence on Pyd. Pyd was written by Kirk McDonald.</p>
 
-<p>Pyd also comes with its own extension to Python's <a href="http://docs.python.org/dist/dist.html">distutils</a>, called <a href="celerid.html">CeleriD</a>, making the building of extension modules quite easy.</p>
+<p>Pyd also comes with its own extension to Python's <a href="http://docs.python.org/dist/dist.html">distutils</a>, called <a href="celerid.html">CeleriD</a>, making the building of extension modules quite easy. CeleriD was originally written by David Rushby and is currently maintained by Kirk McDonald.</p>
+
+<p>Pyd includes the <code>meta.Nameof</code> package by Don Clugston. The source files meta.Nameof and meta.Demangle are copyright &copy; 2005-2006 Don Clugston.</p>
+
+<!-- Not documented, yet.
+<p>Pyd includes its own metaprogramming library, <code>meta</code>, which was written by Tomasz Stachowiak, Don Clugston, and Kirk McDonald. The <code>meta</code> library is documented <a href="meta/index.html">here</a>.</code>
+-->
 
 <p>Pyd's Trac page can be found <a href="http://dsource.org/projects/pyd/wiki">here</a>.</p>
 
