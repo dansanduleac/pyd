@@ -153,34 +153,39 @@ class DCompiler(cc.CCompiler):
             )
         sources.append(pythonHeaderPath)
 
+        # flags = (no_pyd, no_st, no_meta)
+        flags = [f for f, category in macros if category == 'aux'][0]
         # And Pyd!
-        # XXX: Add support for compiling without Pyd
-        for file in _pydFiles:
-            filePath = os.path.join(_infraDir, 'pyd', file)
-            if not os.path.isfile(filePath):
-                raise DistutilsPlatformError("Required Pyd source file '%s' is"
-                    " missing." % filePath
-                )
-            sources.append(filePath)
+        if not flags[0]:
+            for file in _pydFiles:
+                filePath = os.path.join(_infraDir, 'pyd', file)
+                if not os.path.isfile(filePath):
+                    raise DistutilsPlatformError("Required Pyd source file '%s' is"
+                        " missing." % filePath
+                    )
+                sources.append(filePath)
         # And StackThreads
-        for file in _stFiles:
-            filePath = os.path.join(_infraDir, 'st', file)
-            if not os.path.isfile(filePath):
-                raise DistutilsPlatformError("Required StackThreads source"
-                    " file '%s' is missing." % filePath
-                )
-            sources.append(filePath)
+        if not flags[1]:
+            for file in _stFiles:
+                filePath = os.path.join(_infraDir, 'st', file)
+                if not os.path.isfile(filePath):
+                    raise DistutilsPlatformError("Required StackThreads source"
+                        " file '%s' is missing." % filePath
+                    )
+                sources.append(filePath)
         # And meta
-        for file in _metaFiles:
-            filePath = os.path.join(_infraDir, 'meta', file)
-            if not os.path.isfile(filePath):
-                raise DistutilsPlatformError("Required meta source file"
-                    " '%s' is missing." % filePath
-                )
-            sources.append(filePath)
+        if not flags[2]:
+            for file in _metaFiles:
+                filePath = os.path.join(_infraDir, 'meta', file)
+                if not os.path.isfile(filePath):
+                    raise DistutilsPlatformError("Required meta source file"
+                        " '%s' is missing." % filePath
+                    )
+                sources.append(filePath)
         # Add the infraDir to the include path for pyd, st, and meta.
-        includePathOpts += self._includeOpts
-        includePathOpts[-1] = includePathOpts[-1] % os.path.join(_infraDir)
+        if False in flags:
+            includePathOpts += self._includeOpts
+            includePathOpts[-1] = includePathOpts[-1] % os.path.join(_infraDir)
         
         # Add DLL/SO boilerplate code file.
         if _isPlatWin:

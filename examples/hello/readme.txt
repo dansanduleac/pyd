@@ -1,4 +1,4 @@
-This example runs through many of the advanced features of Pyd.
+This is an example of a simple, one-function Python extension with Pyd.
 
 Execute the conventional distutils command
     python setup.py build

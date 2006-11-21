@@ -37,9 +37,8 @@
 <dt><code>void handle_exception();</code></dt>
 <dd>This checks if a Python exception has been set and, if it has, throws a <code>PythonException</code> containing the set exception. It will also clear the Python error condition.</dd>
 
-<dt><code>PyObject* exception_catcher(PyObject* delegate() <span class="arg">dg</span>);</code</dt>
-<dt><code>int exception_catcher(int delegate() <span class="arg">dg</span>);</code</dt>
-<dd>These two functions call the passed delegate within a <code>try ... catch</code> block, and if any exception occurs, will set an appropriate Python error condidition and return an "invalid" value. (These are <code>null</code> for the <code>PyObject*</code> version, -1 for the <code>int</code> version.) Otherwise, it will simply return whatever the delegate does. It is recommended that any function that interfaces directly with Python place its contents within a function literal in a call to one of these functions. (D can usually infer the return type of a function literal. If it can't, you might want to review D's syntax for <a href="http://www.digitalmars.com/d/expression.html#FunctionLiteral">function literals</a>.) For example:
+<dt><code>T exception_catcher(<span class="t_arg">T</span>) (T delegate() <span class="arg">dg</span>);</code</dt>
+<dd>This template function calls the passed delegate within a <code>try ... catch</code> block, and if any exception occurs, sets an appropriate Python error condidition and returns an "invalid" value. (These are <code>null</code> for <code>PyObject*</code> and -1 for <code>int</code>. These and <code>void</code> are the only acceptable types which may be passed to <code>T</code>.) Otherwise, it will simply return whatever the delegate does. It is recommended that any function that interfaces directly with Python place its contents within a function literal in a call to this function. (D can usually infer the return type of a function literal. If it can't, you might want to review D's syntax for <a href="http://www.digitalmars.com/d/expression.html#FunctionLiteral">function literals</a>.) For example:
 
 <pre class="code"><span class="keyword">extern</span> (C)
 PyObject* some_func(PyObject* self) {

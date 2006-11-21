@@ -42,6 +42,23 @@ setup(
 <p>Compiling the module is a simple matter of running this:</p>
 
 <pre class="code">&gt;python setup.py build</pre>
+
+<p>The Python module <code>celerid.support</code>, when imported, hot-patches distutils to know about the D compiler. It also provides the following:</p>
+
+<dl>
+<dt><code>setup</code></dt> <dd>This is simply an alias of <code>distutils.core.setup</code>, included here so you only have to import <code>celerid.support</code> in your setup.py module.</dd>
+
+<dt><code>Extension</code></dt> <dd>This is a subclass of <code>distutils.core.Extension</code>. It supports all of the arguments of the base class, with the exception of <code>define_macros</code> and <code>undef_macros</code>. D does not have a preprocessor, so an exception will be raised if you attempt to use either of these options. This class also supports these additional arguments beyond the base class:
+    <dl>
+    <dt><code>version_flags</code></dt> <dd>This should be a list of strings, which will be passed to the D compiler as version flags.</dd>
+    <dt><code>debug_flags</code></dt> <dd>Similar to <code>version_flags</code>, the strings in this list will be passed to D as debug flags.</dd>
+    <dt><code>raw_only</code></dt> <dd>This flag defaults to <code>False</code>. When <code>True</code>, it supresses the compilation and linkage of Pyd, StackThreads, and meta. This is useful if you only want to write a raw Python/C extension without the overhead of Pyd and its auxiliary packages. This is equivalent to specifying <code>True</code> to the next three flags.</dd>
+    <dt><code>no_pyd</code></dt> <dd>This flag defaults to <code>False</code>. When <code>True</code>, it supresses the compilation and linkage of Pyd. This is useful if you want to write a raw Python/C extension and don't want the overhead of compiling Pyd.</dd>
+    <dt><code>no_st</code></dt> <dd>This flag defaults to <code>False</code>. When <code>True</code>, it supresses the compilation and linkage of StackThreads. Because Pyd depends on StackThreads, an exception will be raised if this is specified and <code>no_pyd</code> is not.</dd>
+    <dt><code>no_meta</code></dt> <dd>This flag defaults to <code>False</code>. When <code>True</code>, it supresses the compilation and linkage of <code>meta</code> (Pyd's metaprogramming package). Because Pyd depends on meta, an exception will be raised if this is specified and <code>no_pyd</code> is not.</dd>
+    </dl>
+</dd>
+</dl>
 </div>
 
 </body>

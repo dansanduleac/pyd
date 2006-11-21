@@ -5,7 +5,6 @@ from celerid import patch_distutils # Cause distutils to be hot-patched.
 from distutils.core import setup, Extension as std_Extension
 from distutils.errors import DistutilsOptionError
 
-
 class Extension(std_Extension):
     def __init__(self, *args, **kwargs):
         if 'define_macros' in kwargs or 'undef_macros' in kwargs:
@@ -39,6 +38,23 @@ class Extension(std_Extension):
                     define_macros.append((flag, 'debug'))
                 del kwargs['debug_flags']
 
+        # Similarly, pass in no_pyd, &c, via define_macros.
+        if 'raw_only' in kwargs:
+            kwargs['no_pyd'] = True
+            kwargs['no_st'] = True
+            kwargs['no_meta'] = True
+            del kwargs['raw_only']
+        no_pyd  = kwargs.pop('no_pyd', False)
+        no_st   = kwargs.pop('no_st', False)
+        no_meta = kwargs.pop('no_meta', False)
+        if not no_pyd and (no_st or no_meta):
+            raise DistutilsOptionError(
+                'Cannot specify no_st or no_meta while using Pyd. Specify'
+                ' raw_only or no_pyd if you want to compile a raw Python/C'
+                ' extension.'
+            )
+        define_macros.append(((no_pyd, no_st, no_meta), 'aux'))
         kwargs['define_macros'] = define_macros
 
         std_Extension.__init__(self, *args, **kwargs)
+
