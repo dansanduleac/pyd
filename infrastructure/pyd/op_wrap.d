@@ -121,17 +121,24 @@ template wrapped_class_as_mapping(T) {
 template opfunc_binary_wrap(T, alias opfn) {
     alias wrapped_class_object!(T) wrap_object;
     alias ParameterTypeTuple!(opfn) Info;
+    alias ReturnType!(opfn) Ret;
     extern(C)
     PyObject* func(PyObject* self, PyObject* o) {
         return exception_catcher(delegate PyObject*() {
             auto dg = dg_wrapper((cast(wrap_object*)self).d_obj, &opfn);
             pragma(msg, prettytypeof!(typeof(dg)));
             pragma(msg, symbolnameof!(opfn));
-            return _py(
-                dg(
-                    d_type!(Info[0])(o)
-                )
-            );
+            static if (is(Ret == void)) {
+                dg(d_type!(Info[0])(o));
+                Py_INCREF(Py_None);
+                return Py_None;
+            } else {
+                return _py(
+                    dg(
+                        d_type!(Info[0])(o)
+                    )
+                );
+            }
         });
     }
 }
