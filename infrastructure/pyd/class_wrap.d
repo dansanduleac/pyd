@@ -28,7 +28,9 @@ private {
     import pyd.def;
     import pyd.exception;
     import pyd.func_wrap;
-    import pyd.iteration;
+    version(Pyd_with_StackThreads) {
+        import pyd.iteration;
+    }
     import pyd.make_object;
     import pyd.op_wrap;
 
@@ -321,6 +323,9 @@ template wrapped_class(T, char[] classname = symbolnameof!(T)) {
                 &wrapped_ctors!(T, C).init_func;
         }
 
+        // Iteration wrapping support requires StackThreads
+        version(Pyd_with_StackThreads) {
+
         /**
          * Allows selection of alternate opApply overloads. iter_t should be
          * the type of the delegate in the opApply function that the user wants
@@ -348,6 +353,8 @@ template wrapped_class(T, char[] classname = symbolnameof!(T)) {
             // pointer in the type struct, so we renew it here.
             wrapped_class_type!(T).tp_methods = list;
         }
+
+        } /*Pyd_with_StackThreads*/
     }
 }
 
@@ -390,10 +397,12 @@ void finalize_class(CLS) (CLS cls) {
 
     // Standard operator overloads
     // opApply
-    static if (is(typeof(&T.opApply))) {
-        if (type.tp_iter is null) {
-            DPySC_Ready();
-            type.tp_iter = &wrapped_iter!(T, T.opApply).iter;
+    version(Pyd_with_StackThreads) {
+        static if (is(typeof(&T.opApply))) {
+            if (type.tp_iter is null) {
+                DPySC_Ready();
+                type.tp_iter = &wrapped_iter!(T, T.opApply).iter;
+            }
         }
     }
     // opCmp

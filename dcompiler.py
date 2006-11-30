@@ -157,6 +157,9 @@ class DCompiler(cc.CCompiler):
         flags = [f for f, category in macros if category == 'aux'][0]
         # And Pyd!
         if not flags[0]:
+            # If we're not using StackThreads, don't use iteration.d in Pyd
+            if flags[1]:
+                _pydFiles.remove('iteration.d');
             for file in _pydFiles:
                 filePath = os.path.join(_infraDir, 'pyd', file)
                 if not os.path.isfile(filePath):
@@ -173,6 +176,8 @@ class DCompiler(cc.CCompiler):
                         " file '%s' is missing." % filePath
                     )
                 sources.append(filePath)
+            # Add the version conditional for st
+            macros.append(('Pyd_with_StackThreads', 'version'))
         # And meta
         if not flags[2]:
             for file in _metaFiles:

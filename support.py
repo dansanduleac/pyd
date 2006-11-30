@@ -47,9 +47,9 @@ class Extension(std_Extension):
         no_pyd  = kwargs.pop('no_pyd', False)
         no_st   = kwargs.pop('no_st', False)
         no_meta = kwargs.pop('no_meta', False)
-        if not no_pyd and (no_st or no_meta):
+        if not no_pyd and no_meta:
             raise DistutilsOptionError(
-                'Cannot specify no_st or no_meta while using Pyd. Specify'
+                'Cannot specify no_meta while using Pyd. Specify'
                 ' raw_only or no_pyd if you want to compile a raw Python/C'
                 ' extension.'
             )
