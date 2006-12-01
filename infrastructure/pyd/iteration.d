@@ -40,7 +40,7 @@ private {
 }
 
 // This exception is for yielding a PyObject* from within a StackContext.
-class DPyYield : Exception {
+class PydYield : Exception {
     PyObject* m_py;
     this(PyObject* py) {
         super("");
@@ -50,7 +50,7 @@ class DPyYield : Exception {
 }
 
 // Creates an iterator object from an object.
-PyObject* DPySC_FromWrapped(T, alias Iter = T.opApply, iter_t = typeof(&Iter)) (T obj) {
+PyObject* PydStackContext_FromWrapped(T, alias Iter = T.opApply, iter_t = typeof(&Iter)) (T obj) {
     // Get the number of args the opApply's delegate argument takes
     alias ParameterTypeTuple!(iter_t) IInfo;
     alias ParameterTypeTuple!(IInfo[0]) Info;
@@ -64,7 +64,7 @@ PyObject* DPySC_FromWrapped(T, alias Iter = T.opApply, iter_t = typeof(&Iter)) (
         PyObject* temp;
 
         t(delegate int(inout Info i) {
-            StackContext.throwYield(new DPyYield(PyTuple_FromItems(i)));
+            StackContext.throwYield(new PydYield(PyTuple_FromItems(i)));
             return 0;
         });
     });
@@ -78,11 +78,11 @@ template wrapped_iter(T, alias Iter, iter_t = typeof(&Iter)) {
 
     // Returns an iterator object for this class
     extern (C)
-    PyObject* iter (PyObject* _self) {
+    PyObject* iter(PyObject* _self) {
         return exception_catcher({
             wrap_object* self = cast(wrap_object*)_self;
 
-            return DPySC_FromWrapped!(T, Iter, iter_t)(self.d_obj);
+            return PydStackContext_FromWrapped!(T, Iter, iter_t)(self.d_obj);
         });
     }
 }
@@ -91,8 +91,8 @@ template wrapped_iter(T, alias Iter, iter_t = typeof(&Iter)) {
 extern (C)
 PyObject* sc_iternext(PyObject* _self) {
     return exception_catcher(delegate PyObject*() {
-        alias wrapped_class_object!(StackContext) DPySC_object;
-        DPySC_object* self = cast(DPySC_object*)_self;
+        alias wrapped_class_object!(StackContext) PydSC_object;
+        PydSC_object* self = cast(PydSC_object*)_self;
 
         try {
             // If the StackContext is done, cease iteration.
@@ -103,7 +103,7 @@ PyObject* sc_iternext(PyObject* _self) {
         }
         // The StackContext class yields values by throwing an exception.
         // We catch it and pass the converted value into Python.
-        catch (DPyYield y) {
+        catch (PydYield y) {
             return y.item();
         }
         return null;
@@ -111,15 +111,15 @@ PyObject* sc_iternext(PyObject* _self) {
 }
 
 /// Readies the iterator class if it hasn't been already.
-void DPySC_Ready() {
+void PydStackContext_Ready() {
     alias wrapped_class_type!(StackContext) type;
-    alias wrapped_class_object!(StackContext) DPySC_object;
+    alias wrapped_class_object!(StackContext) PydSC_object;
     
     if (!is_wrapped!(StackContext)) {
         type.ob_type = PyType_Type_p;
         //type.tp_new       = &wrapped_methods!(StackContext).wrapped_new;
         //type.tp_dealloc   = &wrapped_methods!(StackContext).wrapped_dealloc;
-        type.tp_basicsize = DPySC_object.sizeof;
+        type.tp_basicsize = PydSC_object.sizeof;
         type.tp_flags     = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE;
         //type.tp_doc = "";
         type.tp_name = "PydOpApplyWrapper";

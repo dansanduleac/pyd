@@ -36,7 +36,7 @@ PyMethodDef module_global_methods[] = [
 private
 PyObject* m_module;
 
-PyObject* DPy_Module_p() {
+PyObject* Pyd_Module_p() {
     return m_module;
 }
 

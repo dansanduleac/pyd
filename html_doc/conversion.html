@@ -17,7 +17,7 @@
 <a class="nav" href="func_wrapping.html">Function wrapping</a><br />
 <a class="nav" href="class_wrapping.html">Class wrapping</a><br />
 <a class="nav" href="except_wrapping.html">Exception wrapping</a><br />
-<a class="nav" href="dpyobject.html">DPyObject</a><br />
+<a class="nav" href="pydobject.html">PydObject</a><br />
 <a class="nav" href="credits.html">Credits</a>
 </div>
 
@@ -44,14 +44,14 @@
 <tr><td>associative array</td>                  <td>dict</td>       </tr>
 <tr><td>delegate or function pointer</td>       <td>A callable object</td></tr>
 <tr><td><a href="class_wrapping.html">A wrapped class</a></td> <td>The wrapped type</td></tr>
-<tr><td><a href="dpyobject.html">DPyObject</a></td> <td>The wrapped object's type</td></tr>
+<tr><td><a href="pydobject.html">PydObject</a></td> <td>The wrapped object's type</td></tr>
 <tr><td>PyObject*</td>                          <td>The object's type</td></tr>
 </table>
 
 This function will set a Python <code>RuntimeError</code> and return <code>null</code> if the conversion is not possible.</dd>
 
-<dt><code>DPyObject py(<span class="t_arg">T</span>) (<span class="t_arg">T</span> <span class="arg">t</span>);</code></dt>
-<dd>Converts D item <span class="arg">t</span> of type <span class="t_arg">T</span> to a PyObject with the <code>_py</code> function (above), and returns a <a href="dpyobject.html">DPyObject</a> wrapping that PyObject. This will <a href="except_wrapping.html">throw a wrapped Python <code>RuntimeError</code></a> if the conversion is not possible.</dd>
+<dt><code>PydObject py(<span class="t_arg">T</span>) (<span class="t_arg">T</span> <span class="arg">t</span>);</code></dt>
+<dd>Converts D item <span class="arg">t</span> of type <span class="t_arg">T</span> to a PyObject with the <code>_py</code> function (above), and returns a <a href="pydobject.html">PydObject</a> wrapping that PyObject. This will <a href="except_wrapping.html">throw a wrapped Python <code>RuntimeError</code></a> if the conversion is not possible.</dd>
 
 <dt><code><span class="t_arg">T</span> d_type(<span class="t_arg">T</span>) (PyObject* <span class="arg">o</span>);</dt>
 <dd>Attempts to convert Python object <span class="arg">o</span> to the D type <span class="t_arg">T</span>. Note that this means you must call this function with both the template and function arguments. The following conversions are possible:
@@ -59,7 +59,7 @@ This function will set a Python <code>RuntimeError</code> and return <code>null<
 <table border=1>
 <tr><th>Python type</th>    <th>D type</th>                             </tr>
 <tr><td>Any type</td>       <td>PyObject*</td>                          </tr>
-<tr><td>Any type</td>       <td><a href="dpyobject.html">DPyObject</a></td></tr>
+<tr><td>Any type</td>       <td><a href="pydobject.html">PydObject</a></td></tr>
 <tr><td><a href="class_wrapping.html">Wrapped class</a></td> <td>Wrapped class</td></tr>
 <tr><td>Any callable</td>   <td>delegate</td>                           </tr>
 <tr><td>str</td>            <td>char[]</td>                             </tr>
@@ -70,7 +70,7 @@ This function will set a Python <code>RuntimeError</code> and return <code>null<
 <tr><td>bool</td>           <td>bool</td>                               </tr>
 </table>
 
-This function will throw a <code>DPyConversionException</code> if the conversion is not possible.</dd>
+This function will throw a <code>PydConversionException</code> if the conversion is not possible.</dd>
 </dl>
 </div>
 

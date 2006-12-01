@@ -29,7 +29,7 @@ module pyd.pyd;
 public import pyd.def;
 public import pyd.class_wrap;
 //public import pyd.ctor_wrap;
-public import pyd.dpyobject;
+public import pyd.pydobject;
 public import pyd.exception;
 public import pyd.func_wrap;
 public import pyd.make_object;

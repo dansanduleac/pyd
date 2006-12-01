@@ -19,7 +19,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
-module pyd.dpyobject;
+module pyd.pydobject;
 
 private import std.c.stdio;
 private import python;
@@ -38,7 +38,7 @@ private import std.string;
  * See_Also:
  *     $(LINK2 http://docs.python.org/api/api.html, The Python/C API)
  */
-class DPyObject {
+class PydObject {
 protected:
     PyObject* m_ptr;
 public:
@@ -47,18 +47,18 @@ public:
      * Params:
      *      o = The PyObject to wrap.
      *      borrowed = Whether o is a _borrowed reference. Instances
-     *                 of DPyObject always own their references.
+     *                 of PydObject always own their references.
      *                 Therefore, Py_INCREF will be called if borrowed is
      *                 $(D_KEYWORD true).
      */
     this(PyObject* o, bool borrowed=false) {
         if (o is null) handle_exception();
-        // DPyObject always owns its references
+        // PydObject always owns its references
         if (borrowed) Py_INCREF(o);
         m_ptr = o;
     }
 
-    /// The default constructor constructs an instance of the Py_None DPyObject.
+    /// The default constructor constructs an instance of the Py_None PydObject.
     this() { this(Py_None, true); }
 
     /// Destructor. Calls Py_DECREF on owned PyObject reference.
@@ -76,7 +76,7 @@ public:
      * Params:
      *      fp = The file object to _print to. std.c.stdio.stdout by default.
      *      raw = If $(D_KEYWORD true), prints the "str" representation of the
-     *            DPyObject, and uses the "repr" otherwise. Defaults to
+     *            PydObject, and uses the "repr" otherwise. Defaults to
      *            $(D_KEYWORD false).
      * Bugs: This does not seem to work, raising an AccessViolation. Meh.
      *       Use toString.
@@ -94,24 +94,24 @@ public:
     }
 
     /// Same as _hasattr(this, attr_name) in Python.
-    bool hasattr(DPyObject attr_name) {
+    bool hasattr(PydObject attr_name) {
         return PyObject_HasAttr(m_ptr, attr_name.m_ptr) == 1;
     }
 
     /// Same as _getattr(this, attr_name) in Python.
-    DPyObject getattr(char[] attr_name) {
-        return new DPyObject(PyObject_GetAttrString(m_ptr, attr_name ~ \0));
+    PydObject getattr(char[] attr_name) {
+        return new PydObject(PyObject_GetAttrString(m_ptr, attr_name ~ \0));
     }
 
     /// Same as _getattr(this, attr_name) in Python.
-    DPyObject getattr(DPyObject attr_name) {
-        return new DPyObject(PyObject_GetAttr(m_ptr, attr_name.m_ptr));
+    PydObject getattr(PydObject attr_name) {
+        return new PydObject(PyObject_GetAttr(m_ptr, attr_name.m_ptr));
     }
 
     /**
      * Same as _setattr(this, attr_name, v) in Python.
      */
-    void setattr(char[] attr_name, DPyObject v) {
+    void setattr(char[] attr_name, PydObject v) {
         if (PyObject_SetAttrString(m_ptr, attr_name ~ \0, v.m_ptr) == -1)
             handle_exception();
     }
@@ -119,7 +119,7 @@ public:
     /**
      * Same as _setattr(this, attr_name, v) in Python.
      */
-    void setattr(DPyObject attr_name, DPyObject v) {
+    void setattr(PydObject attr_name, PydObject v) {
         if (PyObject_SetAttr(m_ptr, attr_name.m_ptr, v.m_ptr) == -1)
             handle_exception();
     }
@@ -135,7 +135,7 @@ public:
     /**
      * Same as del this.attr_name in Python.
      */
-    void delattr(DPyObject attr_name) {
+    void delattr(PydObject attr_name) {
         if (PyObject_DelAttr(m_ptr, attr_name.m_ptr) == -1)
             handle_exception();
     }
@@ -143,7 +143,7 @@ public:
     /**
      * Exposes Python object comparison to D. Same as cmp(this, rhs) in Python.
      */
-    int opCmp(DPyObject rhs) {
+    int opCmp(PydObject rhs) {
         // This function happily maps exactly to opCmp
         int res = PyObject_Compare(m_ptr, rhs.m_ptr);
         // Check for possible error
@@ -154,40 +154,40 @@ public:
     /**
      * Exposes Python object equality check to D.
      */
-    bool opEquals(DPyObject rhs) {
+    bool opEquals(PydObject rhs) {
         int res = PyObject_Compare(m_ptr, rhs.m_ptr);
         handle_exception();
         return res == 0;
     }
     
     /// Same as _repr(this) in Python.
-    DPyObject repr() {
-        return new DPyObject(PyObject_Repr(m_ptr));
+    PydObject repr() {
+        return new PydObject(PyObject_Repr(m_ptr));
     }
 
     /// Same as _str(this) in Python.
-    DPyObject str() {
-        return new DPyObject(PyObject_Str(m_ptr));
+    PydObject str() {
+        return new PydObject(PyObject_Str(m_ptr));
     }
-    /// Allows use of DPyObject in writef via %s
+    /// Allows use of PydObject in writef via %s
     char[] toString() {
         return d_type!(char[])(m_ptr);
     }
     
     /// Same as _unicode(this) in Python.
-    DPyObject unicode() {
-        return new DPyObject(PyObject_Unicode(m_ptr));
+    PydObject unicode() {
+        return new PydObject(PyObject_Unicode(m_ptr));
     }
 
     /// Same as isinstance(this, cls) in Python.
-    bool isInstance(DPyObject cls) {
+    bool isInstance(PydObject cls) {
         int res = PyObject_IsInstance(m_ptr, cls.m_ptr);
         if (res == -1) handle_exception();
         return res == 1;
     }
 
     /// Same as issubclass(this, cls) in Python. Only works if this is a class.
-    bool isSubclass(DPyObject cls) {
+    bool isSubclass(PydObject cls) {
         int res = PyObject_IsSubclass(m_ptr, cls.m_ptr);
         if (res == -1) handle_exception();
         return res == 1;
@@ -199,33 +199,33 @@ public:
     }
     
     /**
-     * Calls the DPyObject.
+     * Calls the PydObject.
      * Params:
-     *      args = Should be a DPyTuple of the arguments to pass. Omit to
+     *      args = Should be a PydTuple of the arguments to pass. Omit to
      *             call with no arguments.
-     * Returns: Whatever the function DPyObject returns.
+     * Returns: Whatever the function PydObject returns.
      */
-    DPyObject opCall(DPyObject args=null) {
-        return new DPyObject(PyObject_CallObject(m_ptr, args is null ? null : args.m_ptr));
+    PydObject opCall(PydObject args=null) {
+        return new PydObject(PyObject_CallObject(m_ptr, args is null ? null : args.m_ptr));
     }
     
     /**
-     * Calls the DPyObject with positional and keyword arguments.
+     * Calls the PydObject with positional and keyword arguments.
      * Params:
-     *      args = Positional arguments. Should be a DPyTuple. Pass an empty
-     *             DPyTuple for no positional arguments.
-     *      kw = Keyword arguments. Should be a DPyDict.
-     * Returns: Whatever the function DPyObject returns.
+     *      args = Positional arguments. Should be a PydTuple. Pass an empty
+     *             PydTuple for no positional arguments.
+     *      kw = Keyword arguments. Should be a PydDict.
+     * Returns: Whatever the function PydObject returns.
      */
-    DPyObject opCall(DPyObject args, DPyObject kw) {
-        return new DPyObject(PyObject_Call(m_ptr, args.m_ptr, kw.m_ptr));
+    PydObject opCall(PydObject args, PydObject kw) {
+        return new PydObject(PyObject_Call(m_ptr, args.m_ptr, kw.m_ptr));
     }
 
     /**
      *
      */
-    DPyObject method(char[] name, DPyObject args=null) {
-        // Get the method DPyObject
+    PydObject method(char[] name, PydObject args=null) {
+        // Get the method PydObject
         PyObject* m = PyObject_GetAttrString(m_ptr, name ~ \0);
         PyObject* self_tuple, args_tuple, result;
         // If this method doesn't exist (or other error), throw exception
@@ -248,11 +248,11 @@ public:
         Py_DECREF(m);
         Py_DECREF(args_tuple);
         // Return the result.
-        return new DPyObject(result);
+        return new PydObject(result);
     }
 
-    DPyObject method(char[] name, DPyObject args, DPyObject kw) {
-        // Get the method DPyObject
+    PydObject method(char[] name, PydObject args, PydObject kw) {
+        // Get the method PydObject
         PyObject* m = PyObject_GetAttrString(m_ptr, name ~ \0);
         PyObject* self_tuple, args_tuple, result;
         // If this method doesn't exist (or other error), throw exception.
@@ -269,7 +269,7 @@ public:
         Py_DECREF(m);
         Py_DECREF(args_tuple);
         // Return the result.
-        return new DPyObject(result);
+        return new PydObject(result);
     }
 
     /// Same as _hash(this) in Python.
@@ -292,15 +292,15 @@ public:
     }
 
     /**
-     * Gets the _type of this DPyObject. Same as _type(this) in Python.
-     * Returns: The _type DPyObject of this DPyObject.
+     * Gets the _type of this PydObject. Same as _type(this) in Python.
+     * Returns: The _type PydObject of this PydObject.
      */
-    DPyObject type() {
-        return new DPyObject(PyObject_Type(m_ptr));
+    PydObject type() {
+        return new PydObject(PyObject_Type(m_ptr));
     }
 
     /**
-     * The _length of this DPyObject. Same as _len(this) in Python.
+     * The _length of this PydObject. Same as _len(this) in Python.
      */
     int length() {
         int res = PyObject_Length(m_ptr);
@@ -311,31 +311,31 @@ public:
     int size() { return length(); }
 
     /// Same as _dir(this) in Python.
-    DPyObject dir() {
-        return new DPyObject(PyObject_Dir(m_ptr));
+    PydObject dir() {
+        return new PydObject(PyObject_Dir(m_ptr));
     }
 
     //----------
     // Indexing
     //----------
     /// Equivalent to o[_key] in Python.
-    DPyObject opIndex(DPyObject key) {
-        return new DPyObject(PyObject_GetItem(m_ptr, key.m_ptr));
+    PydObject opIndex(PydObject key) {
+        return new PydObject(PyObject_GetItem(m_ptr, key.m_ptr));
     }
     /**
      * Equivalent to o['_key'] in Python; usually only makes sense for
      * mappings.
      */
-    DPyObject opIndex(char[] key) {
-        return new DPyObject(PyMapping_GetItemString(m_ptr, key ~ \0));
+    PydObject opIndex(char[] key) {
+        return new PydObject(PyMapping_GetItemString(m_ptr, key ~ \0));
     }
     /// Equivalent to o[_i] in Python; usually only makes sense for sequences.
-    DPyObject opIndex(int i) {
-        return new DPyObject(PySequence_GetItem(m_ptr, i));
+    PydObject opIndex(int i) {
+        return new PydObject(PySequence_GetItem(m_ptr, i));
     }
 
     /// Equivalent to o[_key] = _value in Python.
-    void opIndexAssign(DPyObject value, DPyObject key) {
+    void opIndexAssign(PydObject value, PydObject key) {
         if (PyObject_SetItem(m_ptr, key.m_ptr, value.m_ptr) == -1)
             handle_exception();
     }
@@ -343,7 +343,7 @@ public:
      * Equivalent to o['_key'] = _value in Python. Usually only makes sense for
      * mappings.
      */
-    void opIndexAssign(DPyObject value, char[] key) {
+    void opIndexAssign(PydObject value, char[] key) {
         if (PyMapping_SetItemString(m_ptr, key ~ \0, value.m_ptr) == -1)
             handle_exception();
     }
@@ -351,13 +351,13 @@ public:
      * Equivalent to o[_i] = _value in Python. Usually only makes sense for
      * sequences.
      */
-    void opIndexAssign(DPyObject value, int i) {
+    void opIndexAssign(PydObject value, int i) {
         if (PySequence_SetItem(m_ptr, i, value.m_ptr) == -1)
             handle_exception();
     }
 
     /// Equivalent to del o[_key] in Python.
-    void delItem(DPyObject key) {
+    void delItem(PydObject key) {
         if (PyObject_DelItem(m_ptr, key.m_ptr) == -1)
             handle_exception();
     }
@@ -382,20 +382,20 @@ public:
     // Slicing
     //---------
     /// Equivalent to o[_i1:_i2] in Python.
-    DPyObject opSlice(int i1, int i2) {
-        return new DPyObject(PySequence_GetSlice(m_ptr, i1, i2));
+    PydObject opSlice(int i1, int i2) {
+        return new PydObject(PySequence_GetSlice(m_ptr, i1, i2));
     }
     /// Equivalent to o[:] in Python.
-    DPyObject opSlice() {
+    PydObject opSlice() {
         return this.opSlice(0, this.length());
     }
     /// Equivalent to o[_i1:_i2] = _v in Python.
-    void opSliceAssign(DPyObject v, int i1, int i2) {
+    void opSliceAssign(PydObject v, int i1, int i2) {
         if (PySequence_SetSlice(m_ptr, i1, i1, v.m_ptr) == -1)
             handle_exception();
     }
     /// Equivalent to o[:] = _v in Python.
-    void opSliceAssign(DPyObject v) {
+    void opSliceAssign(PydObject v) {
         this.opSliceAssign(v, 0, this.length());
     }
     /// Equivalent to del o[_i1:_i2] in Python.
@@ -415,13 +415,13 @@ public:
     /**
      * Iterates over the items in a collection, be they the items in a
      * sequence, keys in a dictionary, or some other iteration defined for the
-     * DPyObject's type.
+     * PydObject's type.
      */
-    int opApply(int delegate(inout DPyObject) dg) {
+    int opApply(int delegate(inout PydObject) dg) {
         PyObject* iterator = PyObject_GetIter(m_ptr);
         PyObject* item;
         int result = 0;
-        DPyObject o;
+        PydObject o;
 
         if (iterator == null) {
             handle_exception();
@@ -429,7 +429,7 @@ public:
 
         item = PyIter_Next(iterator);
         while (item) {
-            o = new DPyObject(item);
+            o = new PydObject(item);
             result = dg(o);
             Py_DECREF(item);
             if (result) break;
@@ -444,13 +444,13 @@ public:
     }
 
     /**
-     * Iterate over (key, value) pairs in a dictionary. If the DPyObject is not
+     * Iterate over (key, value) pairs in a dictionary. If the PydObject is not
      * a dict, this simply does nothing. (It iterates over no items.) You
      * should not attempt to modify the dictionary while iterating through it,
      * with the exception of modifying values. Adding or removing items while
      * iterating through it is an especially bad idea.
      */
-    int opApply(int delegate(inout DPyObject, inout DPyObject) dg) {
+    int opApply(int delegate(inout PydObject, inout PydObject) dg) {
         PyObject* key, value;
         version(Python_2_5_Or_Later) {
             Py_ssize_t pos = 0;
@@ -458,11 +458,11 @@ public:
             int pos = 0;
         }
         int result = 0;
-        DPyObject k, v;
+        PydObject k, v;
 
         while (PyDict_Next(m_ptr, &pos, &key, &value)) {
-            k = new DPyObject(key, true);
-            v = new DPyObject(value, true);
+            k = new PydObject(key, true);
+            v = new PydObject(value, true);
             result = dg(k, v);
             if (result) break;
         }
@@ -474,76 +474,76 @@ public:
     // Arithmetic
     //------------
     ///
-    DPyObject opAdd(DPyObject o) {
-        return new DPyObject(PyNumber_Add(m_ptr, o.m_ptr));
+    PydObject opAdd(PydObject o) {
+        return new PydObject(PyNumber_Add(m_ptr, o.m_ptr));
     }
     ///
-    DPyObject opSub(DPyObject o) {
-        return new DPyObject(PyNumber_Subtract(m_ptr, o.m_ptr));
+    PydObject opSub(PydObject o) {
+        return new PydObject(PyNumber_Subtract(m_ptr, o.m_ptr));
     }
     ///
-    DPyObject opMul(DPyObject o) {
-        return new DPyObject(PyNumber_Multiply(m_ptr, o.m_ptr));
+    PydObject opMul(PydObject o) {
+        return new PydObject(PyNumber_Multiply(m_ptr, o.m_ptr));
     }
     /// Sequence repetition
-    DPyObject opMul(int count) {
-        return new DPyObject(PySequence_Repeat(m_ptr, count));
+    PydObject opMul(int count) {
+        return new PydObject(PySequence_Repeat(m_ptr, count));
     }
     ///
-    DPyObject opDiv(DPyObject o) {
-        return new DPyObject(PyNumber_Divide(m_ptr, o.m_ptr));
+    PydObject opDiv(PydObject o) {
+        return new PydObject(PyNumber_Divide(m_ptr, o.m_ptr));
     }
     ///
-    DPyObject floorDiv(DPyObject o) {
-        return new DPyObject(PyNumber_FloorDivide(m_ptr, o.m_ptr));
+    PydObject floorDiv(PydObject o) {
+        return new PydObject(PyNumber_FloorDivide(m_ptr, o.m_ptr));
     }
     ///
-    DPyObject opMod(DPyObject o) {
-        return new DPyObject(PyNumber_Remainder(m_ptr, o.m_ptr));
+    PydObject opMod(PydObject o) {
+        return new PydObject(PyNumber_Remainder(m_ptr, o.m_ptr));
     }
     ///
-    DPyObject divmod(DPyObject o) {
-        return new DPyObject(PyNumber_Divmod(m_ptr, o.m_ptr));
+    PydObject divmod(PydObject o) {
+        return new PydObject(PyNumber_Divmod(m_ptr, o.m_ptr));
     }
     ///
-    DPyObject pow(DPyObject o1, DPyObject o2=null) {
-        return new DPyObject(PyNumber_Power(m_ptr, o1.m_ptr, (o2 is null) ? Py_None : o2.m_ptr));
+    PydObject pow(PydObject o1, PydObject o2=null) {
+        return new PydObject(PyNumber_Power(m_ptr, o1.m_ptr, (o2 is null) ? Py_None : o2.m_ptr));
     }
     ///
-    DPyObject opPos() {
-        return new DPyObject(PyNumber_Positive(m_ptr));
+    PydObject opPos() {
+        return new PydObject(PyNumber_Positive(m_ptr));
     }
     ///
-    DPyObject opNeg() {
-        return new DPyObject(PyNumber_Negative(m_ptr));
+    PydObject opNeg() {
+        return new PydObject(PyNumber_Negative(m_ptr));
     }
     ///
-    DPyObject abs() {
-        return new DPyObject(PyNumber_Absolute(m_ptr));
+    PydObject abs() {
+        return new PydObject(PyNumber_Absolute(m_ptr));
     }
     ///
-    DPyObject opCom() {
-        return new DPyObject(PyNumber_Invert(m_ptr));
+    PydObject opCom() {
+        return new PydObject(PyNumber_Invert(m_ptr));
     }
     ///
-    DPyObject opShl(DPyObject o) {
-        return new DPyObject(PyNumber_Lshift(m_ptr, o.m_ptr));
+    PydObject opShl(PydObject o) {
+        return new PydObject(PyNumber_Lshift(m_ptr, o.m_ptr));
     }
     ///
-    DPyObject opShr(DPyObject o) {
-        return new DPyObject(PyNumber_Rshift(m_ptr, o.m_ptr));
+    PydObject opShr(PydObject o) {
+        return new PydObject(PyNumber_Rshift(m_ptr, o.m_ptr));
     }
     ///
-    DPyObject opAnd(DPyObject o) {
-        return new DPyObject(PyNumber_And(m_ptr, o.m_ptr));
+    PydObject opAnd(PydObject o) {
+        return new PydObject(PyNumber_And(m_ptr, o.m_ptr));
     }
     ///
-    DPyObject opXor(DPyObject o) {
-        return new DPyObject(PyNumber_Xor(m_ptr, o.m_ptr));
+    PydObject opXor(PydObject o) {
+        return new PydObject(PyNumber_Xor(m_ptr, o.m_ptr));
     }
     ///
-    DPyObject opOr(DPyObject o) {
-        return new DPyObject(PyNumber_Or(m_ptr, o.m_ptr));
+    PydObject opOr(PydObject o) {
+        return new PydObject(PyNumber_Or(m_ptr, o.m_ptr));
     }
 
     //---------------------
@@ -553,8 +553,8 @@ public:
     alias PyObject* function(PyObject*, PyObject*) op_t;
 
     // A useful wrapper for most of the in-place operators
-    private DPyObject
-    inplace(op_t op, DPyObject rhs) {
+    private PydObject
+    inplace(op_t op, PydObject rhs) {
         if (PyType_HasFeature(m_ptr.ob_type, Py_TPFLAGS_HAVE_INPLACEOPS)) {
             op(m_ptr, rhs.m_ptr);
             handle_exception();
@@ -567,19 +567,19 @@ public:
         return this;
     }
     ///
-    DPyObject opAddAssign(DPyObject o) {
+    PydObject opAddAssign(PydObject o) {
         return inplace(&PyNumber_InPlaceAdd, o);
     }
     ///
-    DPyObject opSubAssign(DPyObject o) {
+    PydObject opSubAssign(PydObject o) {
         return inplace(&PyNumber_InPlaceSubtract, o);
     }
     ///
-    DPyObject opMulAssign(DPyObject o) {
+    PydObject opMulAssign(PydObject o) {
         return inplace(&PyNumber_InPlaceMultiply, o);
     }
     /// In-place sequence repetition
-    DPyObject opMulAssign(int count) {
+    PydObject opMulAssign(int count) {
         if (PyType_HasFeature(m_ptr.ob_type, Py_TPFLAGS_HAVE_INPLACEOPS)) {
             PySequence_InPlaceRepeat(m_ptr, count);
             handle_exception();
@@ -592,19 +592,19 @@ public:
         return this;
     }
     ///
-    DPyObject opDivAssign(DPyObject o) {
+    PydObject opDivAssign(PydObject o) {
         return inplace(&PyNumber_InPlaceDivide, o);
     }
     ///
-    DPyObject floorDivAssign(DPyObject o) {
+    PydObject floorDivAssign(PydObject o) {
         return inplace(&PyNumber_InPlaceFloorDivide, o);
     }
     ///
-    DPyObject opModAssign(DPyObject o) {
+    PydObject opModAssign(PydObject o) {
         return inplace(&PyNumber_InPlaceRemainder, o);
     }
     ///
-    DPyObject powAssign(DPyObject o1, DPyObject o2=null) {
+    PydObject powAssign(PydObject o1, PydObject o2=null) {
         if (PyType_HasFeature(m_ptr.ob_type, Py_TPFLAGS_HAVE_INPLACEOPS)) {
             PyNumber_InPlacePower(m_ptr, o1.m_ptr, (o2 is null) ? Py_None : o2.m_ptr);
             handle_exception();
@@ -617,23 +617,23 @@ public:
         return this;
     }
     ///
-    DPyObject opShlAssign(DPyObject o) {
+    PydObject opShlAssign(PydObject o) {
         return inplace(&PyNumber_InPlaceLshift, o);
     }
     ///
-    DPyObject opShrAssign(DPyObject o) {
+    PydObject opShrAssign(PydObject o) {
         return inplace(&PyNumber_InPlaceRshift, o);
     }
     ///
-    DPyObject opAndAssign(DPyObject o) {
+    PydObject opAndAssign(PydObject o) {
         return inplace(&PyNumber_InPlaceAnd, o);
     }
     ///
-    DPyObject opXorAssign(DPyObject o) {
+    PydObject opXorAssign(PydObject o) {
         return inplace(&PyNumber_InPlaceXor, o);
     }
     ///
-    DPyObject opOrAssign(DPyObject o) {
+    PydObject opOrAssign(PydObject o) {
         return inplace(&PyNumber_InPlaceOr, o);
     }
 
@@ -641,16 +641,16 @@ public:
     // Type conversion
     //-----------------
     ///
-    DPyObject asInt() {
-        return new DPyObject(PyNumber_Int(m_ptr));
+    PydObject asInt() {
+        return new PydObject(PyNumber_Int(m_ptr));
     }
     ///
-    DPyObject asLong() {
-        return new DPyObject(PyNumber_Long(m_ptr));
+    PydObject asLong() {
+        return new PydObject(PyNumber_Long(m_ptr));
     }
     ///
-    DPyObject asFloat() {
-        return new DPyObject(PyNumber_Float(m_ptr));
+    PydObject asFloat() {
+        return new PydObject(PyNumber_Float(m_ptr));
     }
     ///
     C_long toLong() {
@@ -674,32 +674,32 @@ public:
     //------------------
 
     /// Sequence concatenation
-    DPyObject opCat(DPyObject o) {
-        return new DPyObject(PySequence_Concat(m_ptr, o.m_ptr));
+    PydObject opCat(PydObject o) {
+        return new PydObject(PySequence_Concat(m_ptr, o.m_ptr));
     }
     /// In-place sequence concatenation
-    DPyObject opCatAssign(DPyObject o) {
+    PydObject opCatAssign(PydObject o) {
         return inplace(&PySequence_InPlaceConcat, o);
     }
     ///
-    int count(DPyObject v) {
+    int count(PydObject v) {
         int result = PySequence_Count(m_ptr, v.m_ptr);
         if (result == -1) handle_exception();
         return result;
     }
     ///
-    int index(DPyObject v) {
+    int index(PydObject v) {
         int result = PySequence_Index(m_ptr, v.m_ptr);
         if (result == -1) handle_exception();
         return result;
     }
-    /// Converts any iterable DPyObject to a list
-    DPyObject asList() {
-        return new DPyObject(PySequence_List(m_ptr));
+    /// Converts any iterable PydObject to a list
+    PydObject asList() {
+        return new PydObject(PySequence_List(m_ptr));
     }
-    /// Converts any iterable DPyObject to a tuple
-    DPyObject asTuple() {
-        return new DPyObject(PySequence_Tuple(m_ptr));
+    /// Converts any iterable PydObject to a tuple
+    PydObject asTuple() {
+        return new PydObject(PySequence_Tuple(m_ptr));
     }
     /+
     wchar[] toWString() {
@@ -710,13 +710,13 @@ public:
                 handle_exception();
             return temp;
         } else {
-            PyErr_SetString(PyExc_RuntimeError, "Cannot convert non-PyUnicode DPyObject to wchar[].");
+            PyErr_SetString(PyExc_RuntimeError, "Cannot convert non-PyUnicode PydObject to wchar[].");
             handle_exception();
         }
     }
     // Added by list:
-    void insert(int i, DPyObject item) { assert(false); }
-    void append(DPyObject item) { assert(false); }
+    void insert(int i, PydObject item) { assert(false); }
+    void append(PydObject item) { assert(false); }
     void sort() { assert(false); }
     void reverse() { assert(false); }
     +/
@@ -725,13 +725,13 @@ public:
     // Mapping methods
     //-----------------
     /// Same as "v in this" in Python.
-    bool opIn_r(DPyObject v) {
+    bool opIn_r(PydObject v) {
         int result = PySequence_Contains(m_ptr, v.m_ptr);
         if (result == -1) handle_exception();
         return result == 1;
     }
     /// Same as opIn_r
-    bool hasKey(DPyObject key) { return this.opIn_r(key); }
+    bool hasKey(PydObject key) { return this.opIn_r(key); }
     /// Same as "'v' in this" in Python.
     bool opIn_r(char[] key) {
         return this.hasKey(key);
@@ -743,22 +743,22 @@ public:
         return result == 1;
     }
     ///
-    DPyObject keys() {
-        return new DPyObject(PyMapping_Keys(m_ptr));
+    PydObject keys() {
+        return new PydObject(PyMapping_Keys(m_ptr));
     }
     ///
-    DPyObject values() {
-        return new DPyObject(PyMapping_Values(m_ptr));
+    PydObject values() {
+        return new PydObject(PyMapping_Values(m_ptr));
     }
     ///
-    DPyObject items() {
-        return new DPyObject(PyMapping_Items(m_ptr));
+    PydObject items() {
+        return new PydObject(PyMapping_Items(m_ptr));
     }
     /+
     // Added by dict
     void clear() { assert(false); }
-    DPyObject copy() { assert(false); }
-    void update(DPyObject o, bool over_ride=true) { assert(false); }
+    PydObject copy() { assert(false); }
+    void update(PydObject o, bool over_ride=true) { assert(false); }
     +/
 }
 

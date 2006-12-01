@@ -44,7 +44,7 @@ private {
 bool[TypeInfo] wrapped_classes;
 
 // This is split out in case I ever want to make a subtype of a wrapped class.
-template DPyObject_HEAD(T) {
+template PydWrapObject_HEAD(T) {
     mixin PyObject_HEAD;
     T d_obj;
 }
@@ -53,7 +53,7 @@ template DPyObject_HEAD(T) {
 template wrapped_class_object(T) {
     extern(C)
     struct wrapped_class_object {
-        mixin DPyObject_HEAD!(T);
+        mixin PydWrapObject_HEAD!(T);
     }
 }
 
@@ -332,7 +332,7 @@ template wrapped_class(T, char[] classname = symbolnameof!(T)) {
          * to be the default.
          */
         static void iter(iter_t) () {
-            DPySC_Ready();
+            PydStackContext_Ready();
             wrapped_class_type!(T).tp_iter = &wrapped_iter!(T, T.opApply, int function(iter_t)).iter;
         }
 
@@ -344,6 +344,7 @@ template wrapped_class(T, char[] classname = symbolnameof!(T)) {
         static void alt_iter(alias fn, char[] name = symbolnameof!(fn), iter_t = funcDelegInfoT!(typeof(&fn)).Meta.ArgType!(0)) () {
             static PyMethodDef empty = { null, null, 0, null };
             alias wrapped_method_list!(T) list;
+            PydStackContext_Ready();
             list[length-1].ml_name = name ~ \0;
             list[length-1].ml_meth = cast(PyCFunction)&wrapped_iter!(T, fn, int function(iter_t)).iter;
             list[length-1].ml_flags = METH_VARARGS;
@@ -368,8 +369,8 @@ void finalize_class(CLS) (CLS cls) {
     const char[] name = CLS._name;
     pragma(msg, "finalize_class: " ~ name);
     
-    assert(DPy_Module_p !is null, "Must initialize module before wrapping classes.");
-    char[] module_name = toString(PyModule_GetName(DPy_Module_p));
+    assert(Pyd_Module_p !is null, "Must initialize module before wrapping classes.");
+    char[] module_name = toString(PyModule_GetName(Pyd_Module_p));
     // Fill in missing values
     type.ob_type      = PyType_Type_p();
     //type.tp_new       = &(wrapped_methods!(T).wrapped_new);
@@ -400,7 +401,7 @@ void finalize_class(CLS) (CLS cls) {
     version(Pyd_with_StackThreads) {
         static if (is(typeof(&T.opApply))) {
             if (type.tp_iter is null) {
-                DPySC_Ready();
+                PydStackContext_Ready();
                 type.tp_iter = &wrapped_iter!(T, T.opApply).iter;
             }
         }
@@ -424,7 +425,7 @@ void finalize_class(CLS) (CLS cls) {
         throw new Exception("Couldn't ready wrapped type!");
     }
     Py_INCREF(cast(PyObject*)&type);
-    PyModule_AddObject(DPy_Module_p, name, cast(PyObject*)&type);
+    PyModule_AddObject(Pyd_Module_p, name, cast(PyObject*)&type);
     is_wrapped!(T) = true;
     wrapped_classes[typeid(T)] = true;
 }

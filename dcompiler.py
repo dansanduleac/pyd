@@ -29,13 +29,13 @@ _pydFiles = [
     'ctor_wrap.d',
     'def.d',
     'dg_convert.d',
-    'dpyobject.d',
     'exception.d',
     'func_wrap.d',
     'iteration.d',
     'make_object.d',
     'op_wrap.d',
     'pyd.d',
+    'pydobject.d',
 ]
 
 _stFiles = [

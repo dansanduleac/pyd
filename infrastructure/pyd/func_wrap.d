@@ -37,7 +37,7 @@ private {
 }
 
 // Builds a Python callable object from a delegate or function pointer.
-PyObject* DPyFunc_FromDG(T) (T dg) {
+PyObject* PydFunc_FromDelegate(T) (T dg) {
     alias wrapped_class_type!(T) type;
     alias wrapped_class_object!(T) obj;
     if (!is_wrapped!(T)) {
@@ -45,7 +45,7 @@ PyObject* DPyFunc_FromDG(T) (T dg) {
         type.tp_new       = &wrapped_methods!(T).wrapped_new;
         type.tp_dealloc   = &wrapped_methods!(T).wrapped_dealloc;
         type.tp_basicsize = obj.sizeof;
-        type.tp_name = "DPyFunc";
+        type.tp_name = "PydFunc";
         type.tp_call = &wrapped_func_call!(T).call;
         PyType_Ready(&type);
         is_wrapped!(T) = true;
@@ -123,7 +123,7 @@ ReturnType!(fn_t) py_call(fn_t, PY)(fn_t fn, PY* args) {
 
 template wrapped_func_call(fn_t) {
     alias ReturnType!(fn_t) RT;
-    // The entry for the tp_call slot of the DPyFunc types.
+    // The entry for the tp_call slot of the PydFunc types.
     // (Or: What gets called when you pass a delegate or function pointer to
     // Python.)
     extern(C)
@@ -231,16 +231,16 @@ template func_wrap(alias real_fn, uint MIN_ARGS, C=void, fn_t=typeof(&real_fn)) 
 // possible.)
 //-----------------------------------------------------------------------------
 // The steps involved when calling this function are as follows:
-// 1) An instance of DPyWrappedFunc is made, and the callable placed within.
+// 1) An instance of PydWrappedFunc is made, and the callable placed within.
 // 2) The delegate type Dg is broken into its constituent parts.
-// 3) These parts are used to get the proper overload of DPyWrappedFunc.fn
-// 4) A delegate to DPyWrappedFunc.fn is returned.
+// 3) These parts are used to get the proper overload of PydWrappedFunc.fn
+// 4) A delegate to PydWrappedFunc.fn is returned.
 // 5) When fn is called, it attempts to cram the arguments into the callable.
 //    If Python objects to this, an exception is raised. Note that this means
 //    any error in converting the callable to a given delegate can only be
 //    detected at runtime.
 
-Dg DPyCallable_AsDelegate(Dg) (PyObject* c) {
+Dg PydCallable_AsDelegate(Dg) (PyObject* c) {
     return _pycallable_asdgT!(Dg).func(c);
 }
 
@@ -249,14 +249,14 @@ private template _pycallable_asdgT(Dg) {
     alias ReturnType!(Dg) Tr;
 
     Dg func(PyObject* c) {
-        auto f = new DPyWrappedFunc(c);
+        auto f = new PydWrappedFunc(c);
 
         return &f.fn!(Tr, Info);
     }
 }
 
 private
-class DPyWrappedFunc {
+class PydWrappedFunc {
     PyObject* callable;
 
     this(PyObject* c) { callable = c; Py_INCREF(c); }

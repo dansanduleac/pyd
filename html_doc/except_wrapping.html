@@ -17,7 +17,7 @@
 <a class="nav" href="func_wrapping.html">Function wrapping</a><br />
 <a class="nav" href="class_wrapping.html">Class wrapping</a><br />
 <a class="navcur" href="except_wrapping.html">Exception wrapping</a><br />
-<a class="nav" href="dpyobject.html">DPyObject</a><br />
+<a class="nav" href="pydobject.html">PydObject</a><br />
 <a class="nav" href="credits.html">Credits</a>
 </div>
 
@@ -29,7 +29,7 @@
 
 <p>When wrapping functions and classes, the latter is usually of more interest. All wrapped functions, methods, constructors, properties, &amp;c, will catch any otherwise uncaught D exceptions and translate them into a Python <code>RuntimeError</code>. <i>(In the future, I may define a new Python exception type for this purpose.)</i> This is fairly important, as any uncaught D exceptions would otherwise crash the Python interpreter.</p>
 
-<p>The <a href="dpyobject.html">DPyObject</a> class wraps a portion of the Python/C API. Whenever a Python exception is raised by a method of DPyObject, it will be thrown as a <code>PythonException</code>. This is a normal D exception that knows how to carry the complete state of a Python exception. <code>PythonException</code> objects have three properties, <code>type</code>, <code>value</code>, and <code>traceback</code>, which each return an owned reference to a <code>PyObject*</code> corresponding to a different part of a Python exception. If the <code>PythonException</code> goes uncaught, the function wrapper will catch it, and translate it back into the original Python exception.</p>
+<p>The <a href="pydobject.html">PydObject</a> class wraps a portion of the Python/C API. Whenever a Python exception is raised by a method of PydObject, it will be thrown as a <code>PythonException</code>. This is a normal D exception that knows how to carry the complete state of a Python exception. <code>PythonException</code> objects have three properties, <code>type</code>, <code>value</code>, and <code>traceback</code>, which each return an owned reference to a <code>PyObject*</code> corresponding to a different part of a Python exception. If the <code>PythonException</code> goes uncaught, the function wrapper will catch it, and translate it back into the original Python exception.</p>
 
 <p>Pyd provides the following exception-related functions:</p>
 

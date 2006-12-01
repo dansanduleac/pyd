@@ -30,7 +30,7 @@ SOFTWARE.
  *
  * The former is handled by d_type, the latter by _py. The py function is
  * provided as a convenience to directly convert a D type into an instance of
- * DPyObject.
+ * PydObject.
  */
 module pyd.make_object;
 
@@ -38,7 +38,7 @@ private import python;
 
 private import std.string;
 
-private import pyd.dpyobject;
+private import pyd.pydobject;
 private import pyd.class_wrap;
 private import pyd.func_wrap;
 private import pyd.exception;
@@ -66,8 +66,8 @@ private template isAA(T) {
  * Returns a new (owned) reference to a Python object based on the passed
  * argument. If the passed argument is a PyObject*, this "steals" the
  * reference. (In other words, it returns the PyObject* without changing its
- * reference count.) If the passed argument is a DPyObject, this returns a new
- * reference to whatever the DPyObject holds a reference to.
+ * reference count.) If the passed argument is a PydObject, this returns a new
+ * reference to whatever the PydObject holds a reference to.
  *
  * If the passed argument can't be converted to a PyObject, a Python
  * RuntimeError will be raised and this function will return null.
@@ -131,8 +131,8 @@ PyObject* _py(T) (T t) {
         }
         return dict;
     } else static if (is(T == delegate) || is(T == function)) {
-        return DPyFunc_FromDG!(T)(t);
-    } else static if (is(T : DPyObject)) {
+        return PydFunc_FromDelegate!(T)(t);
+    } else static if (is(T : PydObject)) {
         PyObject* temp = t.ptr();
         Py_INCREF(temp);
         return temp;
@@ -173,25 +173,25 @@ PyObject* PyTuple_FromItems(T ...)(T t) {
 /**
  * Constructs an object based on the type of the argument passed in.
  *
- * For example, calling py(10) would return a DPyObject holding the value 10.
+ * For example, calling py(10) would return a PydObject holding the value 10.
  *
- * Calling this with a DPyObject will return back a reference to the very same
- * DPyObject.
+ * Calling this with a PydObject will return back a reference to the very same
+ * PydObject.
  *
  * Calling this with a PyObject* will "steal" the reference.
  */
-DPyObject py(T) (T t) {
-    static if(is(T : DPyObject)) {
+PydObject py(T) (T t) {
+    static if(is(T : PydObject)) {
         return t;
     } else {
-        return new DPyObject(_py(t));
+        return new PydObject(_py(t));
     }
 }
 
 /**
  * An exception class used by d_type.
  */
-class DPyConversionException : Exception {
+class PydConversionException : Exception {
     this(char[] msg) { super(msg); }
 }
 
@@ -203,7 +203,7 @@ class DPyConversionException : Exception {
  *int n = _d_type!(int)(i);
  *assert(n == 20);)
  *
- * This throws a DPyConversionException if the PyObject can't be converted to
+ * This throws a PydConversionException if the PyObject can't be converted to
  * the given D type.
  */
 T d_type(T) (PyObject* o) {
@@ -213,14 +213,14 @@ T d_type(T) (PyObject* o) {
     // type.
     //
     // This also means that:
-    //  (1) Conversion to DPyObject will construct an object and return that.
+    //  (1) Conversion to PydObject will construct an object and return that.
     //  (2) Any integral type smaller than a C_long (which is usually just
     //      an int, meaning short and byte) will use the bool conversion.
     //  (3) Conversion to a float shouldn't work.
     static if (is(PyObject* : T)) {
         return o;
-    } else static if (is(DPyObject : T)) {
-        return new DPyObject(o, true);
+    } else static if (is(PydObject : T)) {
+        return new PydObject(o, true);
     } else static if (is(T == void)) {
         if (o != Py_None) could_not_convert!(T)(o);
         Py_INCREF(Py_None);
@@ -235,7 +235,7 @@ T d_type(T) (PyObject* o) {
         could_not_convert!(T)(o);
     } else static if (is(T == delegate)) {
         if (PyCallable_Check(o)) {
-            return DPyCallable_AsDelegate!(T)(o);
+            return PydCallable_AsDelegate!(T)(o);
         } else could_not_convert!(T)(o);
     /+
     } else static if (is(wchar[] : T)) {
@@ -309,7 +309,7 @@ void could_not_convert(T) (PyObject* o) {
         }
     }
     d_typename = typeid(T).toString();
-    throw new DPyConversionException(
+    throw new PydConversionException(
         "Couldn't convert Python type '" ~
         py_typename ~
         "' to D type '" ~
