@@ -79,7 +79,7 @@ template def(alias fn, char[] name = symbolnameof!(fn), fn_t=typeof(&fn), uint M
         alias module_global_methods list;
 
         list[length-1].ml_name = name ~ \0;
-        list[length-1].ml_meth = &func_wrap!(fn, MIN_ARGS, void, fn_t).func;
+        list[length-1].ml_meth = &function_wrap!(fn, MIN_ARGS, fn_t).func;
         list[length-1].ml_flags = METH_VARARGS;
         list[length-1].ml_doc = "";
         list ~= empty;

@@ -146,8 +146,8 @@ template opfunc_binary_wrap(T, alias opfn) {
 template opfunc_unary_wrap(T, alias opfn) {
     extern(C)
     PyObject* func(PyObject* self) {
-        // func_wrap takes care of exception handling
-        return func_wrap!(opfn, 0, T).func(self, null);
+        // method_wrap takes care of exception handling
+        return method_wrap!(T, opfn, typeof(&opfn)).func(self, null);
     }
 }
 
@@ -204,7 +204,7 @@ template opindex_mapping_pyfunc(T) {
                 setWrongArgsError(args, ARGS, ARGS);
                 return null;
             }
-            return func_wrap!(T.opIndex, ARGS, T).func(self, key);
+            return method_wrap!(T, T.opIndex, typeof(&T.opIndex)).func(self, key);
         }
     }
 }
@@ -236,7 +236,7 @@ template opindexassign_mapping_pyfunc(T) {
                 Py_INCREF(PyTuple_GetItem(key, i-1));
                 PyTuple_SetItem(temp, i, PyTuple_GetItem(key, i-1));
             }
-            func_wrap!(T.opIndexAssign, ARGS, T).func(self, temp);
+            method_wrap!(T, T.opIndexAssign, typeof(&T.opIndexAssign)).func(self, temp);
             return 0;
         }
     } else {

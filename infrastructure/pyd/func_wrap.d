@@ -34,9 +34,10 @@ private {
 
     import std.string;
     import std.traits;
+    import std.stdio;
 }
 
-// Builds a Python callable object from a delegate or function pointer.
+// Builds a callable Python object from a delegate or function pointer.
 PyObject* PydFunc_FromDelegate(T) (T dg) {
     alias wrapped_class_type!(T) type;
     alias wrapped_class_object!(T) obj;
@@ -90,38 +91,101 @@ void setWrongArgsError(int gotArgs, uint minArgs, uint maxArgs, char[] funcName=
     PyErr_SetString(PyExc_TypeError, str ~ \0);
 }
 
-// Calls the passed function with the passed Python tuple.
-ReturnType!(fn_t) py_call(fn_t, PY)(fn_t fn, PY* args) {
+// Calls callable alias fn with PyTuple args.
+ReturnType!(fn_t) applyPyTupleToAlias(alias fn, fn_t, uint MIN_ARGS) (PyObject* args) {
     alias ParameterTypeTuple!(fn_t) T;
     const uint MAX_ARGS = T.length;
     alias ReturnType!(fn_t) RT;
 
-    int ARGS = 0;
+    int argCount = 0;
     // This can make it more convenient to call this with 0 args.
     if (args !is null) {
-        ARGS = PyObject_Length(args);
+        argCount = PyObject_Length(args);
     }
 
     // Sanity check!
-    if (ARGS != MAX_ARGS) {
-        setWrongArgsError(ARGS, MAX_ARGS, MAX_ARGS);
+    if (argCount < MIN_ARGS || argCount > MAX_ARGS) {
+        setWrongArgsError(argCount, MIN_ARGS, MAX_ARGS);
         handle_exception();
     }
 
+    static if (MIN_ARGS == 0) {
+        if (argCount == 0) {
+            return fn();
+        }
+    }
+    T t;
+    foreach(i, arg; t) {
+        const uint argNum = i+1;
+        if (i < argCount) {
+            t[i] = d_type!(typeof(arg))(PyTuple_GetItem(args, i));
+        }
+        static if (argNum >= MIN_ARGS && argNum <= MAX_ARGS) {
+            if (argNum == argCount) {
+                return fn(t[0 .. argNum]);
+                break;
+            }
+        }
+    }
+    // This should never get here.
+    throw new Exception("applyPyTupleToAlias reached end! argCount = " ~ toString(argCount));
+    static if (!is(RT == void))
+        return ReturnType!(fn_t).init;
+}
+
+// wraps applyPyTupleToAlias to return a PyObject*
+PyObject* pyApplyToAlias(alias fn, fn_t, uint MIN_ARGS) (PyObject* args) {
+    static if (is(ReturnType!(fn_t) == void)) {
+        applyPyTupleToAlias!(fn, fn_t, MIN_ARGS)(args);
+        Py_INCREF(Py_None);
+        return Py_None;
+    } else {
+        return _py( applyPyTupleToAlias!(fn, fn_t, MIN_ARGS)(args) );
+    }
+}
+
+ReturnType!(dg_t) applyPyTupleToDelegate(dg_t) (dg_t dg, PyObject* args) {
+    alias ParameterTypeTuple!(dg_t) T;
+    const uint ARGS = T.length;
+    alias ReturnType!(dg_t) RT;
+
+    int argCount = 0;
+    // This can make it more convenient to call this with 0 args.
+    if (args !is null) {
+        argCount = PyObject_Length(args);
+    }
+
+    // Sanity check!
+    if (argCount != ARGS) {
+        setWrongArgsError(argCount, ARGS, ARGS);
+        handle_exception();
+    }
+
+    static if (ARGS == 0) {
+        if (argCount == 0) {
+            return dg();
+        }
+    }
     T t;
     foreach(i, arg; t) {
         t[i] = d_type!(typeof(arg))(PyTuple_GetItem(args, i));
     }
+    return dg(t);
+}
 
-    static if (is(RT == void)) {
-        fn(t);
-        return;
+// wraps applyPyTupleToDelegate to return a PyObject*
+PyObject* pyApplyToDelegate(dg_t) (dg_t dg, PyObject* args) {
+    static if (is(ReturnType!(dg_t) == void)) {
+        applyPyTupleToDelegate(dg, args);
+        Py_INCREF(Py_None);
+        return Py_None;
     } else {
-        return fn(t);
+        return _py( applyPyTupleToDelegate(dg, args) );
     }
 }
 
 template wrapped_func_call(fn_t) {
+    const uint ARGS = ParameterTypeTuple!(fn_t).length;
     alias ReturnType!(fn_t) RT;
     // The entry for the tp_call slot of the PydFunc types.
     // (Or: What gets called when you pass a delegate or function pointer to
@@ -136,89 +200,45 @@ template wrapped_func_call(fn_t) {
         fn_t fn = (cast(wrapped_class_object!(fn_t)*)self).d_obj;
 
         return exception_catcher({
-            static if (is(RT == void)) {
-                py_call(fn, args);
-                Py_INCREF(Py_None);
-                return Py_None;
-            } else {
-                return _py( py_call(fn, args) );
-            }
+            return pyApplyToDelegate(fn, args);
         });
     }
 }
 
-// This is a handy shortcut that allows us to wrap a function alias directly
-// with a PyCFunction.
-template func_wrap(alias real_fn, uint MIN_ARGS, C=void, fn_t=typeof(&real_fn)) {
+// Wraps a function alias with a PyCFunction.
+template function_wrap(alias real_fn, uint MIN_ARGS, fn_t=typeof(&real_fn)) {
     alias ParameterTypeTuple!(fn_t) Info;
     const uint MAX_ARGS = Info.length;
     alias ReturnType!(fn_t) RT;
 
-    // Wraps py_call to return a PyObject*
-    PyObject* py_py_call(fn_t, PY)(fn_t fn, PY* args) {
-        static if (is(RT == void)) {
-            py_call(fn, args);
-            Py_INCREF(Py_None);
-            return Py_None;
-        } else {
-            return _py( py_call(fn, args) );
-        }
-    }
-
-    // Calls py_py_call with the proper function contained in a tuple
-    // returned from tuples.func_range.
-    PyObject* tuple_py_call(PY, T ...)(PY* args, T t) {
-        int argCount = 0;
-        if (args !is null)
-            argCount = PyObject_Length(args);
-        
-        static if (MIN_ARGS == 0) {
-            if (argCount == 0)
-                return py_py_call(&firstArgs!(real_fn, 0, fn_t), args);
-        }
-        foreach (i, arg; t) {
-            if (ParameterTypeTuple!(typeof(arg)).length == argCount) {
-                return py_py_call(arg, args);
-            }
-        }
-    }
-
     extern (C)
     PyObject* func(PyObject* self, PyObject* args) {
-        // For some reason, D can't infer the return type of this function
-        // literal...
         return exception_catcher(delegate PyObject*() {
-            // If C is specified, then this is a method call. We need to pull out
-            // the object in self and turn the member function alias real_fn
-            // into a delegate. This conversion is done with a dirty hack; see
-            // dg_convert.d.
-            static if (!is(C == void)) {
-                static assert (MIN_ARGS == MAX_ARGS, "Default arguments with member functions are not supported.");
-                // Didn't pass a "self" parameter! Ack!
-                if (self is null) {
-                    PyErr_SetString(PyExc_TypeError, "Wrapped method didn't get a 'self' parameter.");
-                    return null;
-                }
-                C instance = (cast(wrapped_class_object!(C)*)self).d_obj;
-                fn_to_dg!(fn_t) fn = dg_wrapper!(C, fn_t)(instance, &real_fn);
-                static if (is(ReturnType!(typeof(fn)) == void)) {
-                    py_call(fn, args);
-                    Py_INCREF(Py_None);
-                    return Py_None;
-                } else {
-                    return _py( py_call(fn, args) );
-                }
-            // If C is not specified, then this is just a normal function call.
-            } else {
-                alias defaultsTupleT!(real_fn, MIN_ARGS, fn_t).type T;
-                T t;
-                defaultsTuple!(real_fn, MIN_ARGS, fn_t)(delegate void(T tu) {
-                    foreach(i, arg; tu) {
-                        t[i] = arg;
-                    }
-                });
-                return tuple_py_call(args, t);
+            return pyApplyToAlias!(real_fn, fn_t, MIN_ARGS)(args);
+        });
+    }
+}
+
+// Wraps a member function alias with a PyCFunction.
+template method_wrap(C, alias real_fn, fn_t=typeof(&real_fn)) {
+    alias ParameterTypeTuple!(fn_t) Info;
+    const uint ARGS = Info.length;
+    alias ReturnType!(fn_t) RT;
+    extern(C)
+    PyObject* func(PyObject* self, PyObject* args) {
+        return exception_catcher(delegate PyObject*() {
+            // Didn't pass a "self" parameter! Ack!
+            if (self is null) {
+                PyErr_SetString(PyExc_TypeError, "Wrapped method didn't get a 'self' parameter.");
+                return null;
             }
+            C instance = (cast(wrapped_class_object!(C)*)self).d_obj;
+            if (instance is null) {
+                PyErr_SetString(PyExc_ValueError, "Wrapped class instance is null!");
+                return null;
+            }
+            fn_to_dg!(fn_t) dg = dg_wrapper!(C, fn_t)(instance, &real_fn);
+            return pyApplyToDelegate(dg, args);
         });
     }
 }

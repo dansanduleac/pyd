@@ -143,9 +143,11 @@ PyObject* _py(T) (T t) {
             return WrapPyObject_FromObject(t);
         }
         // If it's not a wrapped type, fall through to the exception.
-    // This just passes the argument right back through without changing
-    // its reference count.
+    // The function expects to be passed a borrowed reference and return an
+    // owned reference. Thus, if passed a PyObject*, this will increment the
+    // reference count.
     } else static if (is(T : PyObject*)) {
+        Py_INCREF(t);
         return t;
     }
     PyErr_SetString(PyExc_RuntimeError, "D conversion function _py failed with type " ~ typeid(T).toString());
@@ -177,8 +179,6 @@ PyObject* PyTuple_FromItems(T ...)(T t) {
  *
  * Calling this with a PydObject will return back a reference to the very same
  * PydObject.
- *
- * Calling this with a PyObject* will "steal" the reference.
  */
 PydObject py(T) (T t) {
     static if(is(T : PydObject)) {

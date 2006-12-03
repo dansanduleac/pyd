@@ -213,8 +213,8 @@ template wrapped_get(T, alias Fn) {
     /// A generic wrapper around a "getter" property.
     extern(C)
     PyObject* func(PyObject* self, void* closure) {
-        // func_wrap already catches exceptions
-        return func_wrap!(Fn, 0, T, property_parts!(Fn).getter_type).func(self, null);
+        // method_wrap already catches exceptions
+        return method_wrap!(T, Fn, property_parts!(Fn).getter_type).func(self, null);
     }
 }
 
@@ -228,7 +228,7 @@ template wrapped_set(T, alias Fn) {
         scope(exit) Py_DECREF(temp_tuple);
         Py_INCREF(value);
         PyTuple_SetItem(temp_tuple, 0, value);
-        PyObject* res = func_wrap!(Fn, 1, T, property_parts!(Fn).setter_type).func(self, temp_tuple);
+        PyObject* res = method_wrap!(T, Fn, property_parts!(Fn).setter_type).func(self, temp_tuple);
         // If we get something back, we need to DECREF it.
         if (res) Py_DECREF(res);
         // If we don't, propagate the exception
@@ -261,13 +261,13 @@ template wrapped_class(T, char[] classname = symbolnameof!(T)) {
          * fn_t = The type of the function. It is only useful to specify this
          *        if more than one function has the same name as this one.
          */
-        template def(alias fn, char[] name = symbolnameof!(fn), fn_t=typeof(&fn), uint MIN_ARGS = minArgs!(fn, fn_t)) {
+        template def(alias fn, char[] name = symbolnameof!(fn), fn_t=typeof(&fn)) {
             pragma(msg, "class.def: " ~ name);
             static void def() {
                 static PyMethodDef empty = { null, null, 0, null };
                 alias wrapped_method_list!(T) list;
                 list[length-1].ml_name = name ~ \0;
-                list[length-1].ml_meth = &func_wrap!(fn, MIN_ARGS, T, fn_t).func;
+                list[length-1].ml_meth = &method_wrap!(T, fn, fn_t).func;
                 list[length-1].ml_flags = METH_VARARGS;
                 list[length-1].ml_doc = "";
                 list ~= empty;
@@ -412,7 +412,7 @@ void finalize_class(CLS) (CLS cls) {
     }
     // opCall
     static if (is(typeof(&T.opCall))) {
-        type.tp_call = cast(ternaryfunc)&func_wrap!(T.opCall, minArgs!(T.opCall), T).func;
+        type.tp_call = cast(ternaryfunc)&method_wrap!(T, T.opCall, typeof(&T.opCall)).func;
     }
 
     // If a ctor wasn't supplied, try the default.

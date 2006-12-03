@@ -68,8 +68,17 @@ template wrapped_ctors(T, C ...) {
             foreach(i, arg; c) {
                 alias ParameterTypeTuple!(typeof(arg)) Ctor;
                 if (Ctor.length == len) {
-                    alias call_ctor!(T, ParameterTypeTuple!(typeof(arg))) fn;
-                    WrapPyObject_SetObj(self, py_call(&fn, args));
+                    auto fn = &call_ctor!(T, ParameterTypeTuple!(typeof(arg)));
+                    if (fn is null) {
+                        PyErr_SetString(PyExc_RuntimeError, "Couldn't get pointer to class ctor redirect.");
+                        return -1;
+                    }
+                    T t = applyPyTupleToDelegate(fn, args);
+                    if (t is null) {
+                        PyErr_SetString(PyExc_RuntimeError, "Class ctor redirect didn't return a class instance!");
+                        return -1;
+                    }
+                    WrapPyObject_SetObj(self, t);
                     return 0;
                 }
             }
