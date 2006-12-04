@@ -21,17 +21,17 @@ SOFTWARE.
 */
 module pyd.op_wrap;
 
-private import python;
+import python;
 
-private import pyd.class_wrap;
-private import pyd.dg_convert;
-private import pyd.func_wrap;
-private import pyd.exception;
-private import pyd.make_object;
+import pyd.class_wrap;
+import pyd.dg_convert;
+import pyd.func_wrap;
+import pyd.exception;
+import pyd.make_object;
 
-private import meta.Nameof;
+import meta.Nameof;
 
-private import std.traits;
+import std.traits;
 
 version(Python_2_5_Or_Later) {
     alias Py_ssize_t index_t;
@@ -122,10 +122,11 @@ template opfunc_binary_wrap(T, alias opfn) {
     alias wrapped_class_object!(T) wrap_object;
     alias ParameterTypeTuple!(opfn) Info;
     alias ReturnType!(opfn) Ret;
+    alias dg_wrapper!(T, typeof(&opfn)) get_dg;
     extern(C)
     PyObject* func(PyObject* self, PyObject* o) {
         return exception_catcher(delegate PyObject*() {
-            auto dg = dg_wrapper((cast(wrap_object*)self).d_obj, &opfn);
+            auto dg = get_dg((cast(wrap_object*)self).d_obj, &opfn);
             pragma(msg, prettytypeof!(typeof(dg)));
             pragma(msg, symbolnameof!(opfn));
             static if (is(Ret == void)) {
@@ -192,6 +193,7 @@ template opindex_mapping_pyfunc(T) {
             });
         }
     } else {
+        alias method_wrap!(T, T.opIndex, typeof(&T.opIndex)) opindex_methodT;
         extern(C)
         PyObject* func(PyObject* self, PyObject* key) {
             int args;
@@ -204,7 +206,7 @@ template opindex_mapping_pyfunc(T) {
                 setWrongArgsError(args, ARGS, ARGS);
                 return null;
             }
-            return method_wrap!(T, T.opIndex, typeof(&T.opIndex)).func(self, key);
+            return opindex_methodT.func(self, key);
         }
     }
 }

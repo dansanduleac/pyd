@@ -26,11 +26,19 @@ SOFTWARE.
  */
 module pyd.pyd;
 
-public import pyd.def;
-public import pyd.class_wrap;
-//public import pyd.ctor_wrap;
-public import pyd.pydobject;
-public import pyd.exception;
-public import pyd.func_wrap;
-public import pyd.make_object;
+public {
+    import pyd.class_wrap;
+    import pyd.def;
+    import pyd.exception;
+    import pyd.func_wrap;
+    import pyd.make_object;
+    import pyd.pydobject;
+
+    // Importing these is only needed as a workaround to bug #311
+    import pyd.ctor_wrap;
+    import pyd.dg_convert;
+    import pyd.exception;
+    import pyd.func_wrap;
+    import pyd.iteration;
+}
 

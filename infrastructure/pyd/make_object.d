@@ -34,14 +34,14 @@ SOFTWARE.
  */
 module pyd.make_object;
 
-private import python;
+import python;
 
-private import std.string;
+import std.string;
 
-private import pyd.pydobject;
-private import pyd.class_wrap;
-private import pyd.func_wrap;
-private import pyd.exception;
+import pyd.pydobject;
+import pyd.class_wrap;
+import pyd.func_wrap;
+import pyd.exception;
 
 private template isArray(T) {
     const bool isArray = is(typeof(T.init[0])[] == T);
@@ -226,6 +226,9 @@ T d_type(T) (PyObject* o) {
         Py_INCREF(Py_None);
         return Py_None;
     } else static if (is(T == class)) {
+        static if (is(T == Object)) {
+            pragma(msg, "d_type: T is Object");
+        }
         // We can only convert to a class if it has been wrapped, and of course
         // we can only convert the object if it is the wrapped type.
         if (is_wrapped!(T) && PyObject_TypeCheck(o, &wrapped_class_type!(T))) {
@@ -288,6 +291,8 @@ T d_type(T) (PyObject* o) {
         could_not_convert!(T)(o);
     }
 }
+
+alias d_type!(Object) d_type_Object;
 
 private
 void could_not_convert(T) (PyObject* o) {

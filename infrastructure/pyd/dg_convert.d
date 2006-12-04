@@ -27,7 +27,7 @@ SOFTWARE.
  */
 module pyd.dg_convert;
 
-private import std.traits;
+import std.traits;
 
 template fn_to_dgT(Fn) {
     alias ParameterTypeTuple!(Fn) T;

@@ -26,18 +26,16 @@ SOFTWARE.
  */
 module pyd.iteration;
 
-private {
-    import python;
+import python;
 
-    import pyd.class_wrap;
-    import pyd.dg_convert;
-    import pyd.exception;
-    import pyd.make_object;
+import pyd.class_wrap;
+import pyd.dg_convert;
+import pyd.exception;
+import pyd.make_object;
 
-    import std.traits;
+import std.traits;
 
-    import st.stackcontext;
-}
+import st.stackcontext;
 
 // This exception is for yielding a PyObject* from within a StackContext.
 class PydYield : Exception {

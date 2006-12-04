@@ -241,7 +241,7 @@ class DCompiler(cc.CCompiler):
         # Compiling one-by-one exhibits a strange bug in the D front-end, while
         # compiling all at once works. This flags allows me to test each form
         # easily. Supporting the one-by-one form is synonymous with GDC support.
-        ONE_BY_ONE = False
+        ONE_BY_ONE = True
         if ONE_BY_ONE:
             for source in sources:
                 outOpts = outputOpts[:]
@@ -515,9 +515,9 @@ class GDCDCompiler(DCompiler):
         # _debugOpt
         self._debugOpt = '-fdebug=%s'
         # _defaultOptimizeOpts
-        self._defaultOptimizeOpts = ['-fdebug', '-funittest']
+        self._defaultOptimizeOpts = ['-fdebug']
         # _debugOptimizeOpts
-        self._debugOptimizeOpts = self._defaultOptimizeOpts + ['-g']
+        self._debugOptimizeOpts = self._defaultOptimizeOpts + ['-g', '-funittest']
         # _releaseOptimizeOpts
         self._releaseOptimizeOpts = ['-fversion=Optimized', '-frelease', '-O3', '-finline-functions']
 

@@ -21,25 +21,23 @@ SOFTWARE.
 */
 module pyd.class_wrap;
 
-private {
-    import python;
+import python;
 
-    import pyd.ctor_wrap;
-    import pyd.def;
-    import pyd.exception;
-    import pyd.func_wrap;
-    version(Pyd_with_StackThreads) {
-        import pyd.iteration;
-    }
-    import pyd.make_object;
-    import pyd.op_wrap;
-
-    import meta.Default;
-    import meta.Nameof;
-
-    import std.string;
-    import std.traits;
+import pyd.ctor_wrap;
+import pyd.def;
+import pyd.exception;
+import pyd.func_wrap;
+version(Pyd_with_StackThreads) {
+    import pyd.iteration;
 }
+import pyd.make_object;
+import pyd.op_wrap;
+
+import meta.Default;
+import meta.Nameof;
+
+import std.string;
+import std.traits;
 
 bool[TypeInfo] wrapped_classes;
 
@@ -363,14 +361,14 @@ template wrapped_class(T, char[] classname = symbolnameof!(T)) {
  * Finalize the wrapping of the class. It is neccessary to call this after all
  * calls to the wrapped_class member functions.
  */
-void finalize_class(CLS) (CLS cls) {
+void finalize_class(CLS) (CLS cls, char[] modulename="") {
     alias typeof(cls.t) T;
     alias wrapped_class_type!(T) type;
     const char[] name = CLS._name;
     pragma(msg, "finalize_class: " ~ name);
     
     assert(Pyd_Module_p !is null, "Must initialize module before wrapping classes.");
-    char[] module_name = toString(PyModule_GetName(Pyd_Module_p));
+    char[] module_name = toString(PyModule_GetName(Pyd_Module_p(modulename)));
     // Fill in missing values
     type.ob_type      = PyType_Type_p();
     //type.tp_new       = &(wrapped_methods!(T).wrapped_new);
@@ -425,7 +423,7 @@ void finalize_class(CLS) (CLS cls) {
         throw new Exception("Couldn't ready wrapped type!");
     }
     Py_INCREF(cast(PyObject*)&type);
-    PyModule_AddObject(Pyd_Module_p, name, cast(PyObject*)&type);
+    PyModule_AddObject(Pyd_Module_p(modulename), name, cast(PyObject*)&type);
     is_wrapped!(T) = true;
     wrapped_classes[typeid(T)] = true;
 }

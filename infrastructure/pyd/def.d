@@ -28,16 +28,15 @@ private import pyd.func_wrap;
 private import meta.Default;
 private import meta.Nameof;
 
-private
-PyMethodDef module_global_methods[] = [
+private PyMethodDef module_global_methods[] = [
     { null, null, 0, null }
 ];
 
-private
-PyObject* m_module;
+private PyMethodDef[][char[]] module_methods;
+private PyObject*[char[]] pyd_modules;
 
-PyObject* Pyd_Module_p() {
-    return m_module;
+PyObject* Pyd_Module_p(char[] modulename="") {
+    return pyd_modules[modulename];
 }
 
 /**
@@ -72,18 +71,24 @@ PyObject* Pyd_Module_p() {
  *>>> print testdll.foo(20)
  *It's greater than 10!)
  */
-template def(alias fn, char[] name = symbolnameof!(fn), fn_t=typeof(&fn), uint MIN_ARGS = minArgs!(fn, fn_t)) {
-    pragma(msg, "def: " ~ name);
-    void def() {
-        PyMethodDef empty;
-        alias module_global_methods list;
+void def(alias fn, char[] name = symbolnameof!(fn), fn_t=typeof(&fn), uint MIN_ARGS = minArgs!(fn, fn_t)) () {
+    def!("", fn, name, fn_t, MIN_ARGS)();
+}
 
-        list[length-1].ml_name = name ~ \0;
-        list[length-1].ml_meth = &function_wrap!(fn, MIN_ARGS, fn_t).func;
-        list[length-1].ml_flags = METH_VARARGS;
-        list[length-1].ml_doc = "";
-        list ~= empty;
+void def(char[] modulename, alias fn, char[] name = symbolnameof!(fn), fn_t=typeof(&fn), uint MIN_ARGS = minArgs!(fn, fn_t)) () {
+    pragma(msg, "def: " ~ name);
+    PyMethodDef empty;
+    if (!(modulename in module_methods)) {
+        module_methods[modulename] = (PyMethodDef[]).init;
+        module_methods[modulename] ~= empty;
     }
+    PyMethodDef[]* list = &module_methods[modulename];
+
+    (*list)[length-1].ml_name = name ~ \0;
+    (*list)[length-1].ml_meth = &function_wrap!(fn, MIN_ARGS, fn_t).func;
+    (*list)[length-1].ml_flags = METH_VARARGS;
+    (*list)[length-1].ml_doc = "";
+    (*list) ~= empty;
 }
 
 /**
@@ -91,7 +96,15 @@ template def(alias fn, char[] name = symbolnameof!(fn), fn_t=typeof(&fn), uint M
  */
 PyObject* module_init(char[] name) {
     //_loadPythonSupport();
-    m_module = Py_InitModule(name ~ \0, module_global_methods);
-    return m_module;
+    pyd_modules[""] = Py_InitModule(name ~ \0, module_methods[""].ptr);
+    return pyd_modules[""];
+}
+
+/**
+ * Module initialization function. Should be called after the last call to def.
+ */
+PyObject* add_module(char[] name) {
+    pyd_modules[name] = Py_InitModule(name ~ \0, module_methods[name].ptr);
+    return pyd_modules[name];
 }
 
