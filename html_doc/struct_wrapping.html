@@ -1,0 +1,82 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=iso-8859-1">
+    <link href="pyd.css" rel="stylesheet" type="text/css">
+    <title>Wrapping structs</title>
+</head>
+
+<body>
+<div id="nav">
+<p><big>Contents</big></p>
+<a class="nav" href="index.html">Main</a><br />
+<a class="nav" href="install.html">Installation</a><br />
+<a class="nav" href="basics.html">The basics</a><br />
+<a class="nav" href="celerid.html">CeleriD</a><br />
+<a class="nav" href="conversion.html">Type conversion</a><br />
+<a class="nav" href="func_wrapping.html">Function wrapping</a><br />
+<a class="nav" href="class_wrapping.html">Class wrapping</a><br />
+<a class="navcur" href="struct_wrapping.html">Struct wrapping</a><br />
+<a class="nav" href="except_wrapping.html">Exception wrapping</a><br />
+<a class="nav" href="pydobject.html">PydObject</a><br />
+<a class="nav" href="credits.html">Credits</a>
+</div>
+
+<div id="content">
+
+<h1>Struct wrapping</h1>
+
+<p>Wrapping D's structs is similar to wrapping classes. In fact, many of the operations are identical.</p>
+
+<p><code>struct wrapped_struct(<span class="t_arg">T</span>, char[] <span class="t_arg">structname</span> = symbolnameof!(T));</code></p>
+    <ul>
+    <li><span class="t_arg">T</span> is the struct being wrapped.</li>
+    <li><span class="t_arg">structname</span> is the name of the struct as it will appear in Python.</li>
+    </ul>
+
+<p>To expose the data members, member functions, and properties of the class, <code>wrapped_struct</code> provides a series of template member functions.</p>
+
+<dl>
+<dt><code>static void member(<span class="t_arg">M</span>, size_t <span class="t_arg">offset</span>, char[] <span class="t_arg">name</span>) ();</code></dt>
+<dd>This exposes a data member of the struct to Python. <span class="t_arg">M</span> is the type of the member, and must be a <a href="conversion.html">convertible type</a>. <span class="t_arg">offset</span> is the offset (in bytes) of the member in the struct. <span class="t_arg">name</span> is the name of the data member as it will be used in Python. <i>(Optimally, one would simply be able to pass an alias to the member, or at worst an alias and a name, but DMD currently has some issues with this.)</i></dd>
+
+<dt><code>static void def(alias <span class="t_arg">fn</span>, char[] <span class="t_arg">name</span> = symbolnameof!(fn), <span class="t_arg">fn_t</span> = typeof(&amp;fn)) ();</code></dt>
+<dd>This wraps a member function of the struct. It functions exactly like the <code>def</code> function used to <a href="class_wrapping.html">wrap class methods</a>, including the lack of support for default arguments.</dd>
+
+<dt><code>static void static_def(alias <span class="t_arg">fn</span>, char[] <span class="t_arg">name</span> = symbolnameof!(fn), <span class="t_arg">fn_t</span> = typeof(&amp;fn), uint <span class="t_arg">MIN_ARGS</span> = minArgs!(fn)) ();</code></dt>
+<dd>This wraps a static member function of the struct. It functions exactly like the <code>static_def</code> function used to wrap static class member functions, and also includes support for default arguments.</dd>
+
+<dt><code>static void prop(alias <span class="t_arg">fn</span>, char[] <span class="t_arg">name</span> = symbolnameof!(fn), bool <span class="t_arg">RO</span> = false) ();</code></dt>
+<dd>This wraps a property. It is identical to the <code>prop</code> function used to <a href="class_wrapping.html">wrap class properties</a>.</dd>
+
+<dt><code>static void iter(<span class="t_arg">iter_t</span>) ();</code></dt>
+<dd>This allows the user to specify a different overload of opApply than the default. (The default is always the one that is lexically first.) It is identical to the <code>iter</code> function used in <a href="class_wrapping.html">class wrapping</a>.</dd>
+
+<dt><code>static void alt_iter(alias <span class="t_arg">fn</span>, char[] <span class="t_arg">name</span> = symbolnameof!(fn), <span class="t_arg">iter_t</span> = <i>implementationDetail</i>) ();</code></dt>
+<dd>This wraps alternate iterator methods as Python methods that return iterator objects. It is is identical to the <code>alt_iter</code> function used in <a href="class_wrapping.html">class wrapping</a>.</dd>
+</dl>
+
+<p><i>(Future enhancements: Support for struct ctors.)</i></p>
+
+<p>Once you have called all of the member functions of <code>wrapped_struct</code> that you wish to, you must issue a call to <code>finalize_struct</code>.</p>
+
+<p><code>void finalize_struct(<span class="t_arg">S</span>) (<span class="t_arg">S</span> <span class="arg">s</span>);</code></p>
+
+<p>This does some final initialization of the type and then registers it with Python. As with calls to <a href="class_wrapping.html"><code>finalize_class</code></a>, calls to <code>finalize_struct</code> must occur <em>after</em> calling <code>module_init</code>. The <span class="arg">s</span> function argument should be an instance of <code>wrapped_struct</code>.</p>
+
+<p>The <code>is_wrapped</code> template is available for wrapped structs, just like it is for wrapped classes.</p>
+
+<p>It is important to note that wrapping a struct <code>S</code> makes both <code>S</code> itself and <code>S*</code> available as <a href="conversion.html">convertible types</a>.</p>
+
+<h3><a class="anchor" name="opwrap">Automatic operator overloading</a></h3>
+
+<p>Support for operator overloading in structs is identical to that available for classes.</p>
+
+<h3><a class="anchor" name="examples">Examples</a></h3>
+
+<p><i>(Todo.)</i></p>
+
+</div>
+
+</body>
+</html>

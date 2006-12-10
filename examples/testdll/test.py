@@ -36,6 +36,17 @@ for i in a:
 
 print
 
+S = testdll.S
+s = S()
+print "s.s = 'hello'"
+s.s = 'hello'
+print "s.s"
+print s.s
+print "s.write_s()"
+s.write_s()
+
+print
+
 print '--------'
 print 'SUCCESS'
 print '--------'

@@ -33,6 +33,7 @@ public {
     import pyd.func_wrap;
     import pyd.make_object;
     import pyd.pydobject;
+    import pyd.struct_wrap;
 
     // Importing these is only needed as a workaround to bug #311
     import pyd.ctor_wrap;

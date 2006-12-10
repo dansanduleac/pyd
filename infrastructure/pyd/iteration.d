@@ -59,7 +59,6 @@ PyObject* PydStackContext_FromWrapped(T, alias Iter = T.opApply, iter_t = typeof
         // We yield so we can be sure to get the local variables in the
         // enclosing function's stack frame.
         StackContext.yield();
-        PyObject* temp;
 
         t(delegate int(inout Info i) {
             StackContext.throwYield(new PydYield(PyTuple_FromItems(i)));
@@ -115,19 +114,14 @@ void PydStackContext_Ready() {
     
     if (!is_wrapped!(StackContext)) {
         type.ob_type = PyType_Type_p;
-        //type.tp_new       = &wrapped_methods!(StackContext).wrapped_new;
-        //type.tp_dealloc   = &wrapped_methods!(StackContext).wrapped_dealloc;
         type.tp_basicsize = PydSC_object.sizeof;
         type.tp_flags     = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE;
-        //type.tp_doc = "";
         type.tp_name = "PydOpApplyWrapper";
 
         type.tp_iter = &PyObject_SelfIter;
         type.tp_iternext = &sc_iternext;
 
         PyType_Ready(&type);
-
-        // Mark the class as ready
         is_wrapped!(StackContext) = true;
         wrapped_classes[typeid(StackContext)] = true;
     }

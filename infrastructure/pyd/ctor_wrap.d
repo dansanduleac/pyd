@@ -27,6 +27,8 @@ private import pyd.exception;
 private import pyd.func_wrap;
 private import pyd.make_object;
 
+private import meta.Nameof;
+
 private import std.traits;
 
 T call_ctor(T, Tu ...)(Tu t) {
@@ -35,11 +37,26 @@ T call_ctor(T, Tu ...)(Tu t) {
 
 // The default __init__ method calls the class's zero-argument constructor.
 template wrapped_init(T) {
-    alias wrapped_class_object!(T) wrap_object;
     extern(C)
     int init(PyObject* self, PyObject* args, PyObject* kwds) {
         return exception_catcher({
             WrapPyObject_SetObj(self, new T);
+            return 0;
+        });
+    }
+}
+
+// The __init__ slot for wrapped structs. T is of the type of a pointer to the
+// struct.
+template wrapped_struct_init(T) {
+    extern(C)
+    int init(PyObject* self, PyObject* args, PyObject* kwds) {
+        return exception_catcher({
+            static if (is(T S : S*)) {
+                pragma(msg, "wrapped_struct_init, S is " ~ prettynameof!(S));
+                T t = new S;
+                WrapPyObject_SetObj(self, t);
+            }
             return 0;
         });
     }

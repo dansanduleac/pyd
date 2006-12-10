@@ -110,12 +110,8 @@ template wrapped_class_type(T) {
     };
 }
 
-// The set of all instances of this class that are passed into Python. Keeping
-// references here in D is needed to keep the GC happy. The integer value is
-// used to make this a sort of poor man's multiset.
-template wrap_class_instances(T) {
-    int[T] wrap_class_instances;
-}
+// A mapping of all objects referenced by the GC that are being held by Python.
+PyObject*[void*] wrapped_gc_objects;
 
 /**
  * A useful check for whether a given class has been wrapped. Mainly used by
@@ -164,13 +160,10 @@ template wrapped_methods(T) {
     /// The generic dealloc method.
     extern(C)
     void wrapped_dealloc(PyObject* self) {
-        //exception_catcher(delegate PyObject*() {
-        try {
+        exception_catcher(delegate void() {
             WrapPyObject_SetObj(self, null);
-        } catch { }
-        self.ob_type.tp_free(self);
-        return null;
-        //});
+            self.ob_type.tp_free(self);
+        });
     }
 }
 
@@ -244,117 +237,125 @@ template wrapped_set(T, alias Fn) {
  * This struct wraps a D class. Its member functions are the primary way of
  * wrapping the specific parts of the class.
  */
-template wrapped_class(T, char[] classname = symbolnameof!(T)) {
-    pragma(msg, "wrapped_class: " ~ classname);
-    struct wrapped_class {
-        static const char[] _name = classname;
-        T t = null;
-        /**
-         * Wraps a member function of the class.
-         *
-         * Params:
-         * name = The name of the function as it will appear in Python.
-         * fn = The member function to wrap.
-         * MIN_ARGS = The minimum number of arguments this function can accept.
-         * fn_t = The type of the function. It is only useful to specify this
-         *        if more than one function has the same name as this one.
-         */
-        template def(alias fn, char[] name = symbolnameof!(fn), fn_t=typeof(&fn)) {
-            pragma(msg, "class.def: " ~ name);
-            static void def() {
-                static PyMethodDef empty = { null, null, 0, null };
-                alias wrapped_method_list!(T) list;
-                list[length-1].ml_name = name ~ \0;
-                list[length-1].ml_meth = &method_wrap!(T, fn, fn_t).func;
-                list[length-1].ml_flags = METH_VARARGS;
-                list[length-1].ml_doc = "";
-                list ~= empty;
-                // It's possible that appending the empty item invalidated the
-                // pointer in the type struct, so we renew it here.
-                wrapped_class_type!(T).tp_methods = list;
-            }
-        }
-
-        /**
-         * Wraps a property of the class.
-         *
-         * Params:
-         * name = The name of the property as it will appear in Python.
-         * fn = The property to wrap.
-         * RO = Whether this is a read-only property.
-         */
-        template prop(alias fn, char[] name = symbolnameof!(fn), bool RO=false) {
-            pragma(msg, "class.prop: " ~ name);
-            static void prop() {
-                static PyGetSetDef empty = { null, null, null, null, null };
-                wrapped_prop_list!(T)[length-1].name = name ~ \0;
-                wrapped_prop_list!(T)[length-1].get =
-                    &wrapped_get!(T, fn).func;
-                static if (!RO) {
-                    wrapped_prop_list!(T)[length-1].set =
-                        &wrapped_set!(T, fn).func;
-                }
-                wrapped_prop_list!(T)[length-1].doc = "";
-                wrapped_prop_list!(T)[length-1].closure = null;
-                wrapped_prop_list!(T) ~= empty;
-                // It's possible that appending the empty item invalidated the
-                // pointer in the type struct, so we renew it here.
-                wrapped_class_type!(T).tp_getset =
-                    wrapped_prop_list!(T);
-            }
-        }
-
-        /**
-         * Wraps the constructors of the class.
-         *
-         * This template takes a series of specializations of the ctor template
-         * (see ctor_wrap.d), each of which describes a different constructor
-         * that the class supports. The default constructor need not be
-         * specified, and will always be available if the class supports it.
-         *
-         * Bugs:
-         * This currently does not support having multiple constructors with
-         * the same number of arguments.
-         */
-        static void init(C ...) () {
-            wrapped_class_type!(T).tp_init =
-                &wrapped_ctors!(T, C).init_func;
-        }
-
-        // Iteration wrapping support requires StackThreads
-        version(Pyd_with_StackThreads) {
-
-        /**
-         * Allows selection of alternate opApply overloads. iter_t should be
-         * the type of the delegate in the opApply function that the user wants
-         * to be the default.
-         */
-        static void iter(iter_t) () {
-            PydStackContext_Ready();
-            wrapped_class_type!(T).tp_iter = &wrapped_iter!(T, T.opApply, int function(iter_t)).iter;
-        }
-
-        /**
-         * Exposes alternate iteration methods, originally intended for use with
-         * D's delegate-as-iterator features, as methods returning a Python
-         * iterator.
-         */
-        static void alt_iter(alias fn, char[] name = symbolnameof!(fn), iter_t = funcDelegInfoT!(typeof(&fn)).Meta.ArgType!(0)) () {
-            static PyMethodDef empty = { null, null, 0, null };
-            alias wrapped_method_list!(T) list;
-            PydStackContext_Ready();
-            list[length-1].ml_name = name ~ \0;
-            list[length-1].ml_meth = cast(PyCFunction)&wrapped_iter!(T, fn, int function(iter_t)).iter;
-            list[length-1].ml_flags = METH_VARARGS;
-            list[length-1].ml_doc = "";
-            list ~= empty;
-            // It's possible that appending the empty item invalidated the
-            // pointer in the type struct, so we renew it here.
-            wrapped_class_type!(T).tp_methods = list;
-        }
-
-        } /*Pyd_with_StackThreads*/
+struct wrapped_class(T, char[] classname = symbolnameof!(T)) {
+    static if (is(T == class)) pragma(msg, "wrapped_class: " ~ classname);
+    static const char[] _name = classname;
+    alias T wrapped_type;
+    /**
+     * Wraps a member function of the class.
+     *
+     * Params:
+     * fn = The member function to wrap.
+     * name = The name of the function as it will appear in Python.
+     * fn_t = The type of the function. It is only useful to specify this
+     *        if more than one function has the same name as this one.
+     */
+    static void def(alias fn, char[] name = symbolnameof!(fn), fn_t=typeof(&fn)) () {
+        pragma(msg, "class.def: " ~ name);
+        static PyMethodDef empty = { null, null, 0, null };
+        alias wrapped_method_list!(T) list;
+        list[length-1].ml_name = (name ~ \0).ptr;
+        list[length-1].ml_meth = &method_wrap!(T, fn, fn_t).func;
+        list[length-1].ml_flags = METH_VARARGS;
+        list[length-1].ml_doc = "";
+        list ~= empty;
+        // It's possible that appending the empty item invalidated the
+        // pointer in the type struct, so we renew it here.
+        wrapped_class_type!(T).tp_methods = list;
     }
+
+    /**
+     * Wraps a static member function of the class. Identical to pyd.def.def
+     */
+    static void static_def(alias fn, char[] name = symbolnameof!(fn), fn_t=typeof(&fn), uint MIN_ARGS=minArgs!(fn)) () {
+        pragma(msg, "class.static_def: " ~ name);
+        static PyMethodDef empty = { null, null, 0, null };
+        alias wrapped_method_list!(T) list;
+        list[length-1].ml_name = (name ~ \0).ptr;
+        list[length-1].ml_meth = &function_wrap!(fn, MIN_ARGS, fn_t).func;
+        list[length-1].ml_flags = METH_VARARGS | METH_STATIC;
+        list[length-1].ml_doc = "";
+        list ~= empty;
+        wrapped_class_type!(T).tp_methods = list;
+    }
+
+    /**
+     * Wraps a property of the class.
+     *
+     * Params:
+     * fn = The property to wrap.
+     * name = The name of the property as it will appear in Python.
+     * RO = Whether this is a read-only property.
+     */
+    static void prop(alias fn, char[] name = symbolnameof!(fn), bool RO=false) () {
+        pragma(msg, "class.prop: " ~ name);
+        static PyGetSetDef empty = { null, null, null, null, null };
+        wrapped_prop_list!(T)[length-1].name = name ~ \0;
+        wrapped_prop_list!(T)[length-1].get =
+            &wrapped_get!(T, fn).func;
+        static if (!RO) {
+            wrapped_prop_list!(T)[length-1].set =
+                &wrapped_set!(T, fn).func;
+        }
+        wrapped_prop_list!(T)[length-1].doc = "";
+        wrapped_prop_list!(T)[length-1].closure = null;
+        wrapped_prop_list!(T) ~= empty;
+        // It's possible that appending the empty item invalidated the
+        // pointer in the type struct, so we renew it here.
+        wrapped_class_type!(T).tp_getset =
+            wrapped_prop_list!(T);
+    }
+
+    /**
+     * Wraps the constructors of the class.
+     *
+     * This template takes a series of specializations of the ctor template
+     * (see ctor_wrap.d), each of which describes a different constructor
+     * that the class supports. The default constructor need not be
+     * specified, and will always be available if the class supports it.
+     *
+     * Bugs:
+     * This currently does not support having multiple constructors with
+     * the same number of arguments.
+     */
+    static void init(C ...) () {
+        wrapped_class_type!(T).tp_init =
+            &wrapped_ctors!(T, C).init_func;
+    }
+
+    // Iteration wrapping support requires StackThreads
+    version(Pyd_with_StackThreads) {
+
+    /**
+     * Allows selection of alternate opApply overloads. iter_t should be
+     * the type of the delegate in the opApply function that the user wants
+     * to be the default.
+     */
+    static void iter(iter_t) () {
+        PydStackContext_Ready();
+        wrapped_class_type!(T).tp_iter = &wrapped_iter!(T, T.opApply, int function(iter_t)).iter;
+    }
+
+    /**
+     * Exposes alternate iteration methods, originally intended for use with
+     * D's delegate-as-iterator features, as methods returning a Python
+     * iterator.
+     */
+    static void alt_iter(alias fn, char[] name = symbolnameof!(fn), iter_t = funcDelegInfoT!(typeof(&fn)).Meta.ArgType!(0)) () {
+        static PyMethodDef empty = { null, null, 0, null };
+        alias wrapped_method_list!(T) list;
+        PydStackContext_Ready();
+        list[length-1].ml_name = name ~ \0;
+        list[length-1].ml_meth = cast(PyCFunction)&wrapped_iter!(T, fn, int function(iter_t)).iter;
+        list[length-1].ml_flags = METH_VARARGS;
+        list[length-1].ml_doc = "";
+        list ~= empty;
+        // It's possible that appending the empty item invalidated the
+        // pointer in the type struct, so we renew it here.
+        wrapped_class_type!(T).tp_methods = list;
+    }
+
+    } /*Pyd_with_StackThreads*/
 }
 
 /**
@@ -362,21 +363,23 @@ template wrapped_class(T, char[] classname = symbolnameof!(T)) {
  * calls to the wrapped_class member functions.
  */
 void finalize_class(CLS) (CLS cls, char[] modulename="") {
-    alias typeof(cls.t) T;
+    alias CLS.wrapped_type T;
     alias wrapped_class_type!(T) type;
     const char[] name = CLS._name;
-    pragma(msg, "finalize_class: " ~ name);
+    static if (is(T == class)) {
+        pragma(msg, "finalize_class: " ~ name);
+    } else {
+        pragma(msg, "finalize_struct: " ~ name);
+    }
+    pragma(msg, "finalize_class, T is " ~ prettytypeof!(T));
     
-    assert(Pyd_Module_p !is null, "Must initialize module before wrapping classes.");
+    assert(Pyd_Module_p(modulename) !is null, "Must initialize module before wrapping classes.");
     char[] module_name = toString(PyModule_GetName(Pyd_Module_p(modulename)));
     // Fill in missing values
     type.ob_type      = PyType_Type_p();
-    //type.tp_new       = &(wrapped_methods!(T).wrapped_new);
-    //type.tp_dealloc   = &(wrapped_methods!(T).wrapped_dealloc);
     type.tp_basicsize = (wrapped_class_object!(T)).sizeof;
     type.tp_doc       = name ~ " objects" ~ \0;
     type.tp_flags     = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE;
-    //type.tp_new       = &PyType_GenericNew;
     //type.tp_repr      = &wrapped_repr!(T).repr;
     type.tp_methods   = wrapped_method_list!(T);
     type.tp_name      = module_name ~ "." ~ name ~ \0;
@@ -414,9 +417,13 @@ void finalize_class(CLS) (CLS cls, char[] modulename="") {
     }
 
     // If a ctor wasn't supplied, try the default.
-    //if (type.tp_init is null) {
-    //    type.tp_init = &wrapped_init!(T).init;
-    //}
+    if (type.tp_init is null) {
+        static if (is(T == class)) {
+            type.tp_init = &wrapped_init!(T).init;
+        } else {
+            type.tp_init = &wrapped_struct_init!(T).init;
+        }
+    }
     if (PyType_Ready(&type) < 0) {
         // XXX: This will probably crash the interpreter, as it isn't normally
         // caught and translated.
@@ -432,6 +439,21 @@ void finalize_class(CLS) (CLS cls, char[] modulename="") {
 // PYD API FUNCTIONS //
 ///////////////////////
 
+private union aa_reference(T) {
+    T aa;
+    void* ptr;
+}
+
+private void* get_voidptr(T)(T t) {
+    static if (isAA!(T)) {
+        aa_reference!(T) ref;
+        ref.aa = t;
+        return ref.ptr;
+    } else {
+        return cast(void*)t;
+    }
+}
+
 /**
  * Returns a new Python object of a wrapped type.
  */
@@ -439,12 +461,14 @@ PyObject* WrapPyObject_FromObject(T) (T t) {
     alias wrapped_class_object!(T) wrapped_object;
     alias wrapped_class_type!(T) type;
     if (is_wrapped!(T)) {
-        // Allocate the object
-        wrapped_object* obj =
-            cast(wrapped_object*)type.tp_new(&type, null, null);
+        // If this object is already wrapped, get the existing object.
+        PyObject** obj_p = get_voidptr(t) in wrapped_gc_objects;
+        if (obj_p) return *obj_p;
+        // Otherwise, allocate a new object
+        PyObject* obj = type.tp_new(&type, null, null);
         // Set the contained instance
         WrapPyObject_SetObj(obj, t);
-        return cast(PyObject*)obj;
+        return obj;
     } else {
         PyErr_SetString(PyExc_RuntimeError, "Type " ~ typeid(T).toString() ~ " is not wrapped by Pyd.");
         return null;
@@ -459,7 +483,7 @@ T WrapPyObject_AsObject(T) (PyObject* _self) {
     alias wrapped_class_type!(T) type;
     wrapped_object* self = cast(wrapped_object*)_self;
     if (!is_wrapped!(T) || self is null || !PyObject_TypeCheck(_self, &type)) {
-        // Throw something
+        throw new Exception("Error extracting D object from Python object...");
     }
     return self.d_obj;
 }
@@ -470,15 +494,14 @@ T WrapPyObject_AsObject(T) (PyObject* _self) {
 void WrapPyObject_SetObj(PY, T) (PY* _self, T t) {
     alias wrapped_class_object!(T) obj;
     obj* self = cast(obj*)_self;
+    if (get_voidptr(t) == get_voidptr(self.d_obj))
+        return;
     // Clean up the old object, if there is one
     if (self.d_obj !is null) {
-        wrap_class_instances!(T)[self.d_obj]--;
-        if (wrap_class_instances!(T)[self.d_obj] <= 0) {
-            wrap_class_instances!(T).remove(self.d_obj);
-        }
+        wrapped_gc_objects.remove(get_voidptr(self.d_obj));
     }
     self.d_obj = t;
     // Handle the new one, if there is one
-    if (t !is null) wrap_class_instances!(T)[t]++;
+    if (t !is null) wrapped_gc_objects[get_voidptr(self.d_obj)] = _self;
 }
 

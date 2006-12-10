@@ -36,6 +36,7 @@ _pydFiles = [
     'op_wrap.d',
     'pyd.d',
     'pydobject.d',
+    'struct_wrap.d',
 ]
 
 _stFiles = [

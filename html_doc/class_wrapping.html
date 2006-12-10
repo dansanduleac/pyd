@@ -16,6 +16,7 @@
 <a class="nav" href="conversion.html">Type conversion</a><br />
 <a class="nav" href="func_wrapping.html">Function wrapping</a><br />
 <a class="navcur" href="class_wrapping.html">Class wrapping</a><br />
+<a class="nav" href="struct_wrapping.html">Struct wrapping</a><br />
 <a class="nav" href="except_wrapping.html">Exception wrapping</a><br />
 <a class="nav" href="pydobject.html">PydObject</a><br />
 <a class="nav" href="credits.html">Credits</a>
@@ -39,12 +40,15 @@
 <dt><code>static void def(alias <span class="t_arg">fn</span>, char[] <span class="t_arg">name</span> = symbolnameof!(fn), <span class="t_arg">fn_t</span> = typeof(&amp;fn)) ();</code></dt>
 <dd>This wraps a method of the class. It functions exactly like the <code>def</code> function used to <a href="func_wrapping.html">wrap regular functions</a>, with one very important difference: There is no support for default arguments. (This is a side-effect of the fact that you cannot call an alias of a method in D, and delegates do not understand default arguments.)</dd>
 
+<dt><code>static void static_def(alias <span class="t_arg">fn</span>, char[] <span class="t_arg">name</span> = symbolnameof!(fn), <span class="t_arg">fn_t</span> = typeof(&amp;fn), uint <span class="t_arg">MIN_ARGS</span> = minArgs!(fn)) ();</code></dt>
+<dd>This wraps a static member function of the class. It also functions exactly like the <code>def</code> function used to wrap regular functions, and even includes support for default arguments.</dd>
+
 <dt><code>static void prop(alias <span class="t_arg">fn</span>, char[] <span class="t_arg">name</span> = symbolnameof!(fn), bool <span class="t_arg">RO</span> = false) ();</code></dt>
 <dd>This wraps a property. See the examples below for more details.
     <ul>
     <li><span class="t_arg">fn</span> is the name of the property. <code>prop</code> will automatically attempt to wrap both the "get" and "set" forms of the property, unless <span class="t_arg">RO</span> is specified.</li>
     <li><span class="t_arg">name</span> is the name of the property as it will appear in Python. As with <code>def</code>, <code>prop</code> will attempt to derive this automatically.</li>
-    <li><span class="t_arg">RO</span> specifies whether this is a <i>read-only</i> property. If true, it will only wrap the "get" form of the property. If false, it will wrap both the "get" and "set" forms. (This is a little hackish, and I will probably try to make this detection more automatic in the future. It also means it cannot support a property that only has a "set" form.)</li>
+    <li><span class="t_arg">RO</span> specifies whether this is a <i>read-only</i> property. If true, it will only wrap the "get" form of the property. If false, it will wrap both the "get" and "set" forms. <i>(This is a little hackish, and I will probably try to make this detection more automatic in the future. It also means it cannot support a property that only has a "set" form.)</i></li>
     </ul>
 </dd>
 
@@ -85,6 +89,8 @@
 <p><code>opAdd, opSub, opMul, opDiv, opMod, opAnd, opOr, opXor, opShl, opShr, opCat, opAddAssign, opSubAssign, opMulAssign, opDivAssign, opModAssign, opAndAssign, opOrAssign, opXorAssign, opShlAssign, opShrAssign, opCatAssign, opIn_r, opCmp, opCall, opApply, opIndex, opIndexAssign, opSlice, opSliceAssign</code></p>
 
 <p>Missing from this list are <code>opUShr</code> and <code>opUShrAssign</code>. Python does not have an unsigned right-shift operator, so these operator overloads are not supported. (You may still wrap them with a normal method using <code>wrapped_class.def</code>, of course.) Also missing from the list is <code>opApplyReverse</code>. This must be wrapped explicitly with <code>wrapped_class.alt_iter</code>.</p>
+
+<p>Also missing from the list is <code>opAssign</code>. Python has strict reference semantics for its objects, so overloading the assignment operator is not possible. You must explicitly wrap <code>opAssign</code> with a regular method.</p>
 
 <p>Additionally, if a class provides a <code>length</code> property, Pyd will automatically make it available via Python's built-in function <code>len</code> and the special <code>__len__</code> method. You may still wrap it with <code>prop</code> or <code>def</code> if you wish it to be available as a normal property or method.</p>
 

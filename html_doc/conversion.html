@@ -16,6 +16,7 @@
 <a class="navcur" href="conversion.html">Type conversion</a><br />
 <a class="nav" href="func_wrapping.html">Function wrapping</a><br />
 <a class="nav" href="class_wrapping.html">Class wrapping</a><br />
+<a class="nav" href="struct_wrapping.html">Struct wrapping</a><br />
 <a class="nav" href="except_wrapping.html">Exception wrapping</a><br />
 <a class="nav" href="pydobject.html">PydObject</a><br />
 <a class="nav" href="credits.html">Credits</a>
@@ -39,11 +40,13 @@
 <tr><td>double</td>                             <td>float</td>      </tr>
 <tr><td>idouble, cdouble</td>                   <td>complex</td>    </tr>
 <tr><td>char[] (as ASCII string)</td>           <td>str</td>        </tr>
-<tr><td>wchar[] (as UCS2 string)</td>           <td>unicode</td>    </tr>
+<!--<tr><td>wchar[] (as UCS2 string)</td>           <td>unicode</td>    </tr>-->
 <tr><td>dynamic array</td>                      <td>list</td>       </tr>
 <tr><td>associative array</td>                  <td>dict</td>       </tr>
 <tr><td>delegate or function pointer</td>       <td>A callable object</td></tr>
 <tr><td><a href="class_wrapping.html">A wrapped class</a></td> <td>The wrapped type</td></tr>
+<tr><td><a href="struct_wrapping.html">A wrapped struct</a></td> <td>The wrapped type</td></tr>
+<tr><td>Pointer-to-wrapped-struct</td>          <td>The wrapped type</td></tr>
 <tr><td><a href="pydobject.html">PydObject</a></td> <td>The wrapped object's type</td></tr>
 <tr><td>PyObject*</td>                          <td>The object's type</td></tr>
 </table>
@@ -60,6 +63,8 @@ This function will set a Python <code>RuntimeError</code> and return <code>null<
 <tr><th>Python type</th>    <th>D type</th>                             </tr>
 <tr><td>Any type</td>       <td>PyObject*</td>                          </tr>
 <tr><td>Any type</td>       <td><a href="pydobject.html">PydObject</a></td></tr>
+<tr><td><a href="struct_wrapping.html">Wrapped struct</a></td> <td>Wrapped struct</td></tr>
+<tr><td><a href="struct_wrapping.html">Wrapped struct</a></td> <td>Pointer to wrapped struct</td></tr>
 <tr><td><a href="class_wrapping.html">Wrapped class</a></td> <td>Wrapped class</td></tr>
 <tr><td>Any callable</td>   <td>delegate</td>                           </tr>
 <tr><td>str</td>            <td>char[]</td>                             </tr>

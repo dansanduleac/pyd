@@ -36,7 +36,9 @@ private PyMethodDef[][char[]] module_methods;
 private PyObject*[char[]] pyd_modules;
 
 PyObject* Pyd_Module_p(char[] modulename="") {
-    return pyd_modules[modulename];
+    PyObject** m = modulename in pyd_modules;
+    if (m is null) return null;
+    else return *m;
 }
 
 /**

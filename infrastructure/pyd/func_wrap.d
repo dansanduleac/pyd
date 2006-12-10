@@ -38,24 +38,20 @@ private {
 }
 
 // Builds a callable Python object from a delegate or function pointer.
-PyObject* PydFunc_FromDelegate(T) (T dg) {
+void PydWrappedFunc_Ready(T)() {
     alias wrapped_class_type!(T) type;
     alias wrapped_class_object!(T) obj;
     if (!is_wrapped!(T)) {
         type.ob_type = PyType_Type_p;
-        type.tp_new       = &wrapped_methods!(T).wrapped_new;
-        type.tp_dealloc   = &wrapped_methods!(T).wrapped_dealloc;
         type.tp_basicsize = obj.sizeof;
         type.tp_name = "PydFunc";
+
         type.tp_call = &wrapped_func_call!(T).call;
+
         PyType_Ready(&type);
         is_wrapped!(T) = true;
         wrapped_classes[typeid(T)] = true;
     }
-    obj* func = cast(obj*)type.tp_new(&type, null, null);
-    func.d_obj = dg;
-    wrap_class_instances!(T)[dg]++;
-    return cast(PyObject*)func;
 }
 
 void setWrongArgsError(int gotArgs, uint minArgs, uint maxArgs, char[] funcName="") {

@@ -109,6 +109,14 @@ class Bar {
     }
 }
 
+struct S {
+    int i;
+    char[] s;
+    void write_s() {
+        writefln(s);
+    }
+}
+
 Foo spam(Foo f) {
     f.foo();
     Foo g = new Foo(f.i + 10);
@@ -141,5 +149,13 @@ export void inittestdll() {
     // Property wrapping
     f.prop!(Foo.i);
     finalize_class(f);
+
+    wrapped_struct!(S) s;
+    s.def!(S.write_s);
+    const size_t i = S.i.offsetof;
+    const size_t t = S.s.offsetof;
+    s.member!(int, i, "i");
+    s.member!(char[], t, "s");
+    finalize_struct(s);
 }
 
