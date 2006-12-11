@@ -12,3 +12,11 @@ import rawexample
 
 rawexample.hello()
 
+b = rawexample.Base()
+d = rawexample.Derived()
+
+b.foo()
+b.bar()
+d.foo()
+d.bar()
+
