@@ -384,6 +384,17 @@ void finalize_class(CLS) (CLS cls, char[] modulename="") {
     type.tp_methods   = wrapped_method_list!(T).ptr;
     type.tp_name      = (module_name ~ "." ~ name ~ \0).ptr;
 
+    // Check for wrapped parent classes
+    static if (is(T B == super)) {
+        foreach (C; B) {
+            static if (is(C == class) && !is(C == Object)) {
+                if (is_wrapped!(C)) {
+                    type.tp_base = &wrapped_class_type!(C);
+                }
+            }
+        }
+    }
+
     // Numerical operator overloads
     if (wrapped_class_as_number!(T) != PyNumberMethods.init) {
         type.tp_as_number = &wrapped_class_as_number!(T);
