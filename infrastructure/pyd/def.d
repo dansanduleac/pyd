@@ -86,7 +86,7 @@ void def(char[] modulename, alias fn, char[] name = symbolnameof!(fn), fn_t=type
     }
     PyMethodDef[]* list = &module_methods[modulename];
 
-    (*list)[length-1].ml_name = name ~ \0;
+    (*list)[length-1].ml_name = (name ~ \0).ptr;
     (*list)[length-1].ml_meth = &function_wrap!(fn, MIN_ARGS, fn_t).func;
     (*list)[length-1].ml_flags = METH_VARARGS;
     (*list)[length-1].ml_doc = "";
@@ -98,7 +98,7 @@ void def(char[] modulename, alias fn, char[] name = symbolnameof!(fn), fn_t=type
  */
 PyObject* module_init(char[] name) {
     //_loadPythonSupport();
-    pyd_modules[""] = Py_InitModule(name ~ \0, module_methods[""].ptr);
+    pyd_modules[""] = Py_InitModule((name ~ \0).ptr, module_methods[""].ptr);
     return pyd_modules[""];
 }
 
@@ -106,7 +106,7 @@ PyObject* module_init(char[] name) {
  * Module initialization function. Should be called after the last call to def.
  */
 PyObject* add_module(char[] name) {
-    pyd_modules[name] = Py_InitModule(name ~ \0, module_methods[name].ptr);
+    pyd_modules[name] = Py_InitModule((name ~ \0).ptr, module_methods[name].ptr);
     return pyd_modules[name];
 }
 

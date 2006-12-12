@@ -90,7 +90,7 @@ public:
 
     /// Same as _hasattr(this, attr_name) in Python.
     bool hasattr(char[] attr_name) {
-        return PyObject_HasAttrString(m_ptr, attr_name ~ \0) == 1;
+        return PyObject_HasAttrString(m_ptr, (attr_name ~ \0).ptr) == 1;
     }
 
     /// Same as _hasattr(this, attr_name) in Python.
@@ -100,7 +100,7 @@ public:
 
     /// Same as _getattr(this, attr_name) in Python.
     PydObject getattr(char[] attr_name) {
-        return new PydObject(PyObject_GetAttrString(m_ptr, attr_name ~ \0));
+        return new PydObject(PyObject_GetAttrString(m_ptr, (attr_name ~ \0).ptr));
     }
 
     /// Same as _getattr(this, attr_name) in Python.
@@ -112,7 +112,7 @@ public:
      * Same as _setattr(this, attr_name, v) in Python.
      */
     void setattr(char[] attr_name, PydObject v) {
-        if (PyObject_SetAttrString(m_ptr, attr_name ~ \0, v.m_ptr) == -1)
+        if (PyObject_SetAttrString(m_ptr, (attr_name ~ \0).ptr, v.m_ptr) == -1)
             handle_exception();
     }
 
@@ -128,7 +128,7 @@ public:
      * Same as del this.attr_name in Python.
      */
     void delattr(char[] attr_name) {
-        if (PyObject_DelAttrString(m_ptr, attr_name ~ \0) == -1)
+        if (PyObject_DelAttrString(m_ptr, (attr_name ~ \0).ptr) == -1)
             handle_exception();
     }
 
@@ -226,7 +226,7 @@ public:
      */
     PydObject method(char[] name, PydObject args=null) {
         // Get the method PydObject
-        PyObject* m = PyObject_GetAttrString(m_ptr, name ~ \0);
+        PyObject* m = PyObject_GetAttrString(m_ptr, (name ~ \0).ptr);
         PyObject* self_tuple, args_tuple, result;
         // If this method doesn't exist (or other error), throw exception
         if (m is null) handle_exception();
@@ -253,7 +253,7 @@ public:
 
     PydObject method(char[] name, PydObject args, PydObject kw) {
         // Get the method PydObject
-        PyObject* m = PyObject_GetAttrString(m_ptr, name ~ \0);
+        PyObject* m = PyObject_GetAttrString(m_ptr, (name ~ \0).ptr);
         PyObject* self_tuple, args_tuple, result;
         // If this method doesn't exist (or other error), throw exception.
         if (m is null) handle_exception();
@@ -327,7 +327,7 @@ public:
      * mappings.
      */
     PydObject opIndex(char[] key) {
-        return new PydObject(PyMapping_GetItemString(m_ptr, key ~ \0));
+        return new PydObject(PyMapping_GetItemString(m_ptr, (key ~ \0).ptr));
     }
     /// Equivalent to o[_i] in Python; usually only makes sense for sequences.
     PydObject opIndex(int i) {
@@ -344,7 +344,7 @@ public:
      * mappings.
      */
     void opIndexAssign(PydObject value, char[] key) {
-        if (PyMapping_SetItemString(m_ptr, key ~ \0, value.m_ptr) == -1)
+        if (PyMapping_SetItemString(m_ptr, (key ~ \0).ptr, value.m_ptr) == -1)
             handle_exception();
     }
     /**
@@ -366,7 +366,7 @@ public:
      * mappings.
      */
     void delItem(char[] key) {
-        if (PyMapping_DelItemString(m_ptr, key ~ \0) == -1)
+        if (PyMapping_DelItemString(m_ptr, (key ~ \0).ptr) == -1)
             handle_exception();
     }
     /**
@@ -738,7 +738,7 @@ public:
     }
     /// Same as opIn_r
     bool hasKey(char[] key) {
-        int result = PyMapping_HasKeyString(m_ptr, key ~ \0);
+        int result = PyMapping_HasKeyString(m_ptr, (key ~ \0).ptr);
         if (result == -1) handle_exception();
         return result == 1;
     }

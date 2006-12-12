@@ -70,7 +70,7 @@ struct wrapped_struct(T, char[] structname = symbolnameof!(T)) {
         pragma(msg, "struct.member: " ~ name);
         static PyGetSetDef empty = {null, null, null, null, null};
         alias wrapped_prop_list!(T*) list;
-        list[length-1].name = name ~ \0;
+        list[length-1].name = (name ~ \0).ptr;
         list[length-1].get = &wrapped_member!(T*, M, offset).get;
         list[length-1].set = &wrapped_member!(T*, M, offset).set;
         list[length-1].doc = "";

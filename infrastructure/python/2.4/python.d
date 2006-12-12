@@ -1191,7 +1191,10 @@ extern (C) {
     // DSR:XXX:LAYOUT:
     // Will the D layout for a 1-PyObject* array be the same as the C layout?
     // I think the D array will be larger.
-    PyObject *ob_item[1];
+    PyObject *_ob_item[1];
+    PyObject** ob_item() {
+      return _ob_item.ptr;
+    }
   }
 
   // &PyTuple_Type is accessible via PyTuple_Type_p.
@@ -3147,7 +3150,10 @@ struct PyStructSequence {
   // DSR:XXX:LAYOUT:
   // Will the D layout for a 1-obj array be the same as the C layout?  I
   // think the D array will be larger.
-  PyObject *ob_item[1];
+  PyObject *_ob_item[1];
+  PyObject** ob_item() {
+    return _ob_item.ptr;
+  }
 }
 
 // D translation of C macro:
@@ -3300,7 +3306,7 @@ PyObject* m_PyExc_FutureWarning;
 
 PyObject *eval(char[] code) {
     PyObject *pyGlobals = PyEval_GetGlobals(); /* borrowed ref */
-    PyObject *res = PyRun_String(code ~ \0, Py_eval_input,
+    PyObject *res = PyRun_String((code ~ \0).ptr, Py_eval_input,
         pyGlobals, pyGlobals
     ); /* New ref, or NULL on error. */
     if (res == null) {
@@ -3318,7 +3324,7 @@ PyObject* m_builtins, m_types, m_weakref;
 typeof(Ptr) lazy_sys(alias Ptr, char[] name) () {
     if (Ptr is null) {
         PyObject* sys_modules = PyImport_GetModuleDict();
-        Ptr = PyDict_GetItemString(sys_modules, name ~ \0);
+        Ptr = PyDict_GetItemString(sys_modules, (name ~ \0).ptr);
     }
     assert (Ptr !is null, "python.d couldn't load " ~ name ~ " attribute!");
     return Ptr;
@@ -3330,7 +3336,7 @@ alias lazy_sys!(m_weakref, "weakref") weakref;
 
 typeof(Ptr) lazy_load(alias from, alias Ptr, char[] name) () {
     if (Ptr is null) {
-        Ptr = cast(typeof(Ptr)) PyObject_GetAttrString(from(), name ~ \0);
+        Ptr = cast(typeof(Ptr)) PyObject_GetAttrString(from(), (name ~ \0).ptr);
     }
     assert (Ptr !is null, "python.d couldn't load " ~ name ~ " attribute!");
     return Ptr;

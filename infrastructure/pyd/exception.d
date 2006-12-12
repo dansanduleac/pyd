@@ -76,12 +76,12 @@ T exception_catcher(T) (T delegate() dg) {
     // A D exception was raised and should be translated into a meaningful
     // Python exception.
     catch (Exception e) {
-        PyErr_SetString(PyExc_RuntimeError, "D Exception: " ~ e.classinfo.name ~ ": " ~ e.msg ~ \0);
+        PyErr_SetString(PyExc_RuntimeError, ("D Exception: " ~ e.classinfo.name ~ ": " ~ e.msg ~ \0).ptr);
         return error_code!(T)();
     }
     // Some other D object was thrown. Deal with it.
     catch (Object o) {
-        PyErr_SetString(PyExc_RuntimeError, "thrown D Object: " ~ o.classinfo.name ~ ": " ~ o.toString() ~ \0);
+        PyErr_SetString(PyExc_RuntimeError, ("thrown D Object: " ~ o.classinfo.name ~ ": " ~ o.toString() ~ \0).ptr);
         return error_code!(T)();
     }
 }

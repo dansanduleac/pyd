@@ -61,7 +61,7 @@ PyMethodDef[] rawexample_methods = [
 
 extern(C)
 export void initrawexample() {
-    PyObject* m = Py_InitModule("rawexample", rawexample_methods);
+    PyObject* m = Py_InitModule("rawexample", rawexample_methods.ptr);
 
     Base_type.ob_type = PyType_Type_p;
     Base_type.tp_basicsize = Base_object.sizeof;

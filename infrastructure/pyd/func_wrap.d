@@ -84,7 +84,7 @@ void setWrongArgsError(int gotArgs, uint minArgs, uint maxArgs, char[] funcName=
     }
     str ~= " (" ~ toString(gotArgs) ~ " given)";
 
-    PyErr_SetString(PyExc_TypeError, str ~ \0);
+    PyErr_SetString(PyExc_TypeError, (str ~ \0).ptr);
 }
 
 // Calls callable alias fn with PyTuple args.

@@ -261,7 +261,7 @@ struct wrapped_class(T, char[] classname = symbolnameof!(T)) {
         list ~= empty;
         // It's possible that appending the empty item invalidated the
         // pointer in the type struct, so we renew it here.
-        wrapped_class_type!(T).tp_methods = list;
+        wrapped_class_type!(T).tp_methods = list.ptr;
     }
 
     /**
@@ -290,7 +290,7 @@ struct wrapped_class(T, char[] classname = symbolnameof!(T)) {
     static void prop(alias fn, char[] name = symbolnameof!(fn), bool RO=false) () {
         pragma(msg, "class.prop: " ~ name);
         static PyGetSetDef empty = { null, null, null, null, null };
-        wrapped_prop_list!(T)[length-1].name = name ~ \0;
+        wrapped_prop_list!(T)[length-1].name = (name ~ \0).ptr;
         wrapped_prop_list!(T)[length-1].get =
             &wrapped_get!(T, fn).func;
         static if (!RO) {
@@ -303,7 +303,7 @@ struct wrapped_class(T, char[] classname = symbolnameof!(T)) {
         // It's possible that appending the empty item invalidated the
         // pointer in the type struct, so we renew it here.
         wrapped_class_type!(T).tp_getset =
-            wrapped_prop_list!(T);
+            wrapped_prop_list!(T).ptr;
     }
 
     /**
@@ -378,11 +378,11 @@ void finalize_class(CLS) (CLS cls, char[] modulename="") {
     // Fill in missing values
     type.ob_type      = PyType_Type_p();
     type.tp_basicsize = (wrapped_class_object!(T)).sizeof;
-    type.tp_doc       = name ~ " objects" ~ \0;
+    type.tp_doc       = (name ~ " objects" ~ \0).ptr;
     type.tp_flags     = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE;
     //type.tp_repr      = &wrapped_repr!(T).repr;
-    type.tp_methods   = wrapped_method_list!(T);
-    type.tp_name      = module_name ~ "." ~ name ~ \0;
+    type.tp_methods   = wrapped_method_list!(T).ptr;
+    type.tp_name      = (module_name ~ "." ~ name ~ \0).ptr;
 
     // Numerical operator overloads
     if (wrapped_class_as_number!(T) != PyNumberMethods.init) {
@@ -430,7 +430,7 @@ void finalize_class(CLS) (CLS cls, char[] modulename="") {
         throw new Exception("Couldn't ready wrapped type!");
     }
     Py_INCREF(cast(PyObject*)&type);
-    PyModule_AddObject(Pyd_Module_p(modulename), name, cast(PyObject*)&type);
+    PyModule_AddObject(Pyd_Module_p(modulename), name.ptr, cast(PyObject*)&type);
     is_wrapped!(T) = true;
     wrapped_classes[typeid(T)] = true;
 }
@@ -470,7 +470,7 @@ PyObject* WrapPyObject_FromObject(T) (T t) {
         WrapPyObject_SetObj(obj, t);
         return obj;
     } else {
-        PyErr_SetString(PyExc_RuntimeError, "Type " ~ typeid(T).toString() ~ " is not wrapped by Pyd.");
+        PyErr_SetString(PyExc_RuntimeError, ("Type " ~ typeid(T).toString() ~ " is not wrapped by Pyd.").ptr);
         return null;
     }
 }

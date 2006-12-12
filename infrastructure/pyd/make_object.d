@@ -164,7 +164,7 @@ PyObject* _py(T) (T t) {
         Py_INCREF(t);
         return t;
     }
-    PyErr_SetString(PyExc_RuntimeError, "D conversion function _py failed with type " ~ typeid(T).toString());
+    PyErr_SetString(PyExc_RuntimeError, ("D conversion function _py failed with type " ~ typeid(T).toString()).ptr);
     return null;
 }
 
