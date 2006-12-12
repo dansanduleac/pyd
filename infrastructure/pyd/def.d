@@ -35,6 +35,14 @@ private PyMethodDef module_global_methods[] = [
 private PyMethodDef[][char[]] module_methods;
 private PyObject*[char[]] pyd_modules;
 
+private void ready_module_methods(char[] modulename) {
+    PyMethodDef empty;
+    if (!(modulename in module_methods)) {
+        module_methods[modulename] = (PyMethodDef[]).init;
+        module_methods[modulename] ~= empty;
+    }
+}
+
 PyObject* Pyd_Module_p(char[] modulename="") {
     PyObject** m = modulename in pyd_modules;
     if (m is null) return null;
@@ -80,10 +88,7 @@ void def(alias fn, char[] name = symbolnameof!(fn), fn_t=typeof(&fn), uint MIN_A
 void def(char[] modulename, alias fn, char[] name = symbolnameof!(fn), fn_t=typeof(&fn), uint MIN_ARGS = minArgs!(fn, fn_t)) () {
     pragma(msg, "def: " ~ name);
     PyMethodDef empty;
-    if (!(modulename in module_methods)) {
-        module_methods[modulename] = (PyMethodDef[]).init;
-        module_methods[modulename] ~= empty;
-    }
+    ready_module_methods(modulename);
     PyMethodDef[]* list = &module_methods[modulename];
 
     (*list)[length-1].ml_name = (name ~ \0).ptr;
@@ -98,6 +103,7 @@ void def(char[] modulename, alias fn, char[] name = symbolnameof!(fn), fn_t=type
  */
 PyObject* module_init(char[] name) {
     //_loadPythonSupport();
+    ready_module_methods("");
     pyd_modules[""] = Py_InitModule((name ~ \0).ptr, module_methods[""].ptr);
     return pyd_modules[""];
 }
@@ -106,6 +112,7 @@ PyObject* module_init(char[] name) {
  * Module initialization function. Should be called after the last call to def.
  */
 PyObject* add_module(char[] name) {
+    ready_module_methods(name);
     pyd_modules[name] = Py_InitModule((name ~ \0).ptr, module_methods[name].ptr);
     return pyd_modules[name];
 }

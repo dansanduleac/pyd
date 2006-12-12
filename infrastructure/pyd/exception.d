@@ -86,6 +86,10 @@ T exception_catcher(T) (T delegate() dg) {
     }
 }
 
+alias exception_catcher!(PyObject*) exception_catcher_PyObjectPtr;
+alias exception_catcher!(int) exception_catcher_int;
+alias exception_catcher!(void) exception_catcher_void;
+
 /**
  * This simple exception class holds a Python exception.
  */
