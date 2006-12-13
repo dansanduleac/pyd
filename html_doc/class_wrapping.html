@@ -173,6 +173,19 @@ Base.foo</pre>
     }
 }</pre>
 
+<p>The <code>OverloadShim</code> template has but a single member, the <code>get_overload</code> function.</p>
+
+<dl>
+<dt><code>ReturnType!(dg_t) get_overload(<span class="t_arg">dg_t</span>, <span class="t_arg">T ...</span>) (dg_t <span class="arg">dg</span>, char[] <span class="arg">name</span>, T <span class="arg">t</span>);</code></dt>
+<dd><ul>
+    <li><span class="arg">dg</span> should be a delegate to the parent class's method.</li>
+    <li><span class="arg">name</span> should be the name of the method as Python understands it to be. <i>(There's no efficient way to derive this automatically based on only the delegate.)</i></li>
+    <li><span class="arg">t</span> is a tuple argument. These arguments will be passed on to the actual function call, be it the parent class's implementation or a Python subclass's implementation.</li>
+</ul></dd>
+</dl>
+
+<p><code>get_overload</code> returns whatever the method does.</p>
+
 <p>Now, we must replace the old wrapping of Base with this:</p>
 
 <pre class="code">wrapped_class!(BaseWrap, <span class="string">"Base"</span>) w;
