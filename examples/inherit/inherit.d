@@ -18,8 +18,15 @@ class Derived : Base {
     }
 }
 
+class WrapDerive : Derived {
+    mixin OverloadShim;
+    void foo() {
+        get_overload(&super.foo, "foo");
+    }
+}
+
 void call_poly(Base b) {
-    writef("call_poly: ");
+    writefln("call_poly:");
     b.foo();
 }
 
@@ -37,4 +44,8 @@ export void initinherit() {
     wrapped_class!(Derived) d;
     d.def!(Derived.foo);
     finalize_class(d);
+
+    wrapped_class!(WrapDerive) w;
+    w.def!(WrapDerive.foo);
+    finalize_class(w);
 }

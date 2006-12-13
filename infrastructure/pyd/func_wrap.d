@@ -87,6 +87,8 @@ void setWrongArgsError(int gotArgs, uint minArgs, uint maxArgs, char[] funcName=
     PyErr_SetString(PyExc_TypeError, (str ~ \0).ptr);
 }
 
+import std.stdio;
+
 // Calls callable alias fn with PyTuple args.
 ReturnType!(fn_t) applyPyTupleToAlias(alias fn, fn_t, uint MIN_ARGS) (PyObject* args) {
     alias ParameterTypeTuple!(fn_t) T;
@@ -98,6 +100,7 @@ ReturnType!(fn_t) applyPyTupleToAlias(alias fn, fn_t, uint MIN_ARGS) (PyObject* 
     if (args !is null) {
         argCount = PyObject_Length(args);
     }
+    //writefln("argCount: %s; MIN_ARGS: %s; MAX_ARGS: %s", argCount, MIN_ARGS, MAX_ARGS);
 
     // Sanity check!
     if (argCount < MIN_ARGS || argCount > MAX_ARGS) {
@@ -195,7 +198,7 @@ template wrapped_func_call(fn_t) {
 
         fn_t fn = (cast(wrapped_class_object!(fn_t)*)self).d_obj;
 
-        return exception_catcher({
+        return exception_catcher(delegate PyObject*() {
             return pyApplyToDelegate(fn, args);
         });
     }

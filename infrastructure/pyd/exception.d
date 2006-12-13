@@ -24,6 +24,7 @@ module pyd.exception;
 private import python;
 private import meta.Nameof;
 private import std.string;
+import std.stdio;
 
 /**
  * This function first checks if a Python exception is set, and then (if one
@@ -105,21 +106,21 @@ public:
     }
 
     ~this() {
-        Py_DECREF(m_type);
-        Py_DECREF(m_value);
-        Py_DECREF(m_trace);
+        if (m_type) Py_DECREF(m_type);
+        if (m_value) Py_DECREF(m_value);
+        if (m_trace) Py_DECREF(m_trace);
     }
 
     PyObject* type() {
-        Py_INCREF(m_type);
+        if (m_type) Py_INCREF(m_type);
         return m_type;
     }
     PyObject* value() {
-        Py_INCREF(m_value);
+        if (m_value) Py_INCREF(m_value);
         return m_value;
     }
     PyObject* traceback() {
-        Py_INCREF(m_trace);
+        if (m_trace) Py_INCREF(m_trace);
         return m_trace;
     }
 }

@@ -123,6 +123,10 @@ Foo spam(Foo f) {
     return g;
 }
 
+void throws() {
+    throw new Exception("Yay! An exception!");
+}
+
 extern (C)
 export void inittestdll() {
     def!(foo);
@@ -138,6 +142,7 @@ export void inittestdll() {
     def!(iter_test);
     def!(func_test);
     def!(dg_test);
+    def!(throws);
 
     module_init("testdll");
 

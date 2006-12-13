@@ -25,10 +25,13 @@ print issubclass(inherit.Derived, inherit.Base)
 inherit.call_poly(b)
 inherit.call_poly(d)
 
-class PyClass(inherit.Derived):
+w = inherit.WrapDerive()
+inherit.call_poly(w)
+
+class PyClass(inherit.WrapDerive):
     def foo(self):
         print 'PyClass.foo'
 
 p = PyClass()
-print "The basic inheritance support breaks down here:"
+#print "The basic inheritance support breaks down here:"
 inherit.call_poly(p)

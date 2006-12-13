@@ -446,6 +446,28 @@ void finalize_class(CLS) (CLS cls, char[] modulename="") {
     wrapped_classes[typeid(T)] = true;
 }
 
+import std.stdio;
+
+template OverloadShim() {
+    std.traits.ReturnType!(dg_t) get_overload(dg_t, T ...) (dg_t dg, char[] name, T t) {
+        python.PyObject* _pyobj = wrapped_gc_objects[cast(void*)this];
+        if (_pyobj.ob_type != &wrapped_class_type!(typeof(this))) {
+            //writefln("Wrapper class, calling wrapped PyObject");
+            // If this object's type is not the wrapped class's type (that is,
+            // if this object is actually a Python subclass of the wrapped
+            // class), then call the Python object.
+            python.PyObject* method = python.PyObject_GetAttrString(_pyobj, (name ~ \0).ptr);
+            if (method is null) handle_exception();
+            dg_t pydg = PydCallable_AsDelegate!(dg_t)(method);
+            python.Py_DECREF(method);
+            return pydg(t);
+        } else {
+            //writefln("Wrapper class, calling original delegate");
+            return dg(t);
+        }
+    }
+}
+
 ///////////////////////
 // PYD API FUNCTIONS //
 ///////////////////////
