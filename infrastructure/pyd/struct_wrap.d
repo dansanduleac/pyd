@@ -66,14 +66,14 @@ struct wrapped_struct(T, char[] structname = symbolnameof!(T)) {
     static const char[] _name = structname;
     alias T* wrapped_type;
 
-    static void member(M, size_t offset, char[] name)() {
+    static void member(M, size_t offset, char[] name) (char[] docstring="") {
         pragma(msg, "struct.member: " ~ name);
         static PyGetSetDef empty = {null, null, null, null, null};
         alias wrapped_prop_list!(T*) list;
         list[length-1].name = (name ~ \0).ptr;
         list[length-1].get = &wrapped_member!(T*, M, offset).get;
         list[length-1].set = &wrapped_member!(T*, M, offset).set;
-        list[length-1].doc = "";
+        list[length-1].doc = (docstring ~ \0).ptr;
         list[length-1].closure = null;
         list ~= empty;
         wrapped_class_type!(T*).tp_getset = list.ptr;

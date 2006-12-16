@@ -48,7 +48,7 @@
 
 <p>The <code>module_init</code> function has the following form:</p>
 
-<p><code>PyObject* module_init(char[] <span class="arg">name</span>);</code></p>
+<p><code>PyObject* module_init(char[] <span class="arg">name</span>, char[] <span class="arg">docstring</span>="");</code></p>
 
 <p>It does little more than call <a href="http://docs.python.org/api/allocating-objects.html">Py_InitModule</a> and return the new module object. This object is also available via the <code>Pyd_Module_p</code> property once you've called <code>module_init</code>.</p>
 

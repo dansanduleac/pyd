@@ -250,14 +250,14 @@ struct wrapped_class(T, char[] classname = symbolnameof!(T)) {
      * fn_t = The type of the function. It is only useful to specify this
      *        if more than one function has the same name as this one.
      */
-    static void def(alias fn, char[] name = symbolnameof!(fn), fn_t=typeof(&fn)) () {
+    static void def(alias fn, char[] name = symbolnameof!(fn), fn_t=typeof(&fn)) (char[] docstring="") {
         pragma(msg, "class.def: " ~ name);
         static PyMethodDef empty = { null, null, 0, null };
         alias wrapped_method_list!(T) list;
         list[length-1].ml_name = (name ~ \0).ptr;
         list[length-1].ml_meth = &method_wrap!(T, fn, fn_t).func;
         list[length-1].ml_flags = METH_VARARGS;
-        list[length-1].ml_doc = "";
+        list[length-1].ml_doc = (docstring ~ \0).ptr;
         list ~= empty;
         // It's possible that appending the empty item invalidated the
         // pointer in the type struct, so we renew it here.
@@ -267,14 +267,14 @@ struct wrapped_class(T, char[] classname = symbolnameof!(T)) {
     /**
      * Wraps a static member function of the class. Identical to pyd.def.def
      */
-    static void static_def(alias fn, char[] name = symbolnameof!(fn), fn_t=typeof(&fn), uint MIN_ARGS=minArgs!(fn)) () {
+    static void static_def(alias fn, char[] name = symbolnameof!(fn), fn_t=typeof(&fn), uint MIN_ARGS=minArgs!(fn)) (char[] docstring="") {
         pragma(msg, "class.static_def: " ~ name);
         static PyMethodDef empty = { null, null, 0, null };
         alias wrapped_method_list!(T) list;
         list[length-1].ml_name = (name ~ \0).ptr;
         list[length-1].ml_meth = &function_wrap!(fn, MIN_ARGS, fn_t).func;
         list[length-1].ml_flags = METH_VARARGS | METH_STATIC;
-        list[length-1].ml_doc = "";
+        list[length-1].ml_doc = (docstring ~ \0).ptr;
         list ~= empty;
         wrapped_class_type!(T).tp_methods = list;
     }
@@ -287,7 +287,7 @@ struct wrapped_class(T, char[] classname = symbolnameof!(T)) {
      * name = The name of the property as it will appear in Python.
      * RO = Whether this is a read-only property.
      */
-    static void prop(alias fn, char[] name = symbolnameof!(fn), bool RO=false) () {
+    static void prop(alias fn, char[] name = symbolnameof!(fn), bool RO=false) (char[] docstring="") {
         pragma(msg, "class.prop: " ~ name);
         static PyGetSetDef empty = { null, null, null, null, null };
         wrapped_prop_list!(T)[length-1].name = (name ~ \0).ptr;
@@ -297,7 +297,7 @@ struct wrapped_class(T, char[] classname = symbolnameof!(T)) {
             wrapped_prop_list!(T)[length-1].set =
                 &wrapped_set!(T, fn).func;
         }
-        wrapped_prop_list!(T)[length-1].doc = "";
+        wrapped_prop_list!(T)[length-1].doc = (docstring ~ \0).ptr;
         wrapped_prop_list!(T)[length-1].closure = null;
         wrapped_prop_list!(T) ~= empty;
         // It's possible that appending the empty item invalidated the
@@ -341,14 +341,14 @@ struct wrapped_class(T, char[] classname = symbolnameof!(T)) {
      * D's delegate-as-iterator features, as methods returning a Python
      * iterator.
      */
-    static void alt_iter(alias fn, char[] name = symbolnameof!(fn), iter_t = funcDelegInfoT!(typeof(&fn)).Meta.ArgType!(0)) () {
+    static void alt_iter(alias fn, char[] name = symbolnameof!(fn), iter_t = funcDelegInfoT!(typeof(&fn)).Meta.ArgType!(0)) (char[] docstring="") {
         static PyMethodDef empty = { null, null, 0, null };
         alias wrapped_method_list!(T) list;
         PydStackContext_Ready();
         list[length-1].ml_name = name ~ \0;
         list[length-1].ml_meth = cast(PyCFunction)&wrapped_iter!(T, fn, int function(iter_t)).iter;
         list[length-1].ml_flags = METH_VARARGS;
-        list[length-1].ml_doc = "";
+        list[length-1].ml_doc = (docstring ~ \0).ptr;
         list ~= empty;
         // It's possible that appending the empty item invalidated the
         // pointer in the type struct, so we renew it here.
@@ -362,7 +362,7 @@ struct wrapped_class(T, char[] classname = symbolnameof!(T)) {
  * Finalize the wrapping of the class. It is neccessary to call this after all
  * calls to the wrapped_class member functions.
  */
-void finalize_class(CLS) (CLS cls, char[] modulename="") {
+void finalize_class(CLS) (CLS cls, char[] docstring="", char[] modulename="") {
     alias CLS.wrapped_type T;
     alias wrapped_class_type!(T) type;
     const char[] name = CLS._name;
@@ -378,7 +378,7 @@ void finalize_class(CLS) (CLS cls, char[] modulename="") {
     // Fill in missing values
     type.ob_type      = PyType_Type_p();
     type.tp_basicsize = (wrapped_class_object!(T)).sizeof;
-    type.tp_doc       = (name ~ " objects" ~ \0).ptr;
+    type.tp_doc       = (docstring ~ \0).ptr;
     type.tp_flags     = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE;
     //type.tp_repr      = &wrapped_repr!(T).repr;
     type.tp_methods   = wrapped_method_list!(T).ptr;

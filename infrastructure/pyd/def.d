@@ -81,11 +81,11 @@ PyObject* Pyd_Module_p(char[] modulename="") {
  *>>> print testdll.foo(20)
  *It's greater than 10!)
  */
-void def(alias fn, char[] name = symbolnameof!(fn), fn_t=typeof(&fn), uint MIN_ARGS = minArgs!(fn, fn_t)) () {
-    def!("", fn, name, fn_t, MIN_ARGS)();
+void def(alias fn, char[] name = symbolnameof!(fn), fn_t=typeof(&fn), uint MIN_ARGS = minArgs!(fn, fn_t)) (char[] docstring="") {
+    def!("", fn, name, fn_t, MIN_ARGS)(docstring);
 }
 
-void def(char[] modulename, alias fn, char[] name = symbolnameof!(fn), fn_t=typeof(&fn), uint MIN_ARGS = minArgs!(fn, fn_t)) () {
+void def(char[] modulename, alias fn, char[] name = symbolnameof!(fn), fn_t=typeof(&fn), uint MIN_ARGS = minArgs!(fn, fn_t)) (char[] docstring) {
     pragma(msg, "def: " ~ name);
     PyMethodDef empty;
     ready_module_methods(modulename);
@@ -94,26 +94,26 @@ void def(char[] modulename, alias fn, char[] name = symbolnameof!(fn), fn_t=type
     (*list)[length-1].ml_name = (name ~ \0).ptr;
     (*list)[length-1].ml_meth = &function_wrap!(fn, MIN_ARGS, fn_t).func;
     (*list)[length-1].ml_flags = METH_VARARGS;
-    (*list)[length-1].ml_doc = "";
+    (*list)[length-1].ml_doc = (docstring ~ \0).ptr;
     (*list) ~= empty;
 }
 
 /**
  * Module initialization function. Should be called after the last call to def.
  */
-PyObject* module_init(char[] name) {
+PyObject* module_init(char[] name, char[] docstring="") {
     //_loadPythonSupport();
     ready_module_methods("");
-    pyd_modules[""] = Py_InitModule((name ~ \0).ptr, module_methods[""].ptr);
+    pyd_modules[""] = Py_InitModule3((name ~ \0).ptr, module_methods[""].ptr, (docstring ~ \0).ptr);
     return pyd_modules[""];
 }
 
 /**
  * Module initialization function. Should be called after the last call to def.
  */
-PyObject* add_module(char[] name) {
+PyObject* add_module(char[] name, char[] docstring="") {
     ready_module_methods(name);
-    pyd_modules[name] = Py_InitModule((name ~ \0).ptr, module_methods[name].ptr);
+    pyd_modules[name] = Py_InitModule3((name ~ \0).ptr, module_methods[name].ptr, (docstring ~ \0).ptr);
     return pyd_modules[name];
 }
 

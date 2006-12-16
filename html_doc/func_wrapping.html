@@ -29,12 +29,13 @@
 
 <p>Exposing D functions to Python is easy! The heart of Pyd's function wrapping features is the <code>def</code> template function:</p>
 
-<p><code>void def(alias <span class="t_arg">fn</span>, char[] <span class="t_arg">name</span> = symbolnameof!(fn), <span class="t_arg">fn_t</span> = typeof(&amp;fn), uint <span class="t_arg">MIN_ARGS</span> = minArgs!(fn)) ();</code></p>
+<p><code>void def(alias <span class="t_arg">fn</span>, char[] <span class="t_arg">name</span> = symbolnameof!(fn), <span class="t_arg">fn_t</span> = typeof(&amp;fn), uint <span class="t_arg">MIN_ARGS</span> = minArgs!(fn)) (char[] <span class="arg">docstring</span>="");</code></p>
     <ul>
     <li><span class="t_arg">fn</span> is the function to wrap. Note that this is an alias parameter. <code>def</code> is only capable of wrapping full-fledged functions, not function pointers, function literals, or delegates.</li>
     <li><span class="t_arg">name</span> is the name the function will have inside of Python. Usually, you don't have to specify this. (Special thanks to Don Clugston's Nameof module.)</li>
     <li><span class="t_arg">fn_t</span> is the function type of the function. Typically, you won't have to specify this. It is used to wrap overloaded functions. (See below.)</li>
     <li><span class="t_arg">MIN_ARGS</span> is the minimum number of arguments this function can accept. It is used when a function has default arguments. The <code>minArgs</code> template can derive the correct number automatically, so you typically won't specify this manually.</li>
+    <li><span class="arg">docstring</span> is the function's docstring. Note that this is a regular function argument!</li>
     </ul>
 
 <p>All calls to <code>def</code> must occur <em>before</em> calling <code>module_init</code>. Any function whose return type and arguments are <a href="conversion.html">convertible</a> can be wrapped by <code>def</code>. <code>def</code> can only wrap functions with <code>in</code> arguments (not <code>out</code> or <code>inout</code> or <code>lazy</code>). <code>def</code> also provides support for wrapping overloaded functions as well as functions with default arguments. Here are some examples:</p>

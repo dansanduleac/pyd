@@ -38,18 +38,19 @@
 <p>To expose the constructors, methods, and properties of the class, <code>wrapped_class</code> provides a series of template member functions.</p>
 
 <dl>
-<dt><code>static void def(alias <span class="t_arg">fn</span>, char[] <span class="t_arg">name</span> = symbolnameof!(fn), <span class="t_arg">fn_t</span> = typeof(&amp;fn)) ();</code></dt>
+<dt><code>static void def(alias <span class="t_arg">fn</span>, char[] <span class="t_arg">name</span> = symbolnameof!(fn), <span class="t_arg">fn_t</span> = typeof(&amp;fn)) (char[] <span class="arg">docstring</span>="");</code></dt>
 <dd>This wraps a method of the class. It functions exactly like the <code>def</code> function used to <a href="func_wrapping.html">wrap regular functions</a>, with one very important difference: There is no support for default arguments. (This is a side-effect of the fact that you cannot call an alias of a method in D, and delegates do not understand default arguments.)</dd>
 
-<dt><code>static void static_def(alias <span class="t_arg">fn</span>, char[] <span class="t_arg">name</span> = symbolnameof!(fn), <span class="t_arg">fn_t</span> = typeof(&amp;fn), uint <span class="t_arg">MIN_ARGS</span> = minArgs!(fn)) ();</code></dt>
+<dt><code>static void static_def(alias <span class="t_arg">fn</span>, char[] <span class="t_arg">name</span> = symbolnameof!(fn), <span class="t_arg">fn_t</span> = typeof(&amp;fn), uint <span class="t_arg">MIN_ARGS</span> = minArgs!(fn)) (char[] <span class="arg">docstring</span>="");</code></dt>
 <dd>This wraps a static member function of the class. It also functions exactly like the <code>def</code> function used to wrap regular functions, and even includes support for default arguments.</dd>
 
-<dt><code>static void prop(alias <span class="t_arg">fn</span>, char[] <span class="t_arg">name</span> = symbolnameof!(fn), bool <span class="t_arg">RO</span> = false) ();</code></dt>
+<dt><code>static void prop(alias <span class="t_arg">fn</span>, char[] <span class="t_arg">name</span> = symbolnameof!(fn), bool <span class="t_arg">RO</span> = false) (char[] <span class="arg">docstring</span>="");</code></dt>
 <dd>This wraps a property. See the examples below for more details.
     <ul>
     <li><span class="t_arg">fn</span> is the name of the property. <code>prop</code> will automatically attempt to wrap both the "get" and "set" forms of the property, unless <span class="t_arg">RO</span> is specified.</li>
     <li><span class="t_arg">name</span> is the name of the property as it will appear in Python. As with <code>def</code>, <code>prop</code> will attempt to derive this automatically.</li>
     <li><span class="t_arg">RO</span> specifies whether this is a <i>read-only</i> property. If true, it will only wrap the "get" form of the property. If false, it will wrap both the "get" and "set" forms. <i>(This is a little hackish, and I will probably try to make this detection more automatic in the future. It also means it cannot support a property that only has a "set" form.)</i></li>
+    <li><span class="arg">docstring</span> is the property's docstring. As usual, note that this is a regular function argument, and not a template argument.</li>
     </ul>
 </dd>
 
@@ -59,14 +60,14 @@
 <dt><code>static void iter(<span class="t_arg">iter_t</span>) ();</code></dt>
 <dd>This allows the user to specify a different overload of opApply than the default. (The default is always the one that is lexically first.) The <span class="t_arg">iter_t</span> argument should be the type of the delegate that forms the argument to opApply. This might be e.g. <code>int delegate(inout int)</code>. Don't forget the <code>inout</code> modifiers!</dd>
 
-<dt><code>static void alt_iter(alias <span class="t_arg">fn</span>, char[] <span class="t_arg">name</span> = symbolnameof!(fn), <span class="t_arg">iter_t</span> = <i>implementationDetail</i>) ();</code></dt>
+<dt><code>static void alt_iter(alias <span class="t_arg">fn</span>, char[] <span class="t_arg">name</span> = symbolnameof!(fn), <span class="t_arg">iter_t</span> = <i>implementationDetail</i>) (char[] <span class="arg">docstring</span>="");</code></dt>
 <dd>This wraps alternate iterator methods as Python methods that return iterator objects. The wrapped methods should have a signature like that of opApply. (In other words, they should be methods intended to be used with D's ability to iterate over delgates.) The <span class="t_arg">iter_t</span> argument should be the type of the delegate argument to the method. This will usually be derived automatically.
 </dd>
 </dl>
 
 <p>Once you have called all of the member functions of <code>wrapped_class</code> that you wish to, you must issue a call to <code>finalize_class</code>.</p>
 
-<p><code>void finalize_class(<span class="t_arg">CLS</span>) (<span class="t_arg">CLS</span> <span class="arg">cls</span>);</code></p>
+<p><code>void finalize_class(<span class="t_arg">CLS</span>) (<span class="t_arg">CLS</span> <span class="arg">cls</span>, char[] <span class="arg">docstring</span>="");</code></p>
 
 <p>This does some final initialization of the class and then registers it with Python. Unlike calls to <a href="func_wrapping.html"><code>def</code></a>, calls to <code>finalize_class</code> must occur <em>after</em> calling <code>module_init</code>. The <span class="arg">cls</span> function argument should be an instance of <code>wrapped_class</code>.</p>
 
