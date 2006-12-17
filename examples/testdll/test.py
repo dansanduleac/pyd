@@ -31,8 +31,11 @@ a = testdll.Foo(10)
 a.foo()
 
 print "Testing opApply wrapping:"
-for i in a:
-    print i
+try:
+    for i in a:
+        print i
+except TypeError, e:
+    print "opApply not supported on this platform"
 
 print
 

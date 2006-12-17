@@ -159,7 +159,7 @@ class DCompiler(cc.CCompiler):
         # And Pyd!
         if not flags[0]:
             # If we're not using StackThreads, don't use iteration.d in Pyd
-            if flags[1]:
+            if flags[1] or not self._st_support:
                 _pydFiles.remove('iteration.d');
             for file in _pydFiles:
                 filePath = os.path.join(_infraDir, 'pyd', file)
@@ -169,7 +169,7 @@ class DCompiler(cc.CCompiler):
                     )
                 sources.append(filePath)
         # And StackThreads
-        if not flags[1]:
+        if self._st_support and not flags[1]:
             for file in _stFiles:
                 filePath = os.path.join(_infraDir, 'st', file)
                 if not os.path.isfile(filePath):
@@ -409,6 +409,8 @@ class DMDDCompiler(DCompiler):
         self._debugOptimizeOpts = self._defaultOptimizeOpts + ['-unittest', '-g']
         # _releaseOptimizeOpts
         self._releaseOptimizeOpts = ['-version=Optimized', '-release', '-O', '-inline']
+        # StackThreads support
+        self._st_support = True
 
     #def link_opts(self, 
 
@@ -521,6 +523,8 @@ class GDCDCompiler(DCompiler):
         self._debugOptimizeOpts = self._defaultOptimizeOpts + ['-g', '-funittest']
         # _releaseOptimizeOpts
         self._releaseOptimizeOpts = ['-fversion=Optimized', '-frelease', '-O3', '-finline-functions']
+        # StackThreads support
+        self._st_support = False
 
     def _def_file(self, output_dir, output_filename):
         return ['-Wl,-soname,' + os.path.basename(output_filename)]
