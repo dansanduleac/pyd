@@ -40,6 +40,8 @@ public {
     import pyd.dg_convert;
     import pyd.exception;
     import pyd.func_wrap;
-    import pyd.iteration;
+    version(Pyd_with_StackThreads) {
+        import pyd.iteration;
+    }
 }
 

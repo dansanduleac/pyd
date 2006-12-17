@@ -25,7 +25,9 @@ import python;
 
 import pyd.class_wrap;
 import pyd.exception;
-import pyd.iteration;
+version(Pyd_with_StackThreads) {
+    import pyd.iteration;
+}
 import pyd.make_object;
 
 import std.stdio;
