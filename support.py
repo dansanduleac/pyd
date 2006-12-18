@@ -40,20 +40,20 @@ class Extension(std_Extension):
 
         # Similarly, pass in no_pyd, &c, via define_macros.
         if 'raw_only' in kwargs:
-            kwargs['no_pyd'] = True
-            kwargs['no_st'] = True
-            kwargs['no_meta'] = True
+            kwargs['with_pyd'] = False
+            kwargs['with_st'] = False
+            kwargs['with_meta'] = False
             del kwargs['raw_only']
-        no_pyd  = kwargs.pop('no_pyd', False)
-        no_st   = kwargs.pop('no_st', False)
-        no_meta = kwargs.pop('no_meta', False)
-        if not no_pyd and no_meta:
+        with_pyd  = kwargs.pop('with_pyd', True)
+        with_st   = kwargs.pop('with_st', True)
+        with_meta = kwargs.pop('with_meta', True)
+        if with_pyd and not with_meta:
             raise DistutilsOptionError(
-                'Cannot specify no_meta while using Pyd. Specify'
-                ' raw_only or no_pyd if you want to compile a raw Python/C'
+                'Cannot specify with_meta=False while using Pyd. Specify'
+                ' raw_only=True or with_pyd=False if you want to compile a raw Python/C'
                 ' extension.'
             )
-        define_macros.append(((no_pyd, no_st, no_meta), 'aux'))
+        define_macros.append(((with_pyd, with_st, with_meta), 'aux'))
         kwargs['define_macros'] = define_macros
 
         std_Extension.__init__(self, *args, **kwargs)

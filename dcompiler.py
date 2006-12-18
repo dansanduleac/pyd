@@ -154,12 +154,12 @@ class DCompiler(cc.CCompiler):
             )
         sources.append(pythonHeaderPath)
 
-        # flags = (no_pyd, no_st, no_meta)
+        # flags = (with_pyd, with_st, with_meta)
         flags = [f for f, category in macros if category == 'aux'][0]
         # And Pyd!
-        if not flags[0]:
+        if flags[0]:
             # If we're not using StackThreads, don't use iteration.d in Pyd
-            if flags[1] or not self._st_support:
+            if not flags[1] or not self._st_support:
                 _pydFiles.remove('iteration.d');
             for file in _pydFiles:
                 filePath = os.path.join(_infraDir, 'pyd', file)
@@ -169,7 +169,7 @@ class DCompiler(cc.CCompiler):
                     )
                 sources.append(filePath)
         # And StackThreads
-        if self._st_support and not flags[1]:
+        if self._st_support and flags[1]:
             for file in _stFiles:
                 filePath = os.path.join(_infraDir, 'st', file)
                 if not os.path.isfile(filePath):
@@ -180,7 +180,7 @@ class DCompiler(cc.CCompiler):
             # Add the version conditional for st
             macros.append(('Pyd_with_StackThreads', 'version'))
         # And meta
-        if not flags[2]:
+        if flags[2]:
             for file in _metaFiles:
                 filePath = os.path.join(_infraDir, 'meta', file)
                 if not os.path.isfile(filePath):
@@ -189,7 +189,7 @@ class DCompiler(cc.CCompiler):
                     )
                 sources.append(filePath)
         # Add the infraDir to the include path for pyd, st, and meta.
-        if False in flags:
+        if True in flags:
             includePathOpts += self._includeOpts
             includePathOpts[-1] = includePathOpts[-1] % os.path.join(_infraDir)
         
