@@ -30,11 +30,10 @@ void call_poly(Base b) {
     b.foo();
 }
 
-extern(C)
-export void initinherit() {
+extern(C) void PydMain() {
     def!(call_poly);
 
-    module_init("inherit");
+    module_init();
 
     wrapped_class!(Base) b;
     b.def!(Base.foo);

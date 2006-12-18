@@ -98,11 +98,14 @@ void def(char[] modulename, alias fn, char[] name = symbolnameof!(fn), fn_t=type
     (*list) ~= empty;
 }
 
+char[] pyd_module_name;
+
 /**
  * Module initialization function. Should be called after the last call to def.
  */
-PyObject* module_init(char[] name, char[] docstring="") {
+PyObject* module_init(char[] docstring="") {
     //_loadPythonSupport();
+    char[] name = pyd_module_name;
     ready_module_methods("");
     pyd_modules[""] = Py_InitModule3((name ~ \0).ptr, module_methods[""].ptr, (docstring ~ \0).ptr);
     return pyd_modules[""];

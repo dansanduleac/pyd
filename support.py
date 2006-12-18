@@ -38,22 +38,33 @@ class Extension(std_Extension):
                     define_macros.append((flag, 'debug'))
                 del kwargs['debug_flags']
 
+        # Pass in the extension name so the compiler class can know it
+        if 'name' in kwargs:
+            define_macros.append((kwargs['name'], 'name'))
+        elif len(args) > 0:
+            define_macros.append((args[0], 'name'))
+
         # Similarly, pass in no_pyd, &c, via define_macros.
         if 'raw_only' in kwargs:
             kwargs['with_pyd'] = False
             kwargs['with_st'] = False
             kwargs['with_meta'] = False
+            kwargs['with_main'] = False
             del kwargs['raw_only']
         with_pyd  = kwargs.pop('with_pyd', True)
         with_st   = kwargs.pop('with_st', True)
         with_meta = kwargs.pop('with_meta', True)
+        with_main = kwargs.pop('with_main', True)
         if with_pyd and not with_meta:
             raise DistutilsOptionError(
                 'Cannot specify with_meta=False while using Pyd. Specify'
                 ' raw_only=True or with_pyd=False if you want to compile a raw Python/C'
                 ' extension.'
             )
-        define_macros.append(((with_pyd, with_st, with_meta), 'aux'))
+        if with_main and not with_pyd:
+            # The special PydMain function should only be used when using Pyd
+            with_main = False
+        define_macros.append(((with_pyd, with_st, with_meta, with_main), 'aux'))
         kwargs['define_macros'] = define_macros
 
         std_Extension.__init__(self, *args, **kwargs)

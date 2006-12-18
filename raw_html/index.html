@@ -17,10 +17,6 @@
 
 <p>Pyd includes the <code>meta.Nameof</code> package by Don Clugston. The source files meta.Nameof and meta.Demangle are copyright &copy; 2005-2006 Don Clugston.</p>
 
-<!-- Not documented, yet.
-<p>Pyd includes its own metaprogramming library, <code>meta</code>, which was written by Tomasz Stachowiak, Don Clugston, and Kirk McDonald. The <code>meta</code> library is documented <a href="meta/index.html">here</a>.</code>
--->
-
 <p>Pyd's Trac page can be found <a href="http://dsource.org/projects/pyd/wiki">here</a>.</p>
 
 <p>A simple "hello, world" module might look like this:</p>
@@ -32,11 +28,9 @@
     writefln(<span class="string">"Hello, world!"</span>);
 }
 
-<span class="keyword">extern</span> (C)
-<span class="keyword">export void</span> inittestdll() {
+<span class="keyword">extern</span> (C) <span class="keyword">void</span> PydMain() {
     def!(hello_func);
-
-    module_init(<span class="string">"testdll"</span>);
+    module_init();
 }</pre>
 
 <p>When <a href="celerid.html">compiled</a>, the module can be loaded and used from Python like any other module:</p>

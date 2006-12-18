@@ -127,8 +127,9 @@ void throws() {
     throw new Exception("Yay! An exception!");
 }
 
-extern (C)
-export void inittestdll() {
+//extern (C)
+//export void inittestdll() {
+extern(C) void PydMain() {
     def!(foo);
     // Python does not support function overloading. This allows us to wrap
     // an overloading function under a different name. Note that if the
@@ -144,7 +145,7 @@ export void inittestdll() {
     def!(dg_test);
     def!(throws);
 
-    module_init("testdll");
+    module_init();
 
     wrapped_class!(Foo) f;
     // Constructor wrapping

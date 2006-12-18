@@ -44,8 +44,7 @@
     writefln(<span class="string">"i = %%s\ns = %%s"</span>, i, s);
 }
 
-<span class="keyword">extern</span> (C)
-<span class="keyword">export void</span> inittestmodule() {
+<span class="keyword">extern</span> (C) <span class="keyword">void</span> PydMain() {
     <span class="comment">// Plain old function</span>
     def!(foo);
     <span class="comment">// Wraps the lexically first function under the given name</span>
@@ -55,7 +54,7 @@
     <span class="comment">// Wraps the function with default arguments</span>
     def!(baz);
 
-    module_init(<span class="string">"testmodule"</span>);
+    module_init();
 }</pre>
 
 <p>And when used in Python:</p>

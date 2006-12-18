@@ -120,7 +120,7 @@
     <span class="keyword">void</span> foo() { writefln(<span class="string">"Derived.foo"</span>); }
 }</pre>
 
-<p>These would be exposed to Python by putting this code in out init function after the call to <code>module_init</code>:</p>
+<p>These would be exposed to Python by putting this code in <code>PydMain</code> after the call to <code>module_init</code>:</p>
 
 <pre class="code">wrapped_class!(Base) b;
 b.def!(Base.foo);
@@ -225,7 +225,7 @@ PyClass.foo</pre>
     }
 }</pre>
 
-<p>We would expose this class to Python by putting this code in our init function after the call to <code>module_init</code>:</p>
+<p>We would expose this class to Python by putting this code in <code>PydMain</code> after the call to <code>module_init</code>:</p>
 
 <pre class="code"><span class="comment">// Make an instance of wrapped_class</span>
 wrapped_class!(Foo) f;

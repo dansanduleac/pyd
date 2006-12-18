@@ -141,7 +141,20 @@ class DCompiler(cc.CCompiler):
         outputOpts = self._outputOpts
 
         includePathOpts = []
-        
+
+        # All object files will be placed in one of three directories:
+        # infra   - All of the infrastructure's object files.
+        # project - The project's own object files.
+        # outside - Any source files specified by the project which are not
+        #           contained in the project's own directory.
+        orig_sources = sources
+        sources = []
+        for source in orig_sources:
+            if os.path.abspath(source).startswith(os.getcwd()):
+                sources.append((source, 'project'))
+            else:
+                sources.append((source, 'outside'))
+
         # To sources, add the appropriate D header file python.d, as well as
         # any platform-specific boilerplate.
         pythonHeaderPath = os.path.join(_infraDir, 'python', _pyVerXDotY, 'python.d')
@@ -152,14 +165,14 @@ class DCompiler(cc.CCompiler):
             raise DistutilsPlatformError('Required D translation of Python'
                 ' header files "%s" is missing.' % pythonHeaderPath
             )
-        sources.append(pythonHeaderPath)
+        sources.append((pythonHeaderPath, 'infra'))
 
-        # flags = (with_pyd, with_st, with_meta)
-        flags = [f for f, category in macros if category == 'aux'][0]
+        # flags = (with_pyd, with_st, with_meta, with_main)
+        with_pyd, with_st, with_meta, with_main = [f for f, category in macros if category == 'aux'][0]
         # And Pyd!
-        if flags[0]:
+        if with_pyd:
             # If we're not using StackThreads, don't use iteration.d in Pyd
-            if not flags[1] or not self._st_support:
+            if not with_st or not self._st_support:
                 _pydFiles.remove('iteration.d');
             for file in _pydFiles:
                 filePath = os.path.join(_infraDir, 'pyd', file)
@@ -167,29 +180,48 @@ class DCompiler(cc.CCompiler):
                     raise DistutilsPlatformError("Required Pyd source file '%s' is"
                         " missing." % filePath
                     )
-                sources.append(filePath)
+                sources.append((filePath, 'infra'))
+        # If using PydMain, parse the template file
+        if with_main:
+            name = [n for n, category in macros if category == 'name'][0]
+            mainTemplatePath = os.path.join(_infraDir, 'd', 'pydmain_template.d')
+            if not os.path.isfile(mainTemplatePath):
+                raise DistutilsPlatformError(
+                    "Required supporting code file %s is missing." % mainTemplatePath
+                )
+            mainTemplate = open(mainTemplatePath).read()
+            mainFileContent = mainTemplate % {'modulename' : name}
+            # Store the finished pydmain.d file alongside the object files
+            infra_output_dir = os.path.join(output_dir, 'infra')
+            if not os.path.exists(infra_output_dir):
+                os.path.makedirs(infra_output_dir)
+            mainFilename = os.path.join(infra_output_dir, 'pydmain.d')
+            mainFile = open(mainFilename, 'w')
+            mainFile.write(mainFileContent)
+            mainFile.close()
+            sources.append((mainFilename, 'infra'))
         # And StackThreads
-        if self._st_support and flags[1]:
+        if self._st_support and with_st:
             for file in _stFiles:
                 filePath = os.path.join(_infraDir, 'st', file)
                 if not os.path.isfile(filePath):
                     raise DistutilsPlatformError("Required StackThreads source"
                         " file '%s' is missing." % filePath
                     )
-                sources.append(filePath)
+                sources.append((filePath, 'infra'))
             # Add the version conditional for st
             macros.append(('Pyd_with_StackThreads', 'version'))
         # And meta
-        if flags[2]:
+        if with_meta:
             for file in _metaFiles:
                 filePath = os.path.join(_infraDir, 'meta', file)
                 if not os.path.isfile(filePath):
                     raise DistutilsPlatformError("Required meta source file"
                         " '%s' is missing." % filePath
                     )
-                sources.append(filePath)
+                sources.append((filePath, 'infra'))
         # Add the infraDir to the include path for pyd, st, and meta.
-        if True in flags:
+        if True in (with_pyd, with_st, with_meta):
             includePathOpts += self._includeOpts
             includePathOpts[-1] = includePathOpts[-1] % os.path.join(_infraDir)
         
@@ -206,7 +238,7 @@ class DCompiler(cc.CCompiler):
             raise DistutilsFileError('Required supporting code file "%s"'
                 ' is missing.' % boilerplatePath
             )
-        sources.append(boilerplatePath)
+        sources.append((boilerplatePath, 'infra'))
 
         # Extension subclass DExtension will have packed any user-supplied
         # version and debug flags into macros; we extract them and convert them
@@ -238,49 +270,34 @@ class DCompiler(cc.CCompiler):
         else:
             optimizationOpts = self._defaultOptimizeOpts
 
-        print 'sources: ', [os.path.basename(s) for s in sources]
-        # Compiling one-by-one exhibits a strange bug in the D front-end, while
-        # compiling all at once works. This flags allows me to test each form
-        # easily. Supporting the one-by-one form is synonymous with GDC support.
-        ONE_BY_ONE = True
-        if ONE_BY_ONE:
-            for source in sources:
-                outOpts = outputOpts[:]
-                objName = self.object_filenames([os.path.split(source)[1]], 0, output_dir)[0]
-                outOpts[-1] = outOpts[-1] % _qp(objName)
-                cmdElements = (
-                    [binpath] + extra_preargs + compileOpts +
-                    [pythonVersionOpt, self._unicodeOpt] + optimizationOpts +
-                    includePathOpts + outOpts + userVersionAndDebugOpts +
-                    [_qp(source)] + extra_postargs
-                )
-                cmdElements = [el for el in cmdElements if el]
-                try:
-                    self.spawn(cmdElements)
-                except DistutilsExecError, msg:
-                    raise CompileError(msg)
-        else:
-            # gdc/gcc doesn't support the idea of an output directory, so we
-            # compile from the destination
-            sources = [_qp(os.path.abspath(s)) for s in sources]
-            cwd = os.getcwd()
-            os.chdir(output_dir)
+        print 'sources: ', [os.path.basename(s) for s, t in sources]
+
+        objFiles = []
+        for source, source_type in sources:
+            outOpts = outputOpts[:]
+            objFilename = os.path.splitext(source)[0] + self.obj_extension
+            if source_type == 'project':
+                objName = os.path.join(output_dir, 'project', objFilename)
+            elif source_type == 'outside':
+                objName = os.path.join(output_dir, 'outside', os.path.basename(objFilename))
+            else: # infra
+                objName = os.path.join(output_dir, 'infra', os.path.basename(objFilename))
+            if not os.path.exists(os.path.dirname(objName)):
+                os.makedirs(os.path.dirname(objName))
+            objFiles.append(objName)
+            outOpts[-1] = outOpts[-1] % _qp(objName)
             cmdElements = (
                 [binpath] + extra_preargs + compileOpts +
                 [pythonVersionOpt, self._unicodeOpt] + optimizationOpts +
-                includePathOpts + userVersionAndDebugOpts +
-                sources + extra_postargs
+                includePathOpts + outOpts + userVersionAndDebugOpts +
+                [_qp(source)] + extra_postargs
             )
             cmdElements = [el for el in cmdElements if el]
-    
             try:
                 self.spawn(cmdElements)
             except DistutilsExecError, msg:
-                #os.chdir(cwd)
                 raise CompileError(msg)
-            os.chdir(cwd)
-
-        return [os.path.join(output_dir, fn) for fn in os.listdir(output_dir) if fn.endswith(self.obj_extension)]
+        return objFiles
 
     def link (self,
         target_desc, objects, output_filename,
@@ -431,7 +448,7 @@ class DMDDCompiler(DCompiler):
                 f.close()
 
             defFileContents = defTemplate % os.path.basename(output_filename)
-            defFilePath = os.path.join(output_dir, 'python_dll_def.def')
+            defFilePath = os.path.join(output_dir, 'infra', 'python_dll_def.def')
             f = file(defFilePath, 'wb')
             try:
                 f.write(defFileContents)
