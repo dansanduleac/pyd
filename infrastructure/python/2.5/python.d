@@ -1152,10 +1152,10 @@ extern (C) {
     // DSR:XXX:LAYOUT:
     // Will the D layout for a 1-char array be the same as the C layout?  I
     // think the D array will be larger.
-    // KGM:XXX:
-    // Almost added PyString_AS_STRING and friends, but realized this would
-    // probably cause problems.
-    char ob_sval[1];
+    char _ob_sval[1];
+    char* ob_sval() {
+        return _ob_sval.ptr;
+    }
   }
 
   // &PyBaseString_Type is accessible via PyBaseString_Type_p.
@@ -1176,6 +1176,17 @@ extern (C) {
   PyObject * PyString_FromFormat(char*, ...);
   Py_ssize_t PyString_Size(PyObject *);
   char * PyString_AsString(PyObject *);
+  /* Use only if you know it's a string */
+  int PyString_CHECK_INTERNED(PyObject* op) {
+    return (cast(PyStringObject*)op).ob_sstate;
+  }
+  /* Macro, trading safety for speed */
+  char* PyString_AS_STRING(PyObject* op) {
+    return (cast(PyStringObject*)op).ob_sval;
+  }
+  Py_ssize_t PyString_GET_SIZE(PyObject* op) {
+    return (cast(PyStringObject*)op).ob_size;
+  }
   PyObject * PyString_Repr(PyObject *, int);
   void PyString_Concat(PyObject **, PyObject *);
   void PyString_ConcatAndDel(PyObject **, PyObject *);
@@ -2504,7 +2515,10 @@ extern (C) {
     int f_lineno;
     int f_iblock;
     PyTryBlock f_blockstack[CO_MAXBLOCKS];
-    PyObject *f_localsplus[1];
+    PyObject *_f_localsplus[1];
+    PyObject** f_localsplus() {
+      return _f_localsplus.ptr;
+    }
   }
 
   // &PyFrame_Type is accessible via PyFrame_Type_p.
