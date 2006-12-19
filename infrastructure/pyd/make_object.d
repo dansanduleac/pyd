@@ -277,7 +277,6 @@ T d_type(T) (PyObject* o) {
         return temp;
     +/
     } else static if (is(char[] : T)) {
-        //writefln("d_type!(char[])");
         char* result;
         PyObject* repr;
         // If it's a string, convert it
@@ -291,9 +290,6 @@ T d_type(T) (PyObject* o) {
             Py_DECREF(repr);
         }
         if (result is null) handle_exception();
-        //char[] s = .toString(result);
-        //writefln("result is |%s|", result);
-        //writefln("s is      |%s|", s);
         return .toString(result).dup;
     } else static if (is(cdouble : T)) {
         double real_ = PyComplex_RealAsDouble(o);

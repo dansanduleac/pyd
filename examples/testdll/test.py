@@ -27,6 +27,16 @@ testdll.baz(30, 'cat')
 
 print
 
+print "Testing callback support"
+def foo():
+    print "Callback works!"
+testdll.dg_test(foo)
+print "Testing delegate wrapping"
+dg = testdll.func_test()
+dg()
+
+print
+
 a = testdll.Foo(10)
 a.foo()
 

@@ -87,8 +87,7 @@ void iter_test(PyObject* c) {
 }
 
 void delegate() func_test() {
-    Foo f = new Foo(20);
-    return &f.foo;
+    return { writefln("Delegate works!"); };
 }
 
 void dg_test(void delegate() dg) {

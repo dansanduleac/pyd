@@ -199,13 +199,13 @@ public:
     }
     
     /**
-     * Calls the PydObject.
+     * Calls the PydObject with the PyTuple args.
      * Params:
      *      args = Should be a PydTuple of the arguments to pass. Omit to
      *             call with no arguments.
      * Returns: Whatever the function PydObject returns.
      */
-    PydObject opCall(PydObject args=null) {
+    PydObject unpackCall(PydObject args=null) {
         return new PydObject(PyObject_CallObject(m_ptr, args is null ? null : args.m_ptr));
     }
     
@@ -217,58 +217,66 @@ public:
      *      kw = Keyword arguments. Should be a PydDict.
      * Returns: Whatever the function PydObject returns.
      */
-    PydObject opCall(PydObject args, PydObject kw) {
+    PydObject unpackCall(PydObject args, PydObject kw) {
         return new PydObject(PyObject_Call(m_ptr, args.m_ptr, kw.m_ptr));
+    }
+
+    /**
+     * Calls the PydObject with any convertible D items.
+     */
+    PydObject opCall(T ...) (T t) {
+        PyObject* tuple = PyTuple_FromItems(t);
+        if (tuple is null) handle_exception();
+        PyObject* result = PyObject_CallObject(m_ptr, tuple);
+        Py_DECREF(tuple);
+        if (result is null) handle_exception();
+        return new PydObject(result);
     }
 
     /**
      *
      */
-    PydObject method(char[] name, PydObject args=null) {
+    PydObject methodUnpack(char[] name, PydObject args=null) {
         // Get the method PydObject
         PyObject* m = PyObject_GetAttrString(m_ptr, (name ~ \0).ptr);
-        PyObject* self_tuple, args_tuple, result;
+        PyObject* result;
         // If this method doesn't exist (or other error), throw exception
         if (m is null) handle_exception();
-        // Set up a tuple with (self,)
-        self_tuple = PyTuple_Pack(1, m_ptr);
-        if (self_tuple is null) handle_exception();
-        // If there are additional arguments, concat them onto (self,)
-        if (args !is null) {
-            args_tuple = PySequence_Concat(self_tuple, args.m_ptr);
-            Py_DECREF(self_tuple);
-            self_tuple = null;
-        // Otherwise, just use (self,)
-        } else {
-            args_tuple = self_tuple;
-            self_tuple = null;
-        }
         // Call the method, and decrement the refcounts on the temporaries.
-        result = PyObject_CallObject(m, args_tuple);
+        result = PyObject_CallObject(m, args is null ? null : args.m_ptr);
         Py_DECREF(m);
-        Py_DECREF(args_tuple);
         // Return the result.
         return new PydObject(result);
     }
 
-    PydObject method(char[] name, PydObject args, PydObject kw) {
+    PydObject methodUnpack(char[] name, PydObject args, PydObject kw) {
         // Get the method PydObject
         PyObject* m = PyObject_GetAttrString(m_ptr, (name ~ \0).ptr);
-        PyObject* self_tuple, args_tuple, result;
+        PyObject* result;
         // If this method doesn't exist (or other error), throw exception.
         if (m is null) handle_exception();
-        // Set up a tuple with (self,)
-        self_tuple = PyTuple_Pack(1, m_ptr);
-        if (self_tuple is null) handle_exception();
-        // Put "self" at the beginning of the argument list.
-        args_tuple = PySequence_Concat(self_tuple, args.m_ptr);
-        Py_DECREF(self_tuple);
-        self_tuple = null;
         // Call the method, and decrement the refcounts on the temporaries.
-        result = PyObject_Call(m, args_tuple, kw.m_ptr);
+        result = PyObject_Call(m, args.m_ptr, kw.m_ptr);
         Py_DECREF(m);
-        Py_DECREF(args_tuple);
         // Return the result.
+        return new PydObject(result);
+    }
+
+    /**
+     * Calls a method of the object with any convertible D items.
+     */
+    PydObject method(T ...) (char[] name, T t) {
+        PyObject* mthd = PyObject_GetAttrString(m_ptr, (name ~ \0).ptr);
+        if (mthd is null) handle_exception();
+        PyObject* tuple = PyTuple_FromItems(t);
+        if (tuple is null) {
+            Py_DECREF(mthd);
+            handle_exception();
+        }
+        PyObject* result = PyObject_CallObject(mthd, tuple);
+        Py_DECREF(mthd);
+        Py_DECREF(tuple);
+        if (result is null) handle_exception();
         return new PydObject(result);
     }
 
@@ -277,6 +285,10 @@ public:
         int res = PyObject_Hash(m_ptr);
         if (res == -1) handle_exception();
         return res;
+    }
+
+    T toDItem(T)() {
+        return d_type!(T)(m_ptr);
     }
 
     /// Same as "not not this" in Python.

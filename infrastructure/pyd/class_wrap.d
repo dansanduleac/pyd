@@ -110,8 +110,12 @@ template wrapped_class_type(T) {
     };
 }
 
-// A mapping of all objects referenced by the GC that are being held by Python.
+// A mappnig of all class references that are being held by Python.
 PyObject*[void*] wrapped_gc_objects;
+// A mapping of all GC references that are being held by Python.
+template wrapped_gc_references(dg_t) {
+    PyObject*[dg_t] wrapped_gc_references;
+}
 
 /**
  * A useful check for whether a given class has been wrapped. Mainly used by
@@ -452,7 +456,6 @@ template OverloadShim() {
     std.traits.ReturnType!(dg_t) get_overload(dg_t, T ...) (dg_t dg, char[] name, T t) {
         python.PyObject* _pyobj = wrapped_gc_objects[cast(void*)this];
         if (_pyobj.ob_type != &wrapped_class_type!(typeof(this))) {
-            //writefln("Wrapper class, calling wrapped PyObject");
             // If this object's type is not the wrapped class's type (that is,
             // if this object is actually a Python subclass of the wrapped
             // class), then call the Python object.
@@ -462,7 +465,6 @@ template OverloadShim() {
             python.Py_DECREF(method);
             return pydg(t);
         } else {
-            //writefln("Wrapper class, calling original delegate");
             return dg(t);
         }
     }
@@ -487,6 +489,38 @@ private void* get_voidptr(T)(T t) {
     }
 }
 
+// If the passed D reference has an existing Python object, return a borrowed
+// reference to it. Otherwise, return null.
+PyObject* get_existing_reference(T) (T t) {
+    static if (is(T == class)) {
+        PyObject** obj_p = cast(void*)t in wrapped_gc_objects;
+        if (obj_p) return *obj_p;
+        else return null;
+    } else {
+        PyObject** obj_p = t in wrapped_gc_references!(T);
+        if (obj_p) return *obj_p;
+        else return null;
+    }
+}
+
+// Drop the passed D reference from the pool of held references.
+void drop_reference(T) (T t) {
+    static if (is(T == class)) {
+        wrapped_gc_objects.remove(cast(void*)t);
+    } else {
+        wrapped_gc_references!(T).remove(t);
+    }
+}
+
+// Add the passed D reference to the pool of held references.
+void add_reference(T) (T t, PyObject* o) {
+    static if (is(T == class)) {
+        wrapped_gc_objects[cast(void*)t] = o;
+    } else {
+        wrapped_gc_references!(T)[t] = o;
+    }
+}
+
 /**
  * Returns a new Python object of a wrapped type.
  */
@@ -495,8 +529,11 @@ PyObject* WrapPyObject_FromObject(T) (T t) {
     alias wrapped_class_type!(T) type;
     if (is_wrapped!(T)) {
         // If this object is already wrapped, get the existing object.
-        PyObject** obj_p = get_voidptr(t) in wrapped_gc_objects;
-        if (obj_p) return *obj_p;
+        PyObject* obj_p = get_existing_reference(t);
+        if (obj_p) {
+            Py_INCREF(obj_p);
+            return obj_p;
+        }
         // Otherwise, allocate a new object
         PyObject* obj = type.tp_new(&type, null, null);
         // Set the contained instance
@@ -527,14 +564,13 @@ T WrapPyObject_AsObject(T) (PyObject* _self) {
 void WrapPyObject_SetObj(PY, T) (PY* _self, T t) {
     alias wrapped_class_object!(T) obj;
     obj* self = cast(obj*)_self;
-    if (get_voidptr(t) == get_voidptr(self.d_obj))
-        return;
+    if (t is self.d_obj) return;
     // Clean up the old object, if there is one
     if (self.d_obj !is null) {
-        wrapped_gc_objects.remove(get_voidptr(self.d_obj));
+        drop_reference(self.d_obj);
     }
     self.d_obj = t;
     // Handle the new one, if there is one
-    if (t !is null) wrapped_gc_objects[get_voidptr(self.d_obj)] = _self;
+    if (t !is null) add_reference(self.d_obj, _self);
 }
 

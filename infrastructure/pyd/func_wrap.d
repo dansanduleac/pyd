@@ -45,6 +45,7 @@ void PydWrappedFunc_Ready(T)() {
         type.ob_type = PyType_Type_p;
         type.tp_basicsize = obj.sizeof;
         type.tp_name = "PydFunc";
+        type.tp_flags = Py_TPFLAGS_DEFAULT;
 
         type.tp_call = &wrapped_func_call!(T).call;
 
@@ -100,7 +101,6 @@ ReturnType!(fn_t) applyPyTupleToAlias(alias fn, fn_t, uint MIN_ARGS) (PyObject* 
     if (args !is null) {
         argCount = PyObject_Length(args);
     }
-    //writefln("argCount: %s; MIN_ARGS: %s; MAX_ARGS: %s", argCount, MIN_ARGS, MAX_ARGS);
 
     // Sanity check!
     if (argCount < MIN_ARGS || argCount > MAX_ARGS) {
@@ -290,14 +290,9 @@ class PydWrappedFunc {
 
     PyObject* call(T ...) (T t) {
         const uint ARGS = T.length;
-
-        PyObject* pyt = PyTuple_New(ARGS);
+        PyObject* pyt = PyTuple_FromItems(t);
         if (pyt is null) return null;
         scope(exit) Py_DECREF(pyt);
-
-        foreach(i, arg; t) {
-            PyTuple_SetItem(pyt, i, _py(arg));
-        }
         return PyObject_CallObject(callable, pyt);
     }
 }
