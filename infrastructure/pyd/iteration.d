@@ -123,7 +123,7 @@ void PydStackContext_Ready() {
 
         PyType_Ready(&type);
         is_wrapped!(StackContext) = true;
-        wrapped_classes[typeid(StackContext)] = true;
+        //wrapped_classes[typeid(StackContext)] = true;
     }
 }
 

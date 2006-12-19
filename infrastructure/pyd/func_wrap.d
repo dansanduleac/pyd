@@ -51,7 +51,7 @@ void PydWrappedFunc_Ready(T)() {
 
         PyType_Ready(&type);
         is_wrapped!(T) = true;
-        wrapped_classes[typeid(T)] = true;
+        //wrapped_classes[typeid(T)] = true;
     }
 }
 

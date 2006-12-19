@@ -141,8 +141,9 @@ PyObject* _py(T) (T t) {
     // Convert wrapped type of a PyObject*
     } else static if (is(T == class)) {
         // But only if it actually is a wrapped type. :-)
-        if (is_wrapped!(T)) {
-            return WrapPyObject_FromObject(t);
+        PyTypeObject** type = t.classinfo in wrapped_classes;
+        if (type) {
+            return WrapPyObject_FromTypeAndObject(*type, t);
         }
         // If it's not a wrapped type, fall through to the exception.
     // If converting a struct by value, create a copy and wrap that

@@ -39,7 +39,8 @@ import meta.Nameof;
 import std.string;
 import std.traits;
 
-bool[TypeInfo] wrapped_classes;
+//bool[TypeInfo] wrapped_types;
+PyTypeObject*[ClassInfo] wrapped_classes;
 
 // This is split out in case I ever want to make a subtype of a wrapped class.
 template PydWrapObject_HEAD(T) {
@@ -447,7 +448,9 @@ void finalize_class(CLS) (CLS cls, char[] docstring="", char[] modulename="") {
     Py_INCREF(cast(PyObject*)&type);
     PyModule_AddObject(Pyd_Module_p(modulename), name.ptr, cast(PyObject*)&type);
     is_wrapped!(T) = true;
-    wrapped_classes[typeid(T)] = true;
+    static if (is(T == class)) {
+        wrapped_classes[T.classinfo] = &type;
+    }
 }
 
 import std.stdio;
@@ -473,21 +476,6 @@ template OverloadShim() {
 ///////////////////////
 // PYD API FUNCTIONS //
 ///////////////////////
-
-private union aa_reference(T) {
-    T aa;
-    void* ptr;
-}
-
-private void* get_voidptr(T)(T t) {
-    static if (isAA!(T)) {
-        aa_reference!(T) ref;
-        ref.aa = t;
-        return ref.ptr;
-    } else {
-        return cast(void*)t;
-    }
-}
 
 // If the passed D reference has an existing Python object, return a borrowed
 // reference to it. Otherwise, return null.
@@ -521,12 +509,16 @@ void add_reference(T) (T t, PyObject* o) {
     }
 }
 
+PyObject* WrapPyObject_FromObject(T) (T t) {
+    return WrapPyObject_FromTypeAndObject(&wrapped_class_type!(T), t);
+}
+
 /**
  * Returns a new Python object of a wrapped type.
  */
-PyObject* WrapPyObject_FromObject(T) (T t) {
-    alias wrapped_class_object!(T) wrapped_object;
-    alias wrapped_class_type!(T) type;
+PyObject* WrapPyObject_FromTypeAndObject(T) (PyTypeObject* type, T t) {
+    //alias wrapped_class_object!(T) wrapped_object;
+    //alias wrapped_class_type!(T) type;
     if (is_wrapped!(T)) {
         // If this object is already wrapped, get the existing object.
         PyObject* obj_p = get_existing_reference(t);
@@ -535,7 +527,7 @@ PyObject* WrapPyObject_FromObject(T) (T t) {
             return obj_p;
         }
         // Otherwise, allocate a new object
-        PyObject* obj = type.tp_new(&type, null, null);
+        PyObject* obj = type.tp_new(type, null, null);
         // Set the contained instance
         WrapPyObject_SetObj(obj, t);
         return obj;
@@ -561,7 +553,7 @@ T WrapPyObject_AsObject(T) (PyObject* _self) {
 /**
  * Sets the contained object in self to t.
  */
-void WrapPyObject_SetObj(PY, T) (PY* _self, T t) {
+void WrapPyObject_SetObj(T) (PyObject* _self, T t) {
     alias wrapped_class_object!(T) obj;
     obj* self = cast(obj*)_self;
     if (t is self.d_obj) return;
