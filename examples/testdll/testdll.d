@@ -2,24 +2,9 @@ module testdll;
 
 import python;
 import pyd.pyd;
-//import pyd.ftype;
 import std.stdio, std.string;
 
-//import meta.Tuple;
-//import meta.Apply;
-
-void apply_test(int i, char[] s) {
-    writefln("%s %s", i, s);
-}
-
 void foo() {
-    /+
-    alias Tuple!(int, char[]) T;
-    T t;
-    t.val!(0) = 20;
-    t.val!(1) = "Monkey";
-    apply(&apply_test, t);
-    +/
     writefln("20 Monkey");
 }
 
@@ -75,17 +60,6 @@ class Foo {
     void i(int j) { m_i = j; }
 }
 
-void iter_test(PyObject* c) {
-    Bar b = new Bar(1, 2, 3, 4, 5);
-    PyObject* o, res;
-    foreach(i; b) {
-        o = _py(i);
-        res = PyObject_CallFunctionObjArgs(c, o, null);
-        Py_DECREF(res);
-        Py_DECREF(o);
-    }
-}
-
 void delegate() func_test() {
     return { writefln("Delegate works!"); };
 }
@@ -126,8 +100,6 @@ void throws() {
     throw new Exception("Yay! An exception!");
 }
 
-//extern (C)
-//export void inittestdll() {
 extern(C) void PydMain() {
     def!(foo);
     // Python does not support function overloading. This allows us to wrap
@@ -139,7 +111,6 @@ extern(C) void PydMain() {
     // Default argument support - Now implicit!
     def!(baz);
     def!(spam);
-    def!(iter_test);
     def!(func_test);
     def!(dg_test);
     def!(throws);

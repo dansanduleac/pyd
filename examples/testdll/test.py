@@ -49,6 +49,15 @@ except TypeError, e:
 
 print
 
+print "Testing exception wrapping"
+try:
+    testdll.throws()
+except RuntimeError, e:
+    print "Success: Exception caught!"
+    print e
+
+print
+
 S = testdll.S
 s = S()
 print "s.s = 'hello'"
