@@ -21,10 +21,14 @@ SOFTWARE.
 */
 module pyd.exception;
 
-private import python;
-private import meta.Nameof;
-private import std.string;
-import std.stdio;
+import python;
+import pyd.lib_abstract :
+    toString,
+    prettytypeof,
+    objToStr
+;
+//import meta.Nameof;
+//import std.string;
 
 /**
  * This function first checks if a Python exception is set, and then (if one
@@ -82,7 +86,7 @@ T exception_catcher(T) (T delegate() dg) {
     }
     // Some other D object was thrown. Deal with it.
     catch (Object o) {
-        PyErr_SetString(PyExc_RuntimeError, ("thrown D Object: " ~ o.classinfo.name ~ ": " ~ o.toString() ~ \0).ptr);
+        PyErr_SetString(PyExc_RuntimeError, ("thrown D Object: " ~ o.classinfo.name ~ ": " ~ objToStr(o) ~ \0).ptr);
         return error_code!(T)();
     }
 }

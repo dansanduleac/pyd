@@ -21,21 +21,24 @@ SOFTWARE.
 */
 module pyd.func_wrap;
 
-private {
-    import python;
+import python;
 
-    import pyd.class_wrap;
-    import pyd.dg_convert;
-    import pyd.exception;
-    import pyd.make_object;
+import pyd.class_wrap;
+import pyd.dg_convert;
+import pyd.exception;
+import pyd.make_object;
+import pyd.lib_abstract :
+    toString,
+    ParameterTypeTuple,
+    ReturnType
+;
 
-    import meta.Default;
-    import meta.Nameof;
+//import meta.Default;
+//import meta.Nameof;
 
-    import std.string;
-    import std.traits;
-    import std.stdio;
-}
+//import std.string;
+//import std.traits;
+//import std.stdio;
 
 // Builds a callable Python object from a delegate or function pointer.
 void PydWrappedFunc_Ready(T)() {
@@ -87,8 +90,6 @@ void setWrongArgsError(int gotArgs, uint minArgs, uint maxArgs, char[] funcName=
 
     PyErr_SetString(PyExc_TypeError, (str ~ \0).ptr);
 }
-
-import std.stdio;
 
 // Calls callable alias fn with PyTuple args.
 ReturnType!(fn_t) applyPyTupleToAlias(alias fn, fn_t, uint MIN_ARGS) (PyObject* args) {

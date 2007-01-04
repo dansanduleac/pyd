@@ -11,10 +11,15 @@ XXX:
 
 module python;
 
-import std.c.stdio;
-import std.c.time;
-import std.c.string;
-import std.stdio;
+version (Pyd_with_Tango) {
+    import tango.stdc.stdio;
+    import tango.stdc.time;
+    import tango.stdc.string;
+} else {
+    import std.c.stdio;
+    import std.c.time;
+    import std.c.string;
+}
 
 /* D long is always 64 bits, but when the Python/C API mentions long, it is of
  * course referring to the C type long, the size of which is 32 bits on both
@@ -930,7 +935,7 @@ extern (C) {
   }
 
   void Py_UNICODE_COPY(void *target, void *source, size_t length) {
-    std.c.string.memcpy(target, source, cast(uint)(length * Py_UNICODE.sizeof));
+    memcpy(target, source, cast(uint)(length * Py_UNICODE.sizeof));
   }
 
   void Py_UNICODE_FILL(Py_UNICODE *target, Py_UNICODE value, size_t length) {

@@ -1,7 +1,11 @@
 /* This code is currently just a copy-n-paste from the Digital Mars DLL example
  * code at http://www.digitalmars.com/d/dll.html */
 
-import std.c.windows.windows;
+version (Pyd_with_Tango) {
+    import tango.sys.windows.minwin;
+} else {
+    import std.c.windows.windows;
+}
 
 HINSTANCE g_hInst;
 

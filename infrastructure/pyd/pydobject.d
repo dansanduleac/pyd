@@ -21,11 +21,11 @@ SOFTWARE.
 */
 module pyd.pydobject;
 
-private import std.c.stdio;
-private import python;
-private import pyd.exception;
-private import pyd.make_object;
-private import std.string;
+//private import std.c.stdio;
+import python;
+import pyd.exception;
+import pyd.make_object;
+//import std.string;
 
 /**
  * Wrapper class for a Python/C API PyObject.
@@ -170,8 +170,14 @@ public:
         return new PydObject(PyObject_Str(m_ptr));
     }
     /// Allows use of PydObject in writef via %s
-    char[] toString() {
-        return d_type!(char[])(m_ptr);
+    version (Pyd_with_Tango) {
+        char[] toUtf8() {
+            return d_type!(char[])(m_ptr);
+        }
+    } else {
+        char[] toString() {
+            return d_type!(char[])(m_ptr);
+        }
     }
     
     /// Same as _unicode(this) in Python.

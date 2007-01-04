@@ -21,12 +21,15 @@ SOFTWARE.
 */
 module pyd.def;
 
-private import python;
+import python;
 
-private import pyd.func_wrap;
-
-private import meta.Default;
-private import meta.Nameof;
+import pyd.func_wrap;
+import pyd.lib_abstract :
+    symbolnameof,
+    minArgs
+;
+//import meta.Default;
+//import meta.Nameof;
 
 private PyMethodDef module_global_methods[] = [
     { null, null, 0, null }

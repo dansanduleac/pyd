@@ -29,11 +29,13 @@ version(Pyd_with_StackThreads) {
     import pyd.iteration;
 }
 import pyd.make_object;
+import pyd.lib_abstract :
+    symbolnameof
+;
 
-import std.stdio;
-import std.string;
-
-import meta.Nameof;
+//import std.stdio;
+//import std.string;
+//import meta.Nameof;
 
 // With the exception of the T passed to wrapped_struct, it is intended that
 // all of these templates accept a pointer-to-struct type as a template

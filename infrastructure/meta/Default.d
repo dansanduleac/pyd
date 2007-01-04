@@ -1,55 +1,30 @@
 /**
-	Various templates for dealing with a function's default arguments.
+	Templates not found in Tango, but included in Phobos.
 */
 module meta.Default;
 
-private import std.traits;
-private import std.typetuple;
-
-/**
-	Derives a function that only calls the first n arguments of fn.
-*/
-template firstArgs(alias fn, uint n, fn_t = typeof(&fn)) {
-	alias firstArgsT!(fn, n, fn_t).func firstArgs;
+template ReturnType(alias dg) {
+    alias ReturnType!(typeof(dg)) ReturnType;
+}
+template ReturnType(dg) {
+    static if (is(dg R == return))
+        alias R ReturnType;
+    else
+        static assert(false, "argument has no return type");
 }
 
-template firstArgsT(alias fn, uint args, fn_t = typeof(&fn)) {
-	alias ReturnType!(fn_t) R;
-	alias ParameterTypeTuple!(fn_t) T;
-
-	R func(T[0 .. args] t) {
-		static if (is(R == void)) {
-			fn(t);
-			return;
-		} else {
-			return fn(t);
-		}
-	}
+template ParameterTypeTuple(alias dg) {
+    alias ParameterTypeTuple!(typeof(dg)) ParameterTypeTuple;
 }
-
-template defaultsTupleT(alias fn, uint MIN_ARGS, fn_t = typeof(&fn), uint current=MIN_ARGS, T ...) {
-	alias ParameterTypeTuple!(fn_t) Tu;
-	const uint MAX_ARGS = Tu.length;
-	static if (current > MAX_ARGS) {
-		alias T type;
-	} else {
-		alias defaultsTupleT!(fn, MIN_ARGS, fn_t, current+1, T, typeof(&firstArgs!(fn, current, fn_t))).type type;
-	}
-}
-
-/**
-	Returns a tuple of function pointers to fn representing all of the valid
-	calls to that function, as per its default arguments.
-*/
-void defaultsTuple(alias fn, uint MIN_ARGS, fn_t = typeof(&fn)) (
-	void delegate(defaultsTupleT!(fn, MIN_ARGS, fn_t).type) dg
-) {
-	alias defaultsTupleT!(fn, MIN_ARGS, fn_t).type T;
-	T t;
-	foreach(i, arg; t) {
-		t[i] = &firstArgs!(fn, ParameterTypeTuple!(typeof(t[i])).length, fn_t);
-	}
-	dg(t);
+template ParameterTypeTuple(dg) {
+    static if (is(dg P == function))
+        alias P ParameterTypeTuple;
+    else static if (is(dg P == delegate))
+        alias ParameterTypeTuple!(P) ParameterTypeTuple;
+    else static if (is(dg P == P*))
+        alias ParameterTypeTuple!(P) ParameterTypeTuple;
+    else
+        static assert(false, "argument has no parameters");
 }
 
 /**

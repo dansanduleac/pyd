@@ -27,19 +27,23 @@ import pyd.ctor_wrap;
 import pyd.def;
 import pyd.exception;
 import pyd.func_wrap;
-version(Pyd_with_StackThreads) {
+version (Pyd_with_StackThreads) {
     import pyd.iteration;
 }
 import pyd.make_object;
 import pyd.op_wrap;
+import pyd.lib_abstract :
+    symbolnameof,
+    prettytypeof,
+    toString,
+    ParameterTypeTuple,
+    ReturnType,
+    minArgs,
+    objToStr
+;
 
-import meta.Default;
-import meta.Nameof;
+//import meta.Default;
 
-import std.string;
-import std.traits;
-
-//bool[TypeInfo] wrapped_types;
 PyTypeObject*[ClassInfo] wrapped_classes;
 
 // This is split out in case I ever want to make a subtype of a wrapped class.
@@ -179,7 +183,7 @@ template wrapped_repr(T) {
     PyObject* repr(PyObject* _self) {
         return exception_catcher({
             wrap_object* self = cast(wrap_object*)_self;
-            char[] repr = self.d_obj.toString();
+            char[] repr = objToStr(self.d_obj);
             return _py(repr);
         });
     }
@@ -453,8 +457,6 @@ void finalize_class(CLS) (CLS cls, char[] docstring="", char[] modulename="") {
     }
 }
 
-import std.stdio;
-
 template OverloadShim() {
     std.traits.ReturnType!(dg_t) get_overload(dg_t, T ...) (dg_t dg, char[] name, T t) {
         python.PyObject* _pyobj = wrapped_gc_objects[cast(void*)this];
@@ -532,7 +534,7 @@ PyObject* WrapPyObject_FromTypeAndObject(T) (PyTypeObject* type, T t) {
         WrapPyObject_SetObj(obj, t);
         return obj;
     } else {
-        PyErr_SetString(PyExc_RuntimeError, ("Type " ~ typeid(T).toString() ~ " is not wrapped by Pyd.").ptr);
+        PyErr_SetString(PyExc_RuntimeError, ("Type " ~ objToStr(typeid(T)) ~ " is not wrapped by Pyd.").ptr);
         return null;
     }
 }

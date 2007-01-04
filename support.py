@@ -44,7 +44,13 @@ class Extension(std_Extension):
         elif len(args) > 0:
             define_macros.append((args[0], 'name'))
 
-        # Similarly, pass in no_pyd, &c, via define_macros.
+        # Pass in the 'tango' flag, also
+        with_tango = kwargs.pop('tango', False)
+        if with_tango:
+            define_macros.append(('Pyd_with_Tango', 'version'))
+        kwargs['define_macros'] = define_macros
+
+        # Similarly, pass in with_pyd, &c, via define_macros.
         if 'raw_only' in kwargs:
             kwargs['with_pyd'] = False
             kwargs['with_st'] = False
@@ -53,6 +59,9 @@ class Extension(std_Extension):
             del kwargs['raw_only']
         with_pyd  = kwargs.pop('with_pyd', True)
         with_st   = kwargs.pop('with_st', True)
+        # StackThreads doesn't work with Tango at the moment.
+        if with_tango:
+            with_st = False
         with_meta = kwargs.pop('with_meta', True)
         with_main = kwargs.pop('with_main', True)
         if with_pyd and not with_meta:
@@ -64,8 +73,8 @@ class Extension(std_Extension):
         if with_main and not with_pyd:
             # The special PydMain function should only be used when using Pyd
             with_main = False
+
         define_macros.append(((with_pyd, with_st, with_meta, with_main), 'aux'))
-        kwargs['define_macros'] = define_macros
 
         std_Extension.__init__(self, *args, **kwargs)
 

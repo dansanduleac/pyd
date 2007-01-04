@@ -21,15 +21,17 @@ SOFTWARE.
 */
 module pyd.ctor_wrap;
 
-private import python;
-private import pyd.class_wrap;
-private import pyd.exception;
-private import pyd.func_wrap;
-private import pyd.make_object;
-
-private import meta.Nameof;
-
-private import std.traits;
+import python;
+import pyd.class_wrap;
+import pyd.exception;
+import pyd.func_wrap;
+import pyd.make_object;
+import pyd.lib_abstract :
+    prettynameof,
+    ParameterTypeTuple
+;
+//import meta.Nameof;
+//import std.traits;
 
 T call_ctor(T, Tu ...)(Tu t) {
     return new T(t);

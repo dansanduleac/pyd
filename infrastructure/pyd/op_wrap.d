@@ -28,10 +28,15 @@ import pyd.dg_convert;
 import pyd.func_wrap;
 import pyd.exception;
 import pyd.make_object;
+import pyd.lib_abstract :
+    prettytypeof,
+    symbolnameof,
+    ParameterTypeTuple,
+    ReturnType
+;
 
-import meta.Nameof;
-
-import std.traits;
+//import meta.Nameof;
+//import std.traits;
 
 version(Python_2_5_Or_Later) {
     alias Py_ssize_t index_t;

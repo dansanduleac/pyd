@@ -27,7 +27,11 @@ SOFTWARE.
  */
 module pyd.dg_convert;
 
-import std.traits;
+import pyd.lib_abstract :
+    ParameterTypeTuple,
+    ReturnType
+;
+//import std.traits;
 
 template fn_to_dgT(Fn) {
     alias ParameterTypeTuple!(Fn) T;

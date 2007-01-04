@@ -36,13 +36,17 @@ module pyd.make_object;
 
 import python;
 
-import std.string;
+//import std.string;
 //import std.stdio;
 
 import pyd.pydobject;
 import pyd.class_wrap;
 import pyd.func_wrap;
 import pyd.exception;
+import pyd.lib_abstract :
+    objToStr,
+    toString
+;
 
 package template isArray(T) {
     const bool isArray = is(typeof(T.init[0])[] == T);
@@ -165,7 +169,7 @@ PyObject* _py(T) (T t) {
         Py_INCREF(t);
         return t;
     }
-    PyErr_SetString(PyExc_RuntimeError, ("D conversion function _py failed with type " ~ typeid(T).toString()).ptr);
+    PyErr_SetString(PyExc_RuntimeError, ("D conversion function _py failed with type " ~ objToStr(typeid(T))).ptr);
     return null;
 }
 
@@ -343,7 +347,7 @@ void could_not_convert(T) (PyObject* o) {
             Py_DECREF(py_type_str);
         }
     }
-    d_typename = typeid(T).toString();
+    d_typename = objToStr(typeid(T));
     throw new PydConversionException(
         "Couldn't convert Python type '" ~
         py_typename ~

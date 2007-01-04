@@ -32,6 +32,7 @@ _pydFiles = [
     'exception.d',
     'func_wrap.d',
     'iteration.d',
+    'lib_abstract.d',
     'make_object.d',
     'op_wrap.d',
     'pyd.d',
@@ -194,7 +195,7 @@ class DCompiler(cc.CCompiler):
             # Store the finished pydmain.d file alongside the object files
             infra_output_dir = os.path.join(output_dir, 'infra')
             if not os.path.exists(infra_output_dir):
-                os.path.makedirs(infra_output_dir)
+                os.makedirs(infra_output_dir)
             mainFilename = os.path.join(infra_output_dir, 'pydmain.d')
             mainFile = open(mainFilename, 'w')
             mainFile.write(mainFileContent)
