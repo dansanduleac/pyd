@@ -11,7 +11,17 @@ XXX:
 
 module python;
 
-version (Pyd_with_Tango) {
+version (build) {
+    version (DigitalMars) {
+        version (Windows) {
+            pragma(link, "python25_digitalmars");
+        }
+    } else {
+        pragma(link, "python2.5");
+    }
+}
+
+version (Tango) {
     import tango.stdc.stdio;
     import tango.stdc.time;
     import tango.stdc.string;
