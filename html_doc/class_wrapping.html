@@ -16,6 +16,7 @@
 <a class="nav" href="conversion.html">Type conversion</a><br />
 <a class="nav" href="func_wrapping.html">Function wrapping</a><br />
 <a class="navcur" href="class_wrapping.html">Class wrapping</a><br />
+<a class="nav" href="inherit.html">Inheritance</a><br />
 <a class="nav" href="struct_wrapping.html">Struct wrapping</a><br />
 <a class="nav" href="except_wrapping.html">Exception wrapping</a><br />
 <a class="nav" href="pydobject.html">PydObject</a><br />
@@ -104,101 +105,6 @@
 <dt><code>opCat, opCatAssign</code></dt> <dd>Python does not have a dedicated array concatenation operator. The plus sign (<code>+</code>) is reused for this purpose. Therefore, odd behavior may result with classes that define both <code>opAdd/opAddAssign</code> and one or both of these operators. (Consider yourself warned.) However, the Python/C API considers addition and concatenation distinct operations, and so both of these sets of operator overloads are supported.</dd>
 <dt><code>opIn_r</code></dt> <dd>Python expects the <code>in</code> operator to return a boolean value (it is a containment test). D convention is for <code>in</code> to search for the value in the container, and to return a pointer to the found item, or <code>null</code> if the item is not found. That said, D does not enforce any particular signature on the <code>in</code> overload, while the Python/C API does. Pyd will check the boolean result of a call to <code>opIn_r</code>, and return that value to Python.</dd>
 </dl>
-
-<h3><a class="anchor" name="inheritance">Inheritance</a></h3>
-
-<p>If you wrap both a class and a child of that class, Pyd is smart enough to make the resulting Python classes have a parent-child relationship. Any methods of the parent class will automatically be available to the child class. If the child class overloads any of those methods, it is important that the user wrap them in the module's init function. For example:</p>
-
-<pre class="code"><span class="keyword">import</span> std.stdio;
-
-<span class="keyword">class</span> Base {
-    <span class="keyword">void</span> foo() { writefln(<span class="string">"Base.foo"</span>); }
-    <span class="keyword">void</span> bar() { writefln(<span class="string">"Base.bar"</span>); }
-}
-
-<span class="keyword">class</span> Derived : Base {
-    <span class="keyword">void</span> foo() { writefln(<span class="string">"Derived.foo"</span>); }
-}</pre>
-
-<p>These would be exposed to Python by putting this code in <code>PydMain</code> after the call to <code>module_init</code>:</p>
-
-<pre class="code">wrapped_class!(Base) b;
-b.def!(Base.foo);
-b.def!(Base.bar);
-finalize_class(b);
-
-wrapped_class!(Derived) d;
-d.def!(Derived.foo);
-finalize_class(d);</pre>
-
-<p>When used in Python, we get the expected behavior:</p>
-
-<pre class="code">&gt;&gt;&gt; issubclass(Derived, Base)
-True
-&gt;&gt;&gt; b = Base()
-&gt;&gt;&gt; d = Derived()
-&gt;&gt;&gt; b.foo()
-Base.foo
-&gt;&gt;&gt; b.bar()
-Base.bar
-&gt;&gt;&gt; d.foo()
-Derived.foo
-&gt;&gt;&gt; d.bar()
-Base.bar</pre>
-
-<p>There is one weakness in the default behavior. Take a function like the following:</p>
-
-<pre class="code"><span class="keyword">void</span> polymorphic_call(Base b) {
-    b.foo();
-}</pre>
-
-<p>And in Python:</p>
-
-<pre class="code"><span class="keyword">class</span> PyClass(Base):
-    <span class="keyword">def</span> foo(self):
-        <span class="keyword">print</span> <span class="string">"PyClass.foo"</span>
-
-&gt;&gt;&gt; p = PyClass()
-&gt;&gt;&gt; polymorphic_call(p)
-Base.foo</pre>
-
-<p>Optimally, we would want <code>polymorphic_call</code> to call PyClass.foo. This requires some additional work on the D side of things. To get this behavior, then rather than expose Base directly, we must expose a wrapper class:</p>
-
-<pre class="code"><span class="keyword">class</span> BaseWrap : Base {
-    <span class="keyword">mixin</span> OverloadShim;
-    <span class="keyword">void</span> foo() {
-        get_overload(&amp;<span class="keyword">super</span>.foo, <span class="string">"foo"</span>);
-    }
-    <span class="keyword">void</span> bar() {
-        get_overload(&amp;<span class="keyword">super</span>.bar, <span class="string">"bar"</span>);
-    }
-}</pre>
-
-<p>The <code>OverloadShim</code> template has but a single member, the <code>get_overload</code> function.</p>
-
-<dl>
-<dt><code>ReturnType!(dg_t) get_overload(<span class="t_arg">dg_t</span>, <span class="t_arg">T ...</span>) (dg_t <span class="arg">dg</span>, char[] <span class="arg">name</span>, T <span class="arg">t</span>);</code></dt>
-<dd><ul>
-    <li><span class="arg">dg</span> should be a delegate to the parent class's method.</li>
-    <li><span class="arg">name</span> should be the name of the method as Python understands it to be. <i>(There's no efficient way to derive this automatically based on only the delegate.)</i></li>
-    <li><span class="arg">t</span> is a tuple argument. These arguments will be passed on to the actual function call, be it the parent class's implementation or a Python subclass's implementation.</li>
-</ul></dd>
-</dl>
-
-<p><code>get_overload</code> returns whatever the method does.</p>
-
-<p>Now, we must replace the old wrapping of Base with this:</p>
-
-<pre class="code">wrapped_class!(BaseWrap, <span class="string">"Base"</span>) w;
-w.def!(BaseWrap.foo);
-w.def!(BaseWrap.bar);
-finalize_class(w);</pre>
-
-<p>Now our subclass will perform just like we expect:</p>
-
-<pre class="code">&gt;&gt;&gt; p = PyClass()
-&gt;&gt;&gt; polymorphic_call(p)
-PyClass.foo</pre>
 
 <h3><a class="anchor" name="examples">Examples</a></h3>
 
