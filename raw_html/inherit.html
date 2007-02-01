@@ -105,6 +105,70 @@ finalize_class(w);</pre>
 &gt;&gt;&gt; polymorphic_call(p)
 PyClass.foo</pre>
 
+<p>However, BaseWrap has no particular relationship to Derived. You may remember that Derived overloads <tt>bar</tt> but not <tt>foo</tt>. When we wrapped Derived in <tt>PydMain</tt>, we specified the <tt>foo</tt> overload but not the <tt>bar</tt> overload. Because Derived's parent class is no longer wrapped, Pyd no longer has any way to know about the <tt>bar</tt> method of the Derived class.</tt></p>
+
+<p>The solution is to explicitly tell Pyd that Derived's parent is BaseWrap. Furthermore, it is probably best to go the extra mile, by wrapping an <tt>OverloadShim</tt> subclass of Derived (call it DerivedWrap), and telling Pyd that BaseWrap is <em>its</em> parent. Additionally, the original <tt>Base</tt> and <tt>Derived</tt> classes should still be wrapped, in the event that functions return instances of them to Python, but should not actually be exposed to Python. The complete solution ends up looking like this:</p>
+
+<pre class="code"><span class="keyword">import</span> pyd.pyd;
+<span class="keyword">import</span> std.stdio;
+
+<span class="keyword">class</span> Base {
+    <span class="keyword">void</span> foo() { writefln(<span class="string">"Base.foo"</span>); }
+    <span class="keyword">void</span> bar() { writefln(<span class="string">"Base.bar"</span>); }
+}
+
+<span class="keyword">class</span> Derived : Base {
+    <span class="keyword">void</span> foo() { writefln(<span class="string">"Derived.foo"</span>); }
+}
+
+<span class="keyword">class</span> BaseWrap : Base {
+    <span class="keyword">mixin</span> OverloadShim;
+    <span class="keyword">void</span> foo() {
+        get_overload(&amp;<span class="keyword">super</span>.foo, <span class="string">"foo"</span>);
+    }
+    <span class="keyword">void</span> bar() {
+        get_overload(&amp;<span class="keyword">super</span>.bar, <span class="string">"bar"</span>);
+    }
+}
+
+<span class="keyword">class</span> DerivedWrap : Derived {
+    <span class="keyword">mixin</span> OverloadShim;
+    <span class="keyword">void</span> foo() {
+        get_overload(&amp;<span class="keyword">super</span>.foo, <span class="string">"foo"</span>);
+    }
+}
+
+<span class="keyword">extern</span> (C) <span class="keyword">void</span> PydMain() {
+    module_init();
+
+    wrapped_class!(Base) b;
+    w.hide();
+    w.def!(Base.foo);
+    w.def!(Base.bar);
+    finalize_class(w);
+
+    wrapped_class!(Derived) d;
+    d.hide();
+    d.def!(Derived.foo);
+    finalize_class(d);
+
+    wrapped_class!(BaseWrap, <span class="string">"Base"</span>) bw;
+    bw.def!(BaseWrap.foo);
+    bw.def!(BaseWrap.bar);
+    finalize_class(bw);
+
+    wrapped_class!(DerivedWrap, <span class="string">"Derived"</span>) dw;
+    dw.parent!(BaseWrap);
+    dw.def!(DerivedWrap.foo);
+    finalize_class(dw);
+}</pre>
+
+<p><i>(I recognize that this is astoundingly ugly. However, it is the best solution I can come up with without resorting to code generation.)</i></p>
+
+<p>The <a href="http://dsource.org/projects/pyd/browser/trunk/examples/inherit/inherit.d"><tt>inherit</tt> example</a> in the Pyd distribution provides a more complete version of this example, including how wrapper code should handle constructors.</p>
+
+<p><i>(TODO: Add support for interfaces and abstract classes.)</i></p>
+
 </div>
 
 </body>

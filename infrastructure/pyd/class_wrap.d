@@ -85,7 +85,7 @@ template wrapped_class_type(T) {
         null,                         /*tp_getattro*/
         null,                         /*tp_setattro*/
         null,                         /*tp_as_buffer*/
-        0, /*tp_flags*/
+        0,                            /*tp_flags*/
         null,                         /*tp_doc*/
         null,                         /*tp_traverse*/
         null,                         /*tp_clear*/
@@ -249,6 +249,7 @@ template wrapped_set(T, alias Fn) {
 struct wrapped_class(T, char[] classname = symbolnameof!(T)) {
     static if (is(T == class)) pragma(msg, "wrapped_class: " ~ classname);
     static const char[] _name = classname;
+    static bool _private = false;
     alias T wrapped_type;
     /**
      * Wraps a member function of the class.
@@ -332,6 +333,14 @@ struct wrapped_class(T, char[] classname = symbolnameof!(T)) {
             &wrapped_ctors!(T, C).init_func;
     }
 
+    static void parent(Parent) () {
+        wrapped_class_type!(T).tp_base = &wrapped_class_type!(Parent);
+    }
+
+    static void hide() {
+        _private = true;
+    }
+
     // Iteration wrapping support requires StackThreads
     version(Pyd_with_StackThreads) {
 
@@ -393,12 +402,14 @@ void finalize_class(CLS) (CLS cls, char[] docstring="", char[] modulename="") {
     type.tp_methods   = wrapped_method_list!(T).ptr;
     type.tp_name      = (module_name ~ "." ~ name ~ \0).ptr;
 
-    // Check for wrapped parent classes
-    static if (is(T B == super)) {
-        foreach (C; B) {
-            static if (is(C == class) && !is(C == Object)) {
-                if (is_wrapped!(C)) {
-                    type.tp_base = &wrapped_class_type!(C);
+    // Check for wrapped parent classes, if one was not explicitly supplied.
+    if (type.tp_base is null) {
+        static if (is(T B == super)) {
+            foreach (C; B) {
+                static if (is(C == class) && !is(C == Object)) {
+                    if (is_wrapped!(C)) {
+                        type.tp_base = &wrapped_class_type!(C);
+                    }
                 }
             }
         }
@@ -436,21 +447,27 @@ void finalize_class(CLS) (CLS cls, char[] docstring="", char[] modulename="") {
         type.tp_call = cast(ternaryfunc)&method_wrap!(T, T.opCall, typeof(&T.opCall)).func;
     }
 
-    // If a ctor wasn't supplied, try the default.
-    if (type.tp_init is null) {
-        static if (is(T == class)) {
-            type.tp_init = &wrapped_init!(T).init;
-        } else {
-            type.tp_init = &wrapped_struct_init!(T).init;
+    if (CLS._private) {
+        type.tp_init = null;
+    } else {
+        // If a ctor wasn't supplied, try the default.
+        static if (is(typeof(new T))) {
+            if (type.tp_init is null) {
+                static if (is(T == class)) {
+                    type.tp_init = &wrapped_init!(T).init;
+                } else {
+                    type.tp_init = &wrapped_struct_init!(T).init;
+                }
+            }
         }
     }
     if (PyType_Ready(&type) < 0) {
-        // XXX: This will probably crash the interpreter, as it isn't normally
-        // caught and translated.
         throw new Exception("Couldn't ready wrapped type!");
     }
     Py_INCREF(cast(PyObject*)&type);
-    PyModule_AddObject(Pyd_Module_p(modulename), name.ptr, cast(PyObject*)&type);
+    if (!CLS._private) {
+        PyModule_AddObject(Pyd_Module_p(modulename), name.ptr, cast(PyObject*)&type);
+    }
     is_wrapped!(T) = true;
     static if (is(T == class)) {
         wrapped_classes[T.classinfo] = &type;
@@ -459,12 +476,13 @@ void finalize_class(CLS) (CLS cls, char[] docstring="", char[] modulename="") {
 
 template OverloadShim() {
     std.traits.ReturnType!(dg_t) get_overload(dg_t, T ...) (dg_t dg, char[] name, T t) {
-        python.PyObject* _pyobj = wrapped_gc_objects[cast(void*)this];
-        if (_pyobj.ob_type != &wrapped_class_type!(typeof(this))) {
+        python.PyObject** _pyobj = cast(void*)this in wrapped_gc_objects;
+        python.PyTypeObject** _pytype = this.classinfo in wrapped_classes;
+        if (_pyobj is null || _pytype is null || (*_pyobj).ob_type != *_pytype) {
             // If this object's type is not the wrapped class's type (that is,
             // if this object is actually a Python subclass of the wrapped
             // class), then call the Python object.
-            python.PyObject* method = python.PyObject_GetAttrString(_pyobj, (name ~ \0).ptr);
+            python.PyObject* method = python.PyObject_GetAttrString(*_pyobj, (name ~ \0).ptr);
             if (method is null) handle_exception();
             dg_t pydg = PydCallable_AsDelegate!(dg_t)(method);
             python.Py_DECREF(method);

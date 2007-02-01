@@ -58,6 +58,12 @@
 <dt><code>static void init(<span class="t_arg">C</span> ...) ();</code></dt>
 <dd>This allows you to expose the class's constructors to Python. If the class provides a zero-argument constructor, there is no need to specify it; it is always available. Each element of <span class="t_arg">C</span> should be a function type. Each function type should correspond to a constructor. (That is, the arguments to the function should be the same as arguments to the class constructor. The return type is ignored.) There is an additional limitation at this time: No two constructors may have the same number of arguments. Pyd will always attempt to call the first constructor with the right number of arguments. If you wish to support a constructor with default arguments, you must specify each possible constructor call as a different template argument to this function. The examples show a few uses of the <code>init</code> function.</dd>
 
+<dt><code>static void parent(<span class="t_arg">Parent</span>) ();</code></dt>
+<dd>This allows the user to manually specify a class as this class's parent. This is intended for a very specific purpose (related to how Pyd handles <a href="inherit.html">inheritance</a>), and should not be used heedlessly. If a class's parent was previously wrapped, then Pyd will detect this and set up a parent-child relationship automatically, in which case it is not neccessary to specify this.</dd>
+
+<dt><code>static void hide();</code></dt>
+<dd>Causes this class to be wrapped, but not actually directly exposed to Python. This can be useful if you want to return instances of a class without allowing Python code to instantiate them. This is mainly used when handling <a href="inherit.html">inheritance</a>.</dd>
+
 <dt><code>static void iter(<span class="t_arg">iter_t</span>) ();</code></dt>
 <dd>This allows the user to specify a different overload of opApply than the default. (The default is always the one that is lexically first.) The <span class="t_arg">iter_t</span> argument should be the type of the delegate that forms the argument to opApply. This might be e.g. <code>int delegate(inout int)</code>. Don't forget the <code>inout</code> modifiers! (This is not available in Linux; see the note below on opApply wrapping.)</dd>
 

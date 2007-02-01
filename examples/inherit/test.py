@@ -11,8 +11,8 @@ sys.path.append(os.path.abspath(libDir))
 
 import inherit
 
-b = inherit.Base()
-d = inherit.Derived()
+b = inherit.Base(1)
+d = inherit.Derived(2)
 
 b.foo()
 b.bar()
@@ -25,14 +25,14 @@ print issubclass(inherit.Derived, inherit.Base)
 inherit.call_poly(b)
 inherit.call_poly(d)
 
-w = inherit.WrapDerive()
-inherit.call_poly(w)
+#w = inherit.WrapDerive()
+#inherit.call_poly(w)
 
-class PyClass(inherit.WrapDerive):
+class PyClass(inherit.Derived):
     def foo(self):
         print 'PyClass.foo'
 
-p = PyClass()
+p = PyClass(3)
 #print "The basic inheritance support breaks down here:"
 inherit.call_poly(p)
 
@@ -40,16 +40,18 @@ print
 
 b1 = inherit.return_poly_base()
 print "inherit.return_poly_base returned instance of Base"
-assert type(b1) == inherit.Base
+b1.foo()
+b1.bar()
+#assert type(b1) == inherit.Base
 b2 = inherit.return_poly_derived()
 b2a = inherit.return_poly_derived()
 print "inherit.return_poly_derived returned instance of Derived"
-assert type(b2) == inherit.Derived
+#assert type(b2) == inherit.Derived
 print "inherit.return_poly_derived returned the same object twice"
 assert b2 is b2a
 b3 = inherit.return_poly_wrap()
-print "inherit.return_poly_wrap returned instance of WrapDerive"
-assert type(b3) == inherit.WrapDerive
+print "inherit.return_poly_wrap returned instance of DeriveWrap"
+assert type(b3) == inherit.Derived
 
 print
 print '-------'
