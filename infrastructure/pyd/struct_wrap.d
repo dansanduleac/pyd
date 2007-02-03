@@ -68,6 +68,7 @@ template wrapped_member(T, M, size_t offset) {
 struct wrapped_struct(T, char[] structname = symbolnameof!(T)) {
     pragma(msg, "wrapped_struct: " ~ structname);
     static const char[] _name = structname;
+    static bool _private = false;
     alias T* wrapped_type;
 
     static void member(M, size_t offset, char[] name) (char[] docstring="") {
