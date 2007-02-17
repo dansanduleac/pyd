@@ -20,25 +20,6 @@ class Derived : Base {
     }
 }
 
-class BaseWrap : Base {
-    mixin OverloadShim;
-    this(int i) { super(i); }
-    void foo() {
-        get_overload(&super.foo, "foo");
-    }
-    void bar() {
-        get_overload(&super.bar, "bar");
-    }
-}
-
-class DeriveWrap : Derived {
-    mixin OverloadShim;
-    this(int i) { super(i); }
-    void foo() {
-        get_overload(&super.foo, "foo");
-    }
-}
-
 void call_poly(Base b) {
     writefln("call_poly:");
     b.foo();
@@ -56,40 +37,24 @@ Base return_poly_derived() {
     return b2;
 }
 
-Base return_poly_wrap() {
-    if (b3 is null) b3 = new DeriveWrap(3);
-    return b3;
-}
-
 extern(C) void PydMain() {
     def!(call_poly);
     def!(return_poly_base);
     def!(return_poly_derived);
-    def!(return_poly_wrap);
 
     module_init();
 
-    wrapped_class!(Base) b;
-    b.hide();
-    b.def!(Base.foo);
-    b.def!(Base.bar);
-    finalize_class(b);
+    wrap_class!(
+        Base,
+        Init!(void function(int)),
+        Def!(Base.foo),
+        Def!(Base.bar)
+    );
 
-    wrapped_class!(Derived) d;
-    d.hide();
-    d.def!(Derived.foo);
-    finalize_class(d);
-
-    wrapped_class!(BaseWrap, "Base") bw;
-    bw.init!(void function(int));
-    bw.def!(BaseWrap.foo);
-    bw.def!(BaseWrap.bar);
-    finalize_class(bw);
-
-    wrapped_class!(DeriveWrap, "Derived") dw;
-    dw.init!(void function(int));
-    dw.parent!(BaseWrap);
-    dw.def!(DeriveWrap.foo);
-    finalize_class(dw);
+    wrap_class!(
+        Derived,
+        Init!(void function(int)),
+        Def!(Derived.foo)
+    );
 }
 

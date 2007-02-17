@@ -24,7 +24,7 @@ SOFTWARE.
 // the ability to switch between Phobos and Tango arbitrarily.
 module pyd.lib_abstract;
 
-version (Pyd_with_Tango) {
+version (Tango) {
     import tango.stdc.string : strlen;
     import tango.text.convert.Integer : qadut;
     char[] toString(char* s) {
@@ -49,4 +49,5 @@ version (Pyd_with_Tango) {
     public import std.string : toString;
     public import std.traits : ParameterTypeTuple, ReturnType;
     public import std.bind : minArgs = minNumArgs;
+    public import std.metastrings : ToString;
 }

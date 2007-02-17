@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2006 Kirk McDonald
+Copyright 2006, 2007 Kirk McDonald
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
@@ -247,7 +247,7 @@ T d_type(T) (PyObject* o) {
     } else static if (is(T == class)) {
         // We can only convert to a class if it has been wrapped, and of course
         // we can only convert the object if it is the wrapped type.
-        if (is_wrapped!(T) && PyObject_TypeCheck(o, &wrapped_class_type!(T))) {
+        if (is_wrapped!(T) && cast(T)((cast(wrapped_class_object!(Object)*)o).d_obj) !is null) {
             return WrapPyObject_AsObject!(T)(o);
         }
         // Otherwise, throw up an exception.

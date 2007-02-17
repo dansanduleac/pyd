@@ -117,21 +117,18 @@ extern(C) void PydMain() {
 
     module_init();
 
-    wrapped_class!(Foo) f;
-    // Constructor wrapping
-    f.init!(void function(int), void function(int, int));
-    // Member function wrapping
-    f.def!(Foo.foo);
-    // Property wrapping
-    f.prop!(Foo.i);
-    finalize_class(f);
+    wrap_class!(
+        Foo,
+        Init!(void delegate(int), void delegate(int, int)),
+        Property!(Foo.i),
+        Def!(Foo.foo)
+    );
 
-    wrapped_struct!(S) s;
-    s.def!(S.write_s);
-    const size_t i = S.i.offsetof;
-    const size_t t = S.s.offsetof;
-    s.member!(int, i, "i");
-    s.member!(char[], t, "s");
-    finalize_struct(s);
+    wrap_struct!(
+        S,
+        Def!(S.write_s),
+        Member!("i"),
+        Member!("s")
+    );
 }
 

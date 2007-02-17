@@ -169,12 +169,13 @@ public:
     PydObject str() {
         return new PydObject(PyObject_Str(m_ptr));
     }
-    /// Allows use of PydObject in writef via %s
-    version (Pyd_with_Tango) {
+    version (Tango) {
+        /// Allows PydObject to be formatted.
         char[] toUtf8() {
             return d_type!(char[])(m_ptr);
         }
     } else {
+        /// Allows use of PydObject in writef via %s
         char[] toString() {
             return d_type!(char[])(m_ptr);
         }

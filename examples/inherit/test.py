@@ -49,9 +49,6 @@ print "inherit.return_poly_derived returned instance of Derived"
 #assert type(b2) == inherit.Derived
 print "inherit.return_poly_derived returned the same object twice"
 assert b2 is b2a
-b3 = inherit.return_poly_wrap()
-print "inherit.return_poly_wrap returned instance of DeriveWrap"
-assert type(b3) == inherit.Derived
 
 print
 print '-------'

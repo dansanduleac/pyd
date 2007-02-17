@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2006 Kirk McDonald
+Copyright 2006, 2007 Kirk McDonald
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
@@ -31,7 +31,9 @@ version (Pyd_with_StackThreads) {
     import pyd.iteration;
 }
 import pyd.make_object;
+import pyd.make_wrapper;
 import pyd.op_wrap;
+import pyd.make_wrapper;
 import pyd.lib_abstract :
     symbolnameof,
     prettytypeof,
@@ -39,12 +41,16 @@ import pyd.lib_abstract :
     ParameterTypeTuple,
     ReturnType,
     minArgs,
-    objToStr
+    objToStr,
+    ToString
 ;
 
 //import meta.Default;
 
 PyTypeObject*[ClassInfo] wrapped_classes;
+template shim_class(T) {
+    PyTypeObject* shim_class;
+}
 
 // This is split out in case I ever want to make a subtype of a wrapped class.
 template PydWrapObject_HEAD(T) {
@@ -242,6 +248,7 @@ template wrapped_set(T, alias Fn) {
 // CLASS WRAPPING INTERFACE //
 //////////////////////////////
 
+/+
 /**
  * This struct wraps a D class. Its member functions are the primary way of
  * wrapping the specific parts of the class.
@@ -251,53 +258,103 @@ struct wrapped_class(T, char[] classname = symbolnameof!(T)) {
     static const char[] _name = classname;
     static bool _private = false;
     alias T wrapped_type;
-    /**
-     * Wraps a member function of the class.
-     *
-     * Params:
-     * fn = The member function to wrap.
-     * name = The name of the function as it will appear in Python.
-     * fn_t = The type of the function. It is only useful to specify this
-     *        if more than one function has the same name as this one.
-     */
-    static void def(alias fn, char[] name = symbolnameof!(fn), fn_t=typeof(&fn)) (char[] docstring="") {
++/
+
+//enum ParamType { Def, StaticDef, Property, Init, Parent, Hide, Iter, AltIter }
+struct DoNothing {
+    static void call(T) () {}
+}
+/**
+Wraps a member function of the class.
+
+Params:
+fn = The member function to wrap.
+name = The name of the function as it will appear in Python.
+fn_t = The type of the function. It is only useful to specify this
+       if more than one function has the same name as this one.
+*/
+template Def(alias fn, char[] name = symbolnameof!(fn), fn_t=typeof(&fn), uint MIN_ARGS=minArgs!(fn)) {
+    alias Def!(fn, symbolnameof!(fn), name, fn_t, MIN_ARGS) Def;
+}
+struct Def(alias fn, char[] _realname, char[] name, fn_t, uint MIN_ARGS) {
+    //static const type = ParamType.Def;
+    alias fn func;
+    alias fn_t func_t;
+    static const char[] realname = _realname;
+    static const char[] funcname = name;
+    static const uint min_args = MIN_ARGS;
+
+    static void call(T) () {
         pragma(msg, "class.def: " ~ name);
         static PyMethodDef empty = { null, null, 0, null };
         alias wrapped_method_list!(T) list;
         list[length-1].ml_name = (name ~ \0).ptr;
         list[length-1].ml_meth = &method_wrap!(T, fn, fn_t).func;
         list[length-1].ml_flags = METH_VARARGS;
-        list[length-1].ml_doc = (docstring ~ \0).ptr;
+        list[length-1].ml_doc = "";
         list ~= empty;
         // It's possible that appending the empty item invalidated the
         // pointer in the type struct, so we renew it here.
         wrapped_class_type!(T).tp_methods = list.ptr;
     }
+    template shim(uint i) {
+        const char[] shim =
+            "    alias Params["~ToString!(i)~"] __pyd_p"~ToString!(i)~";\n"
+            "    ReturnType!(__pyd_p"~ToString!(i)~".func_t) "~_realname~"(ParameterTypeTuple!(__pyd_p"~ToString!(i)~".func_t) t) {\n"
+            "        return __pyd_get_overload!(\""~_realname~"\", __pyd_p"~ToString!(i)~".func_t).func(\""~name~"\", t);\n"
+            "    }\n";
+    }
+    template shim_call(char[] varname, uint i) {
+        const char[] shim_call = "Def!("~varname~"."~_realname~", p"~ToString!(i)~".realname, p"~ToString!(i)~".funcname, p"~ToString!(i)~".func_t, p"~ToString!(i)~".min_args)";
+    }
+}
 
-    /**
-     * Wraps a static member function of the class. Identical to pyd.def.def
-     */
-    static void static_def(alias fn, char[] name = symbolnameof!(fn), fn_t=typeof(&fn), uint MIN_ARGS=minArgs!(fn)) (char[] docstring="") {
+/**
+Wraps a static member function of the class. Identical to pyd.def.def
+*/
+struct StaticDef(alias fn, char[] name = symbolnameof!(fn), fn_t=typeof(&fn), uint MIN_ARGS=minArgs!(fn)) {
+    //static const type = ParamType.StaticDef;
+    alias fn func;
+    alias fn_t func_t;
+    static const char[] funcname = name;
+    static const uint min_args = MIN_ARGS;
+    static void call(T) () {
         pragma(msg, "class.static_def: " ~ name);
         static PyMethodDef empty = { null, null, 0, null };
         alias wrapped_method_list!(T) list;
         list[length-1].ml_name = (name ~ \0).ptr;
         list[length-1].ml_meth = &function_wrap!(fn, MIN_ARGS, fn_t).func;
         list[length-1].ml_flags = METH_VARARGS | METH_STATIC;
-        list[length-1].ml_doc = (docstring ~ \0).ptr;
+        list[length-1].ml_doc = "";
         list ~= empty;
         wrapped_class_type!(T).tp_methods = list;
     }
+    template shim(uint i) {
+        const char[] shim = "";
+    }
+    template shim_call(char[] varname, uint i) {
+        const char[] shim_call = "DoNothing";
+    }
+}
 
-    /**
-     * Wraps a property of the class.
-     *
-     * Params:
-     * fn = The property to wrap.
-     * name = The name of the property as it will appear in Python.
-     * RO = Whether this is a read-only property.
-     */
-    static void prop(alias fn, char[] name = symbolnameof!(fn), bool RO=false) (char[] docstring="") {
+/**
+Wraps a property of the class.
+
+Params:
+fn = The property to wrap.
+name = The name of the property as it will appear in Python.
+RO = Whether this is a read-only property.
+*/
+template Property(alias fn, char[] name = symbolnameof!(fn), bool RO=false) {
+    alias Property!(fn, symbolnameof!(fn), name, RO) Property;
+}
+struct Property(alias fn, char[] _realname, char[] name, bool RO) {
+    alias property_parts!(fn).getter_type get_t;
+    alias property_parts!(fn).setter_type set_t;
+    static const char[] realname = _realname;
+    static const char[] funcname = name;
+    static const bool readonly = RO;
+    static void call(T) () {
         pragma(msg, "class.prop: " ~ name);
         static PyGetSetDef empty = { null, null, null, null, null };
         wrapped_prop_list!(T)[length-1].name = (name ~ \0).ptr;
@@ -307,7 +364,7 @@ struct wrapped_class(T, char[] classname = symbolnameof!(T)) {
             wrapped_prop_list!(T)[length-1].set =
                 &wrapped_set!(T, fn).func;
         }
-        wrapped_prop_list!(T)[length-1].doc = (docstring ~ \0).ptr;
+        wrapped_prop_list!(T)[length-1].doc = "";
         wrapped_prop_list!(T)[length-1].closure = null;
         wrapped_prop_list!(T) ~= empty;
         // It's possible that appending the empty item invalidated the
@@ -315,51 +372,96 @@ struct wrapped_class(T, char[] classname = symbolnameof!(T)) {
         wrapped_class_type!(T).tp_getset =
             wrapped_prop_list!(T).ptr;
     }
+    template shim_setter(uint i) {
+        static if (RO) {
+            const char[] shim_setter = "";
+        } else {
+            const char[] shim_setter =
+            "    ReturnType!(__pyd_p"~ToString!(i)~".set_t) "~_realname~"(ParameterTypeTuple!(__pyd_p"~ToString!(i)~".set_t) t) {\n"
+            "        return __pyd_get_overload!(\""~_realname~"\", __pyd_p"~ToString!(i)~".set_t).func(\""~name~"\", t);\n"
+            "    }\n";
+        }
+    }
+    template shim(uint i) {
+        const char[] shim =
+            "    alias Params["~ToString!(i)~"] __pyd_p"~ToString!(i)~";\n"
+            "    ReturnType!(__pyd_p"~ToString!(i)~".get_t) "~_realname~"() {\n"
+            "        return __pyd_get_overload!(\""~_realname~"\", __pyd_p"~ToString!(i)~".get_t).func(\""~name~"\");\n"
+            "    }\n" ~
+            shim_setter!(i);
+    }
+    template shim_call(char[] varname, uint i) {
+        const char[] shim_call = "Property!("~varname~"."~_realname~", p"~ToString!(i)~".realname, p"~ToString!(i)~".funcname, p"~ToString!(i)~".readonly)";
+    }
+}
 
-    /**
-     * Wraps the constructors of the class.
-     *
-     * This template takes a series of specializations of the ctor template
-     * (see ctor_wrap.d), each of which describes a different constructor
-     * that the class supports. The default constructor need not be
-     * specified, and will always be available if the class supports it.
-     *
-     * Bugs:
-     * This currently does not support having multiple constructors with
-     * the same number of arguments.
-     */
-    static void init(C ...) () {
+/**
+Wraps the constructors of the class.
+
+This template takes a series of specializations of the ctor template
+(see ctor_wrap.d), each of which describes a different constructor
+that the class supports. The default constructor need not be
+specified, and will always be available if the class supports it.
+
+Bugs:
+This currently does not support having multiple constructors with
+the same number of arguments.
+*/
+struct Init(C ...) {
+    alias C ctors;
+    static void call(T) () {
         wrapped_class_type!(T).tp_init =
             &wrapped_ctors!(T, C).init_func;
     }
-
-    static void parent(Parent) () {
-        wrapped_class_type!(T).tp_base = &wrapped_class_type!(Parent);
+    template shim_impl(uint i, uint c=0) {
+        static if (c < ctors.length) {
+            const char[] shim_impl = 
+                "    this(ParameterTypeTuple!(__pyd_c"~ToString!(i)~"["~ToString!(c)~"]) t) {\n"
+                "        super(t);\n"
+                "    }\n" ~ shim_impl!(i, c+1);
+        } else {
+            const char[] shim_impl = "";
+        }
     }
-
-    static void hide() {
-        _private = true;
+    template shim(uint i) {
+        const char[] shim =
+            "    alias Params["~ToString!(i)~"] __pyd_p"~ToString!(i)~";\n"
+            "    alias __pyd_p"~ToString!(i)~".ctors __pyd_c"~ToString!(i)~";\n"~
+            shim_impl!(i);
     }
+    template shim_call(char[] varname, uint i) {
+        const char[] shim_call = "Init!(p"~ToString!(i)~".ctors)";
+    }
+}
 
-    // Iteration wrapping support requires StackThreads
-    version(Pyd_with_StackThreads) {
+// Iteration wrapping support requires StackThreads
+version(Pyd_with_StackThreads) {
 
-    /**
-     * Allows selection of alternate opApply overloads. iter_t should be
-     * the type of the delegate in the opApply function that the user wants
-     * to be the default.
-     */
-    static void iter(iter_t) () {
+/**
+Allows selection of alternate opApply overloads. iter_t should be
+the type of the delegate in the opApply function that the user wants
+to be the default.
+*/
+struct Iter(iter_t) {
+    static void call(T) () {
         PydStackContext_Ready();
-        wrapped_class_type!(T).tp_iter = &wrapped_iter!(T, T.opApply, int function(iter_t)).iter;
+        // This strange bit of hackery is needed since we operate on pointer-
+        // to-struct types, rather than just struct types.
+        static if (is(T S : S*) && is(S == struct)) {
+            wrapped_class_type!(T).tp_iter = &wrapped_iter!(T, S.opApply, int function(iter_t)).iter;
+        } else {
+            wrapped_class_type!(T).tp_iter = &wrapped_iter!(T, T.opApply, int function(iter_t)).iter;
+        }
     }
+}
 
-    /**
-     * Exposes alternate iteration methods, originally intended for use with
-     * D's delegate-as-iterator features, as methods returning a Python
-     * iterator.
-     */
-    static void alt_iter(alias fn, char[] name = symbolnameof!(fn), iter_t = funcDelegInfoT!(typeof(&fn)).Meta.ArgType!(0)) (char[] docstring="") {
+/**
+Exposes alternate iteration methods, originally intended for use with
+D's delegate-as-iterator features, as methods returning a Python
+iterator.
+*/
+struct AltIter(alias fn, char[] name = symbolnameof!(fn), iter_t = funcDelegInfoT!(typeof(&fn)).Meta.ArgType!(0)) {
+    static void call(T) () {
         static PyMethodDef empty = { null, null, 0, null };
         alias wrapped_method_list!(T) list;
         PydStackContext_Ready();
@@ -372,28 +474,68 @@ struct wrapped_class(T, char[] classname = symbolnameof!(T)) {
         // pointer in the type struct, so we renew it here.
         wrapped_class_type!(T).tp_methods = list;
     }
-
-    } /*Pyd_with_StackThreads*/
 }
 
-/**
- * Finalize the wrapping of the class. It is neccessary to call this after all
- * calls to the wrapped_class member functions.
- */
-void finalize_class(CLS) (CLS cls, char[] docstring="", char[] modulename="") {
-    alias CLS.wrapped_type T;
-    alias wrapped_class_type!(T) type;
-    const char[] name = CLS._name;
-    static if (is(T == class)) {
-        pragma(msg, "finalize_class: " ~ name);
+} /*Pyd_with_StackThreads*/
+
+private
+template comma(uint i, uint length) {
+    static if (i < length-1) {
+        const char[] comma = ",";
     } else {
-        pragma(msg, "finalize_struct: " ~ name);
+        const char[] comma = "";
     }
-    pragma(msg, "finalize_class, T is " ~ prettytypeof!(T));
-    
+}
+
+private
+template recursive_call(char[] name, int i, Params...) {
+    static if (i < Params.length) {
+        const char[] recursive_call = Params[i].shim_call!(name, i) ~ comma!(i, Params.length) ~ recursive_call!(name, i+1, Params);
+    } else {
+        const char[] recursive_call = "";
+    }
+}
+
+private
+template aliases(uint i, Params...) {
+    static if (i < Params.length) {
+        const char[] aliases = "alias Params["~ToString!(i)~"] p"~ToString!(i)~";\n" ~ aliases!(i+1, Params);
+    } else {
+        const char[] aliases = "";
+    }
+}
+
+void wrap_class(T, Params...) (char[] docstring="", char[] modulename="") {
+    wrap_class!(void, T, symbolnameof!(T), Params)(docstring, modulename);
+}
+void wrap_class(T, char[] name, Params...) (char[] docstring="", char[] modulename="") {
+    wrap_class!(void, T, name, Params)(docstring, modulename);
+}
+
+void wrap_class(wrapping, _T, char[] name, Params...) (char[] docstring="", char[] modulename="") {
+    //alias CLS.wrapped_type T;
+    //const char[] name = CLS._name;
+    static if (is(_T == class)) {
+        pragma(msg, "wrap_class: " ~ name);
+        alias _T T;
+    } else {
+        pragma(msg, "wrap_struct: " ~ name);
+        alias _T* T;
+    }
+    alias wrapped_class_type!(T) type;
+    //pragma(msg, "wrap_class, T is " ~ prettytypeof!(T));
+
+    //Params params;
+    foreach (param; Params) {
+        param.call!(T)();
+    }
+
     assert(Pyd_Module_p(modulename) !is null, "Must initialize module before wrapping classes.");
     char[] module_name = toString(PyModule_GetName(Pyd_Module_p(modulename)));
-    // Fill in missing values
+
+    //////////////////
+    // Basic values //
+    //////////////////
     type.ob_type      = PyType_Type_p();
     type.tp_basicsize = (wrapped_class_object!(T)).sizeof;
     type.tp_doc       = (docstring ~ \0).ptr;
@@ -402,8 +544,11 @@ void finalize_class(CLS) (CLS cls, char[] docstring="", char[] modulename="") {
     type.tp_methods   = wrapped_method_list!(T).ptr;
     type.tp_name      = (module_name ~ "." ~ name ~ \0).ptr;
 
-    // Check for wrapped parent classes, if one was not explicitly supplied.
-    if (type.tp_base is null) {
+    /////////////////
+    // Inheritance //
+    /////////////////
+    static if (is(wrapping == void)) {
+        // Inherit directly-wrapped classes from their wrapped superclass.
         static if (is(T B == super)) {
             foreach (C; B) {
                 static if (is(C == class) && !is(C == Object)) {
@@ -413,8 +558,20 @@ void finalize_class(CLS) (CLS cls, char[] docstring="", char[] modulename="") {
                 }
             }
         }
+    } else {
+        // Inherit shims from their grandparent's shim.
+        static if (is(wrapping B == super)) {
+            foreach (C; B) {
+                static if (is(C == class) && !is(C == Object)) {
+                    type.tp_base = shim_class!(C);
+                }
+            }
+        }
     }
 
+    ////////////////////////
+    // Operator overloads //
+    ////////////////////////
     // Numerical operator overloads
     if (wrapped_class_as_number!(T) != PyNumberMethods.init) {
         type.tp_as_number = &wrapped_class_as_number!(T);
@@ -447,10 +604,17 @@ void finalize_class(CLS) (CLS cls, char[] docstring="", char[] modulename="") {
         type.tp_call = cast(ternaryfunc)&method_wrap!(T, T.opCall, typeof(&T.opCall)).func;
     }
 
-    if (CLS._private) {
+    //////////////////////////
+    // Constructor wrapping //
+    //////////////////////////
+    static if (is(wrapping == void) && is(T == class)) {
+        // Non-shim classes cannot be instantiated from Python.
         type.tp_init = null;
     } else {
         // If a ctor wasn't supplied, try the default.
+        // If the default ctor isn't available, and no ctors were supplied,
+        // then this class cannot be instantiated from Python.
+        // (Structs always use the default ctor.)
         static if (is(typeof(new T))) {
             if (type.tp_init is null) {
                 static if (is(T == class)) {
@@ -461,34 +625,41 @@ void finalize_class(CLS) (CLS cls, char[] docstring="", char[] modulename="") {
             }
         }
     }
+
+    //////////////////
+    // Finalization //
+    //////////////////
     if (PyType_Ready(&type) < 0) {
         throw new Exception("Couldn't ready wrapped type!");
     }
     Py_INCREF(cast(PyObject*)&type);
-    if (!CLS._private) {
+    // Only directly expose a class to Python if it is a shim.
+    static if (!is(wrapping == void) || is(T U : U*) && is(U == struct)) {
         PyModule_AddObject(Pyd_Module_p(modulename), name.ptr, cast(PyObject*)&type);
     }
+
     is_wrapped!(T) = true;
     static if (is(T == class)) {
         wrapped_classes[T.classinfo] = &type;
-    }
-}
+        // If this is a class passed in by the user, create and wrap the shim.
+        // (By recursively calling this function.)
+        static if (is(wrapping == void)) {
+            alias make_wrapper!(T, Params).wrapper wrapper_class;
+            // Construct the recursive call. Since /this/ call to wrap_class
+            // was passed aliases to the members of the /base/ class, we need
+            // to pass the recursive call aliases to the members of the /shim/.
+            // The recursive_call template goes through each member of Params
+            // and constructs this.
 
-template OverloadShim() {
-    std.traits.ReturnType!(dg_t) get_overload(dg_t, T ...) (dg_t dg, char[] name, T t) {
-        python.PyObject** _pyobj = cast(void*)this in wrapped_gc_objects;
-        python.PyTypeObject** _pytype = this.classinfo in wrapped_classes;
-        if (_pyobj is null || _pytype is null || (*_pyobj).ob_type != *_pytype) {
-            // If this object's type is not the wrapped class's type (that is,
-            // if this object is actually a Python subclass of the wrapped
-            // class), then call the Python object.
-            python.PyObject* method = python.PyObject_GetAttrString(*_pyobj, (name ~ \0).ptr);
-            if (method is null) handle_exception();
-            dg_t pydg = PydCallable_AsDelegate!(dg_t)(method);
-            python.Py_DECREF(method);
-            return pydg(t);
-        } else {
-            return dg(t);
+            // This is a workaround for some tuple shortcomings...
+            const char[] a = aliases!(0, Params);
+            pragma(msg, a);
+            mixin(a);
+
+            const char[] call = "wrap_class!(T, wrapper_class, name, "~recursive_call!("wrapper_class", 0, Params)~")();";
+            pragma(msg, call);
+            mixin(call);
+            shim_class!(T) = &wrapped_class_type!(wrapper_class);
         }
     }
 }
@@ -564,7 +735,7 @@ T WrapPyObject_AsObject(T) (PyObject* _self) {
     alias wrapped_class_object!(T) wrapped_object;
     alias wrapped_class_type!(T) type;
     wrapped_object* self = cast(wrapped_object*)_self;
-    if (!is_wrapped!(T) || self is null || !PyObject_TypeCheck(_self, &type)) {
+    if (!is_wrapped!(T) || self is null || (is(T : Object) && cast(T)cast(Object)self.d_obj is null)) {
         throw new Exception("Error extracting D object from Python object...");
     }
     return self.d_obj;

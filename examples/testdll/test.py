@@ -37,8 +37,15 @@ dg()
 
 print
 
+print "Testing class wrapping"
 a = testdll.Foo(10)
+print "Class instantiated!"
+print "Testing method wrapping:"
 a.foo()
+print "Testing property wrapping:"
+print a.i
+a.i = 50
+print a.i
 
 print "Testing opApply wrapping:"
 try:
