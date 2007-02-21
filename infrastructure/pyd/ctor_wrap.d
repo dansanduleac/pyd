@@ -64,9 +64,8 @@ template wrapped_struct_init(T) {
     }
 }
 
-// This template accepts a Tuple of (either) function pointer types or other
-// Tuples, which each describe a ctor of T, and  uses them to wrap a Python
-// tp_init function.
+// This template accepts a tuple of function pointer types, which each describe
+// a ctor of T, and  uses them to wrap a Python tp_init function.
 template wrapped_ctors(T, C ...) {
     alias wrapped_class_object!(T) wrap_object;
 

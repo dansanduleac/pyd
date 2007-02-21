@@ -63,7 +63,7 @@ template wrapped_member(T, char[] name, _M=void) {
 }
 
 struct Member(char[] realname, char[] name=realname) {
-    static void call(T) () {
+    static void call(T, dummy) () {
         pragma(msg, "struct.member: " ~ name);
         static PyGetSetDef empty = {null, null, null, null, null};
         alias wrapped_prop_list!(T) list;

@@ -284,7 +284,7 @@ struct Def(alias fn, char[] _realname, char[] name, fn_t, uint MIN_ARGS) {
     static const char[] funcname = name;
     static const uint min_args = MIN_ARGS;
 
-    static void call(T) () {
+    static void call(T, shim) () {
         pragma(msg, "class.def: " ~ name);
         static PyMethodDef empty = { null, null, 0, null };
         alias wrapped_method_list!(T) list;
@@ -304,9 +304,6 @@ struct Def(alias fn, char[] _realname, char[] name, fn_t, uint MIN_ARGS) {
             "        return __pyd_get_overload!(\""~_realname~"\", __pyd_p"~ToString!(i)~".func_t).func(\""~name~"\", t);\n"
             "    }\n";
     }
-    template shim_call(char[] varname, uint i) {
-        const char[] shim_call = "Def!("~varname~"."~_realname~", p"~ToString!(i)~".realname, p"~ToString!(i)~".funcname, p"~ToString!(i)~".func_t, p"~ToString!(i)~".min_args)";
-    }
 }
 
 /**
@@ -318,7 +315,7 @@ struct StaticDef(alias fn, char[] name = symbolnameof!(fn), fn_t=typeof(&fn), ui
     alias fn_t func_t;
     static const char[] funcname = name;
     static const uint min_args = MIN_ARGS;
-    static void call(T) () {
+    static void call(T, shim) () {
         pragma(msg, "class.static_def: " ~ name);
         static PyMethodDef empty = { null, null, 0, null };
         alias wrapped_method_list!(T) list;
@@ -331,9 +328,6 @@ struct StaticDef(alias fn, char[] name = symbolnameof!(fn), fn_t=typeof(&fn), ui
     }
     template shim(uint i) {
         const char[] shim = "";
-    }
-    template shim_call(char[] varname, uint i) {
-        const char[] shim_call = "DoNothing";
     }
 }
 
@@ -354,7 +348,7 @@ struct Property(alias fn, char[] _realname, char[] name, bool RO) {
     static const char[] realname = _realname;
     static const char[] funcname = name;
     static const bool readonly = RO;
-    static void call(T) () {
+    static void call(T, shim) () {
         pragma(msg, "class.prop: " ~ name);
         static PyGetSetDef empty = { null, null, null, null, null };
         wrapped_prop_list!(T)[length-1].name = (name ~ \0).ptr;
@@ -390,9 +384,6 @@ struct Property(alias fn, char[] _realname, char[] name, bool RO) {
             "    }\n" ~
             shim_setter!(i);
     }
-    template shim_call(char[] varname, uint i) {
-        const char[] shim_call = "Property!("~varname~"."~_realname~", p"~ToString!(i)~".realname, p"~ToString!(i)~".funcname, p"~ToString!(i)~".readonly)";
-    }
 }
 
 /**
@@ -409,9 +400,9 @@ the same number of arguments.
 */
 struct Init(C ...) {
     alias C ctors;
-    static void call(T) () {
+    static void call(T, shim) () {
         wrapped_class_type!(T).tp_init =
-            &wrapped_ctors!(T, C).init_func;
+            &wrapped_ctors!(shim, C).init_func;
     }
     template shim_impl(uint i, uint c=0) {
         static if (c < ctors.length) {
@@ -420,7 +411,10 @@ struct Init(C ...) {
                 "        super(t);\n"
                 "    }\n" ~ shim_impl!(i, c+1);
         } else {
-            const char[] shim_impl = "";
+            const char[] shim_impl =
+                "    static if (is(typeof(new T))) {\n"
+                "        this() { super(); }\n"
+                "    }\n";
         }
     }
     template shim(uint i) {
@@ -428,9 +422,6 @@ struct Init(C ...) {
             "    alias Params["~ToString!(i)~"] __pyd_p"~ToString!(i)~";\n"
             "    alias __pyd_p"~ToString!(i)~".ctors __pyd_c"~ToString!(i)~";\n"~
             shim_impl!(i);
-    }
-    template shim_call(char[] varname, uint i) {
-        const char[] shim_call = "Init!(p"~ToString!(i)~".ctors)";
     }
 }
 
@@ -443,7 +434,8 @@ the type of the delegate in the opApply function that the user wants
 to be the default.
 */
 struct Iter(iter_t) {
-    static void call(T) () {
+    alias iter_t iterator_t;
+    static void call(T, shim) () {
         PydStackContext_Ready();
         // This strange bit of hackery is needed since we operate on pointer-
         // to-struct types, rather than just struct types.
@@ -461,7 +453,7 @@ D's delegate-as-iterator features, as methods returning a Python
 iterator.
 */
 struct AltIter(alias fn, char[] name = symbolnameof!(fn), iter_t = funcDelegInfoT!(typeof(&fn)).Meta.ArgType!(0)) {
-    static void call(T) () {
+    static void call(T, shim) () {
         static PyMethodDef empty = { null, null, 0, null };
         alias wrapped_method_list!(T) list;
         PydStackContext_Ready();
@@ -478,48 +470,19 @@ struct AltIter(alias fn, char[] name = symbolnameof!(fn), iter_t = funcDelegInfo
 
 } /*Pyd_with_StackThreads*/
 
-private
-template comma(uint i, uint length) {
-    static if (i < length-1) {
-        const char[] comma = ",";
-    } else {
-        const char[] comma = "";
-    }
-}
-
-private
-template recursive_call(char[] name, int i, Params...) {
-    static if (i < Params.length) {
-        const char[] recursive_call = Params[i].shim_call!(name, i) ~ comma!(i, Params.length) ~ recursive_call!(name, i+1, Params);
-    } else {
-        const char[] recursive_call = "";
-    }
-}
-
-private
-template aliases(uint i, Params...) {
-    static if (i < Params.length) {
-        const char[] aliases = "alias Params["~ToString!(i)~"] p"~ToString!(i)~";\n" ~ aliases!(i+1, Params);
-    } else {
-        const char[] aliases = "";
-    }
-}
-
 void wrap_class(T, Params...) (char[] docstring="", char[] modulename="") {
-    wrap_class!(void, T, symbolnameof!(T), Params)(docstring, modulename);
+    wrap_class!(T, symbolnameof!(T), Params)(docstring, modulename);
 }
-void wrap_class(T, char[] name, Params...) (char[] docstring="", char[] modulename="") {
-    wrap_class!(void, T, name, Params)(docstring, modulename);
-}
-
-void wrap_class(wrapping, _T, char[] name, Params...) (char[] docstring="", char[] modulename="") {
+void wrap_class(_T, char[] name, Params...) (char[] docstring="", char[] modulename="") {
     //alias CLS.wrapped_type T;
     //const char[] name = CLS._name;
     static if (is(_T == class)) {
         pragma(msg, "wrap_class: " ~ name);
+        alias make_wrapper!(_T, Params).wrapper shim_class;
         alias _T T;
     } else {
         pragma(msg, "wrap_struct: " ~ name);
+        alias void shim_class;
         alias _T* T;
     }
     alias wrapped_class_type!(T) type;
@@ -527,7 +490,7 @@ void wrap_class(wrapping, _T, char[] name, Params...) (char[] docstring="", char
 
     //Params params;
     foreach (param; Params) {
-        param.call!(T)();
+        param.call!(T, shim_class)();
     }
 
     assert(Pyd_Module_p(modulename) !is null, "Must initialize module before wrapping classes.");
@@ -547,23 +510,12 @@ void wrap_class(wrapping, _T, char[] name, Params...) (char[] docstring="", char
     /////////////////
     // Inheritance //
     /////////////////
-    static if (is(wrapping == void)) {
-        // Inherit directly-wrapped classes from their wrapped superclass.
-        static if (is(T B == super)) {
-            foreach (C; B) {
-                static if (is(C == class) && !is(C == Object)) {
-                    if (is_wrapped!(C)) {
-                        type.tp_base = &wrapped_class_type!(C);
-                    }
-                }
-            }
-        }
-    } else {
-        // Inherit shims from their grandparent's shim.
-        static if (is(wrapping B == super)) {
-            foreach (C; B) {
-                static if (is(C == class) && !is(C == Object)) {
-                    type.tp_base = shim_class!(C);
+    // Inherit classes from their wrapped superclass.
+    static if (is(T B == super)) {
+        foreach (C; B) {
+            static if (is(C == class) && !is(C == Object)) {
+                if (is_wrapped!(C)) {
+                    type.tp_base = &wrapped_class_type!(C);
                 }
             }
         }
@@ -607,21 +559,16 @@ void wrap_class(wrapping, _T, char[] name, Params...) (char[] docstring="", char
     //////////////////////////
     // Constructor wrapping //
     //////////////////////////
-    static if (is(wrapping == void) && is(T == class)) {
-        // Non-shim classes cannot be instantiated from Python.
-        type.tp_init = null;
-    } else {
-        // If a ctor wasn't supplied, try the default.
-        // If the default ctor isn't available, and no ctors were supplied,
-        // then this class cannot be instantiated from Python.
-        // (Structs always use the default ctor.)
-        static if (is(typeof(new T))) {
-            if (type.tp_init is null) {
-                static if (is(T == class)) {
-                    type.tp_init = &wrapped_init!(T).init;
-                } else {
-                    type.tp_init = &wrapped_struct_init!(T).init;
-                }
+    // If a ctor wasn't supplied, try the default.
+    // If the default ctor isn't available, and no ctors were supplied,
+    // then this class cannot be instantiated from Python.
+    // (Structs always use the default ctor.)
+    static if (is(typeof(new T))) {
+        if (type.tp_init is null) {
+            static if (is(T == class)) {
+                type.tp_init = &wrapped_init!(shim_class).init;
+            } else {
+                type.tp_init = &wrapped_struct_init!(T).init;
             }
         }
     }
@@ -633,34 +580,13 @@ void wrap_class(wrapping, _T, char[] name, Params...) (char[] docstring="", char
         throw new Exception("Couldn't ready wrapped type!");
     }
     Py_INCREF(cast(PyObject*)&type);
-    // Only directly expose a class to Python if it is a shim.
-    static if (!is(wrapping == void) || is(T U : U*) && is(U == struct)) {
-        PyModule_AddObject(Pyd_Module_p(modulename), name.ptr, cast(PyObject*)&type);
-    }
+    PyModule_AddObject(Pyd_Module_p(modulename), (name~\0).ptr, cast(PyObject*)&type);
 
     is_wrapped!(T) = true;
     static if (is(T == class)) {
+        is_wrapped!(shim_class) = true;
         wrapped_classes[T.classinfo] = &type;
-        // If this is a class passed in by the user, create and wrap the shim.
-        // (By recursively calling this function.)
-        static if (is(wrapping == void)) {
-            alias make_wrapper!(T, Params).wrapper wrapper_class;
-            // Construct the recursive call. Since /this/ call to wrap_class
-            // was passed aliases to the members of the /base/ class, we need
-            // to pass the recursive call aliases to the members of the /shim/.
-            // The recursive_call template goes through each member of Params
-            // and constructs this.
-
-            // This is a workaround for some tuple shortcomings...
-            const char[] a = aliases!(0, Params);
-            pragma(msg, a);
-            mixin(a);
-
-            const char[] call = "wrap_class!(T, wrapper_class, name, "~recursive_call!("wrapper_class", 0, Params)~")();";
-            pragma(msg, call);
-            mixin(call);
-            shim_class!(T) = &wrapped_class_type!(wrapper_class);
-        }
+        wrapped_classes[shim_class.classinfo] = &type;
     }
 }
 
