@@ -50,7 +50,7 @@
 
 <p>It does little more than call <a href="http://docs.python.org/api/allocating-objects.html">Py_InitModule</a> and return the new module object. This object is also available via the <code>Pyd_Module_p</code> property once you've called <code>module_init</code>.</p>
 
-<p>Due to the way in which Pyd implements function and class wrapping, any calls to <code>def</code> must occur <em>before</em> the call to <code>module_init</code>, and any calls to <code>finalize_class</code> must occur <em>after</em> the call. I know this seems like a rather arbitrary rule, but it is important. Calls to <code>def</code> in the wrong place will simply be ignored, and calls to <code>finalize_class</code> in the wrong place will throw an assert.</p>
+<p>Due to the way in which Pyd implements function and class wrapping, any calls to <code>def</code> must occur <em>before</em> the call to <code>module_init</code>, and any calls to <code>wrap_class</code> must occur <em>after</em> the call. I know this seems like a rather arbitrary rule, but it is important. Calls to <code>def</code> in the wrong place will simply be ignored, and calls to <code>wrap_class</code> in the wrong place will throw an assert.</p>
 
 <p><code>PydMain</code> will catch any D exception that is thrown from inside it, and <a href="except_wrapping.html">safely pass that exception to Python</a>.</p>
 </div>
