@@ -62,7 +62,10 @@ template wrapped_member(T, char[] name, _M=void) {
     }
 }
 
-struct Member(char[] realname, char[] name=realname) {
+template Member(char[] realname, char[] docstring="") {
+    alias Member!(realname, realname, docstring) Member;
+}
+struct Member(char[] realname, char[] name, char[] docstring) {
     static void call(T, dummy) () {
         pragma(msg, "struct.member: " ~ name);
         static PyGetSetDef empty = {null, null, null, null, null};
@@ -70,7 +73,7 @@ struct Member(char[] realname, char[] name=realname) {
         list[length-1].name = (name ~ \0).ptr;
         list[length-1].get = &wrapped_member!(T, realname).get;
         list[length-1].set = &wrapped_member!(T, realname).set;
-        list[length-1].doc = "";
+        list[length-1].doc = (docstring~\0).ptr;
         list[length-1].closure = null;
         list ~= empty;
         wrapped_class_type!(T).tp_getset = list.ptr;

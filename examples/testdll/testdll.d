@@ -120,15 +120,15 @@ extern(C) void PydMain() {
     wrap_class!(
         Foo,
         Init!(void delegate(int), void delegate(int, int)),
-        Property!(Foo.i),
-        Def!(Foo.foo)
-    );
+        Property!(Foo.i, "A sample property of Foo."),
+        Def!(Foo.foo, "A sample method of Foo.")
+    ) ("A sample class.");
 
     wrap_struct!(
         S,
-        Def!(S.write_s),
-        Member!("i"),
-        Member!("s")
-    );
+        Def!(S.write_s, "A struct member function."),
+        Member!("i", "One sample data member of S."),
+        Member!("s", "Another sample data member of S.")
+    ) ("A sample struct.");
 }
 

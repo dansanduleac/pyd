@@ -273,10 +273,25 @@ name = The name of the function as it will appear in Python.
 fn_t = The type of the function. It is only useful to specify this
        if more than one function has the same name as this one.
 */
-template Def(alias fn, char[] name = symbolnameof!(fn), fn_t=typeof(&fn), uint MIN_ARGS=minArgs!(fn)) {
-    alias Def!(fn, symbolnameof!(fn), name, fn_t, MIN_ARGS) Def;
+//template Def(alias fn, char[] name = symbolnameof!(fn), fn_t=typeof(&fn), uint MIN_ARGS=minArgs!(fn), char[] docstring="") {
+//    alias Def!(fn, symbolnameof!(fn), name, fn_t, MIN_ARGS, docstring) Def;
+//}
+template Def(alias fn, char[] docstring="") {
+    alias Def!(fn, symbolnameof!(fn), symbolnameof!(fn), typeof(&fn), minArgs!(fn), docstring) Def;
 }
-struct Def(alias fn, char[] _realname, char[] name, fn_t, uint MIN_ARGS) {
+template Def(alias fn, char[] name, char[] docstring) {
+    alias Def!(fn, symbolnameof!(fn), name, typeof(&fn), minArgs!(fn), docstring) Def;
+}
+template Def(alias fn, char[] name, fn_t, char[] docstring) {
+    alias Def!(fn, symbolnameof!(fn), name, fn_t, minArgs!(fn), docstring) Def;
+}
+template Def(alias fn, fn_t, char[] docstring="") {
+    alias Def!(fn, symbolnameof!(fn), symbolnameof!(fn), fn_t, minArgs!(fn), docstring) Def;
+}
+template Def(alias fn, char[] name, fn_t, uint MIN_ARGS=minArgs!(fn), char[] docstring="") {
+    alias Def!(fn, symbolnameof!(fn), name, fn_t, MIN_ARGS, docstring) Def;
+}
+struct Def(alias fn, char[] _realname, char[] name, fn_t, uint MIN_ARGS, char[] docstring) {
     //static const type = ParamType.Def;
     alias fn func;
     alias fn_t func_t;
@@ -291,7 +306,7 @@ struct Def(alias fn, char[] _realname, char[] name, fn_t, uint MIN_ARGS) {
         list[length-1].ml_name = (name ~ \0).ptr;
         list[length-1].ml_meth = &method_wrap!(T, fn, fn_t).func;
         list[length-1].ml_flags = METH_VARARGS;
-        list[length-1].ml_doc = "";
+        list[length-1].ml_doc = (docstring~\0).ptr;
         list ~= empty;
         // It's possible that appending the empty item invalidated the
         // pointer in the type struct, so we renew it here.
@@ -309,7 +324,22 @@ struct Def(alias fn, char[] _realname, char[] name, fn_t, uint MIN_ARGS) {
 /**
 Wraps a static member function of the class. Identical to pyd.def.def
 */
-struct StaticDef(alias fn, char[] name = symbolnameof!(fn), fn_t=typeof(&fn), uint MIN_ARGS=minArgs!(fn)) {
+template StaticDef(alias fn, char[] docstring="") {
+    alias StaticDef!(fn, symbolnameof!(fn), symbolnameof!(fn), typeof(&fn), minArgs!(fn), docstring) Def;
+}
+template StaticDef(alias fn, char[] name, char[] docstring) {
+    alias StaticDef!(fn, symbolnameof!(fn), name, typeof(&fn), minArgs!(fn), docstring) Def;
+}
+template StaticDef(alias fn, char[] name, fn_t, char[] docstring) {
+    alias StaticDef!(fn, symbolnameof!(fn), name, fn_t, minArgs!(fn), docstring) Def;
+}
+template StaticDef(alias fn, fn_t, char[] docstring="") {
+    alias StaticDef!(fn, symbolnameof!(fn), symbolnameof!(fn), fn_t, minArgs!(fn), docstring) Def;
+}
+template StaticDef(alias fn, char[] name, fn_t, uint MIN_ARGS=minArgs!(fn), char[] docstring="") {
+    alias StaticDef!(fn, symbolnameof!(fn), name, fn_t, MIN_ARGS, docstring) Def;
+}
+struct StaticDef(alias fn, char[] name, fn_t, uint MIN_ARGS, char[] docstring) {
     //static const type = ParamType.StaticDef;
     alias fn func;
     alias fn_t func_t;
@@ -322,7 +352,7 @@ struct StaticDef(alias fn, char[] name = symbolnameof!(fn), fn_t=typeof(&fn), ui
         list[length-1].ml_name = (name ~ \0).ptr;
         list[length-1].ml_meth = &function_wrap!(fn, MIN_ARGS, fn_t).func;
         list[length-1].ml_flags = METH_VARARGS | METH_STATIC;
-        list[length-1].ml_doc = "";
+        list[length-1].ml_doc = (docstring~\0).ptr;
         list ~= empty;
         wrapped_class_type!(T).tp_methods = list;
     }
@@ -339,10 +369,22 @@ fn = The property to wrap.
 name = The name of the property as it will appear in Python.
 RO = Whether this is a read-only property.
 */
-template Property(alias fn, char[] name = symbolnameof!(fn), bool RO=false) {
-    alias Property!(fn, symbolnameof!(fn), name, RO) Property;
+//template Property(alias fn, char[] name = symbolnameof!(fn), bool RO=false, char[] docstring = "") {
+//    alias Property!(fn, symbolnameof!(fn), name, RO, docstring) Property;
+//}
+template Property(alias fn, char[] docstring="") {
+    alias Property!(fn, symbolnameof!(fn), symbolnameof!(fn), false, docstring) Property;
 }
-struct Property(alias fn, char[] _realname, char[] name, bool RO) {
+template Property(alias fn, char[] name, char[] docstring) {
+    alias Property!(fn, symbolnameof!(fn), name, false, docstring) Property;
+}
+template Property(alias fn, char[] name, bool RO, char[] docstring="") {
+    alias Property!(fn, symbolnameof!(fn), name, RO, docstring) Property;
+}
+template Property(alias fn, bool RO, char[] docstring="") {
+    alias Property!(fn, symbolnameof!(fn), symbolnameof!(fn), RO, docstring) Property;
+}
+struct Property(alias fn, char[] _realname, char[] name, bool RO, char[] docstring) {
     alias property_parts!(fn).getter_type get_t;
     alias property_parts!(fn).setter_type set_t;
     static const char[] realname = _realname;
@@ -358,7 +400,7 @@ struct Property(alias fn, char[] _realname, char[] name, bool RO) {
             wrapped_prop_list!(T)[length-1].set =
                 &wrapped_set!(T, fn).func;
         }
-        wrapped_prop_list!(T)[length-1].doc = "";
+        wrapped_prop_list!(T)[length-1].doc = (docstring~\0).ptr;
         wrapped_prop_list!(T)[length-1].closure = null;
         wrapped_prop_list!(T) ~= empty;
         // It's possible that appending the empty item invalidated the
@@ -452,7 +494,7 @@ Exposes alternate iteration methods, originally intended for use with
 D's delegate-as-iterator features, as methods returning a Python
 iterator.
 */
-struct AltIter(alias fn, char[] name = symbolnameof!(fn), iter_t = funcDelegInfoT!(typeof(&fn)).Meta.ArgType!(0)) {
+struct AltIter(alias fn, char[] name = symbolnameof!(fn), iter_t = ParameterTypeTuple!(fn)[0]) {
     static void call(T, shim) () {
         static PyMethodDef empty = { null, null, 0, null };
         alias wrapped_method_list!(T) list;
@@ -460,7 +502,7 @@ struct AltIter(alias fn, char[] name = symbolnameof!(fn), iter_t = funcDelegInfo
         list[length-1].ml_name = name ~ \0;
         list[length-1].ml_meth = cast(PyCFunction)&wrapped_iter!(T, fn, int function(iter_t)).iter;
         list[length-1].ml_flags = METH_VARARGS;
-        list[length-1].ml_doc = (docstring ~ \0).ptr;
+        list[length-1].ml_doc = "";//(docstring ~ \0).ptr;
         list ~= empty;
         // It's possible that appending the empty item invalidated the
         // pointer in the type struct, so we renew it here.
@@ -480,6 +522,10 @@ void wrap_class(_T, char[] name, Params...) (char[] docstring="", char[] modulen
         pragma(msg, "wrap_class: " ~ name);
         alias make_wrapper!(_T, Params).wrapper shim_class;
         alias _T T;
+//    } else static if (is(_T == interface)) {
+//        pragma(msg, "wrap_interface: " ~ name);
+//        alias make_wrapper!(_T, Params).wrapper shim_class;
+//        alias _T T;
     } else {
         pragma(msg, "wrap_struct: " ~ name);
         alias void shim_class;
@@ -587,6 +633,20 @@ void wrap_class(_T, char[] name, Params...) (char[] docstring="", char[] modulen
         is_wrapped!(shim_class) = true;
         wrapped_classes[T.classinfo] = &type;
         wrapped_classes[shim_class.classinfo] = &type;
+    }
+}
+
+////////////////
+// DOCSTRINGS //
+////////////////
+
+struct Docstring {
+    char[] name, doc;
+}
+
+void docstrings(T=void)(Docstring[] docs...) {
+    static if (is(T == void)) {
+        
     }
 }
 
