@@ -1945,13 +1945,13 @@ extern (C) {
 
   PyObject * PyWeakref_NewRef(PyObject *ob, PyObject *callback);
   PyObject * PyWeakref_NewProxy(PyObject *ob, PyObject *callback);
-  PyObject * PyWeakref_GetObject(PyObject *ref);
+  PyObject * PyWeakref_GetObject(PyObject *ref_);
 
   Py_ssize_t _PyWeakref_GetWeakrefCount(PyWeakReference *head);
   void _PyWeakref_ClearRef(PyWeakReference *self);
 
-  PyObject *PyWeakref_GET_OBJECT(PyObject *ref) {
-    return (cast(PyWeakReference *) ref).wr_object;
+  PyObject *PyWeakref_GET_OBJECT(PyObject *ref_) {
+    return (cast(PyWeakReference *) ref_).wr_object;
   }
 
 
