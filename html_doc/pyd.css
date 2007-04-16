@@ -13,7 +13,7 @@ hr {
 }
 div#content {
     position: absolute;
-    left: 160px;
+    left: 11em;
     top: 0px;
     padding: 5px;
 }
@@ -23,7 +23,7 @@ div#nav {
     margin-right: 15px;
     padding: 2px;
     line-height: 140%;
-    width: 150px;
+    width: 10em;
 }
 /* navbar links */
 a.nav {
