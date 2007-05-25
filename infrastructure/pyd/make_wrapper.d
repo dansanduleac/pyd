@@ -97,6 +97,22 @@ template OverloadShim() {
             return null;
         }
     }
+    template __pyd_abstract_call(fn_t) {
+        ReturnType!(fn_t) func(T ...) (char[] name, T t) {
+            PyObject* _pyobj = this.__pyd_get_pyobj();
+            if (_pyobj !is null) {
+                PyObject* method = PyObject_GetAttrString(_pyobj, (name ~ \0).ptr);
+                if (method is null) handle_exception();
+                auto pydg = PydCallable_AsDelegate!(fn_to_dg!(fn_t))(method);
+                Py_DECREF(method);
+                return pydg(t);
+            } else {
+                PyErr_SetNone(PyExc_NotImplementedError);
+                handle_exception();
+                //return ReturnType!(fn_t).init;
+            }
+        }
+    }
     template __pyd_get_overload(char[] realname, fn_t) {
         ReturnType!(fn_t) func(T ...) (char[] name, T t) {
             PyObject* _pyobj = this.__pyd_get_pyobj();

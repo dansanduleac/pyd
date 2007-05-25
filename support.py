@@ -58,7 +58,7 @@ class Extension(std_Extension):
             kwargs['with_main'] = False
             del kwargs['raw_only']
         with_pyd  = kwargs.pop('with_pyd', True)
-        with_st   = kwargs.pop('with_st', True)
+        with_st   = kwargs.pop('with_st', False) # 5/23/07 st off by default.
         # StackThreads doesn't work with Tango at the moment.
         if with_tango:
             with_st = False

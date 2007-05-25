@@ -101,6 +101,7 @@ void throws() {
 }
 
 extern(C) void PydMain() {
+    pragma(msg, "testdll.PydMain");
     def!(foo);
     // Python does not support function overloading. This allows us to wrap
     // an overloading function under a different name. Note that if the

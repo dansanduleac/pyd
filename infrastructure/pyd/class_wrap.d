@@ -325,21 +325,21 @@ struct Def(alias fn, char[] _realname, char[] name, fn_t, uint MIN_ARGS, char[] 
 Wraps a static member function of the class. Identical to pyd.def.def
 */
 template StaticDef(alias fn, char[] docstring="") {
-    alias StaticDef!(fn, symbolnameof!(fn), symbolnameof!(fn), typeof(&fn), minArgs!(fn), docstring) Def;
+    alias StaticDef!(fn, symbolnameof!(fn), symbolnameof!(fn), typeof(&fn), minArgs!(fn), docstring) StaticDef;
 }
 template StaticDef(alias fn, char[] name, char[] docstring) {
-    alias StaticDef!(fn, symbolnameof!(fn), name, typeof(&fn), minArgs!(fn), docstring) Def;
+    alias StaticDef!(fn, symbolnameof!(fn), name, typeof(&fn), minArgs!(fn), docstring) StaticDef;
 }
 template StaticDef(alias fn, char[] name, fn_t, char[] docstring) {
-    alias StaticDef!(fn, symbolnameof!(fn), name, fn_t, minArgs!(fn), docstring) Def;
+    alias StaticDef!(fn, symbolnameof!(fn), name, fn_t, minArgs!(fn), docstring) StaticDef;
 }
 template StaticDef(alias fn, fn_t, char[] docstring="") {
-    alias StaticDef!(fn, symbolnameof!(fn), symbolnameof!(fn), fn_t, minArgs!(fn), docstring) Def;
+    alias StaticDef!(fn, symbolnameof!(fn), symbolnameof!(fn), fn_t, minArgs!(fn), docstring) StaticDef;
 }
 template StaticDef(alias fn, char[] name, fn_t, uint MIN_ARGS=minArgs!(fn), char[] docstring="") {
-    alias StaticDef!(fn, symbolnameof!(fn), name, fn_t, MIN_ARGS, docstring) Def;
+    alias StaticDef!(fn, symbolnameof!(fn), name, fn_t, MIN_ARGS, docstring) StaticDef;
 }
-struct StaticDef(alias fn, char[] name, fn_t, uint MIN_ARGS, char[] docstring) {
+struct StaticDef(alias fn, char[] _realname, char[] name, fn_t, uint MIN_ARGS, char[] docstring) {
     //static const type = ParamType.StaticDef;
     alias fn func;
     alias fn_t func_t;

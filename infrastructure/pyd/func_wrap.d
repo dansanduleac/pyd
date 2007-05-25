@@ -130,7 +130,7 @@ ReturnType!(fn_t) applyPyTupleToAlias(alias fn, fn_t, uint MIN_ARGS) (PyObject* 
     // This should never get here.
     throw new Exception("applyPyTupleToAlias reached end! argCount = " ~ toString(argCount));
     static if (!is(RT == void))
-        return ReturnType!(fn_t).init;
+        return RT.init;
 }
 
 // wraps applyPyTupleToAlias to return a PyObject*

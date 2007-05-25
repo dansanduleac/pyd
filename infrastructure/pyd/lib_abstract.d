@@ -48,6 +48,6 @@ version (Tango) {
 
     public import std.string : toString;
     public import std.traits : ParameterTypeTuple, ReturnType;
-    public import std.bind : minArgs = minNumArgs;
+    public import meta.Default : minArgs;
     public import std.metastrings : ToString;
 }
