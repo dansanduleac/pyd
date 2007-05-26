@@ -19,10 +19,11 @@ from distutils.errors import (
     CompileError, LibError, LinkError, UnknownFileError
 )
 
-
 _isPlatWin = sys.platform.lower().startswith('win')
 
 _infraDir = os.path.join(os.path.dirname(__file__), 'infrastructure')
+
+from pyd_support import make_pydmain, make_pyddef
 
 _pydFiles = [
     'class_wrap.d',
@@ -185,21 +186,12 @@ class DCompiler(cc.CCompiler):
         # If using PydMain, parse the template file
         if with_main:
             name = [n for n, category in macros if category == 'name'][0]
-            mainTemplatePath = os.path.join(_infraDir, 'd', 'pydmain_template.d')
-            if not os.path.isfile(mainTemplatePath):
-                raise DistutilsPlatformError(
-                    "Required supporting code file %s is missing." % mainTemplatePath
-                )
-            mainTemplate = open(mainTemplatePath).read()
-            mainFileContent = mainTemplate % {'modulename' : name}
             # Store the finished pydmain.d file alongside the object files
             infra_output_dir = os.path.join(output_dir, 'infra')
             if not os.path.exists(infra_output_dir):
                 os.makedirs(infra_output_dir)
             mainFilename = os.path.join(infra_output_dir, 'pydmain.d')
-            mainFile = open(mainFilename, 'w')
-            mainFile.write(mainFileContent)
-            mainFile.close()
+            make_pydmain(mainFilename, name)
             sources.append((mainFilename, 'infra'))
         # And StackThreads
         if self._st_support and with_st:
@@ -435,27 +427,11 @@ class DMDDCompiler(DCompiler):
     def _def_file(self, output_dir, output_filename):
         if _isPlatWin:
             # Automatically create a .def file:
-            defTemplatePath = os.path.join(_infraDir, 'd',
-                'python_dll_def.def_template'
-            )
-            if not os.path.isfile(defTemplatePath):
-                raise DistutilsFileError('Required def template file "%s" is'
-                    ' missing.' % defTemplatePath
-                )
-            f = file(defTemplatePath, 'rb')
-            try:
-                defTemplate = f.read()
-            finally:
-                f.close()
-
-            defFileContents = defTemplate % os.path.basename(output_filename)
             defFilePath = os.path.join(output_dir, 'infra', 'python_dll_def.def')
-            f = file(defFilePath, 'wb')
-            try:
-                f.write(defFileContents)
-            finally:
-                f.close()
-
+            make_pyddef(
+                defFilePath,
+                os.path.basename(output_filename)
+            )
             return [defFilePath]
         else:
             return []
