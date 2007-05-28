@@ -35,6 +35,7 @@ _pydFiles = [
     'iteration.d',
     'lib_abstract.d',
     'make_object.d',
+    'make_wrapper.d',
     'op_wrap.d',
     'pyd.d',
     'pydobject.d',
