@@ -232,7 +232,7 @@ template method_wrap(C, alias real_fn, fn_t=typeof(&real_fn)) {
                 PyErr_SetString(PyExc_TypeError, "Wrapped method didn't get a 'self' parameter.");
                 return null;
             }
-            C instance = (cast(wrapped_class_object!(C)*)self).d_obj;
+            C instance = WrapPyObject_AsObject!(C)(self);//(cast(wrapped_class_object!(C)*)self).d_obj;
             if (instance is null) {
                 PyErr_SetString(PyExc_ValueError, "Wrapped class instance is null!");
                 return null;

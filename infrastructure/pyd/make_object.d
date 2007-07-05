@@ -93,11 +93,23 @@ PyObject* _py(T) (T t) {
     } else static if (is(T : cdouble)) {
         return PyComplex_FromDoubles(t.re, t.im);
     } else static if (is(T : char[])) {
+        if (t is null) {
+            Py_INCREF(Py_None);
+            return Py_None;
+        }
         return PyString_FromString((t ~ \0).ptr);
     } else static if (is(T : wchar[])) {
+        if (t is null) {
+            Py_INCREF(Py_None);
+            return Py_None;
+        }
         return PyUnicode_FromWideChar(t, t.length);
     // Converts any array (static or dynamic) to a Python list
     } else static if (isArray!(T) || isStaticArray!(T)) {
+        if (t is null) {
+            Py_INCREF(Py_None);
+            return Py_None;
+        }
         PyObject* lst = PyList_New(t.length);
         PyObject* temp;
         if (lst is null) return null;
@@ -113,6 +125,10 @@ PyObject* _py(T) (T t) {
         return lst;
     // Converts any associative array to a Python dict
     } else static if (isAA!(T)) {
+        if (t is null) {
+            Py_INCREF(Py_None);
+            return Py_None;
+        }
         PyObject* dict = PyDict_New();
         PyObject* ktemp, vtemp;
         int result;
@@ -136,14 +152,26 @@ PyObject* _py(T) (T t) {
         }
         return dict;
     } else static if (is(T == delegate) || is(T == function)) {
+        if (t is null) {
+            Py_INCREF(Py_None);
+            return Py_None;
+        }
         PydWrappedFunc_Ready!(T)();
         return WrapPyObject_FromObject(t);
     } else static if (is(T : PydObject)) {
+        if (t is null) {
+            Py_INCREF(Py_None);
+            return Py_None;
+        }
         PyObject* temp = t.ptr();
         Py_INCREF(temp);
         return temp;
     // Convert wrapped type of a PyObject*
     } else static if (is(T == class)) {
+        if (t is null) {
+            Py_INCREF(Py_None);
+            return Py_None;
+        }
         // But only if it actually is a wrapped type. :-)
         PyTypeObject** type = t.classinfo in wrapped_classes;
         if (type) {
@@ -160,6 +188,10 @@ PyObject* _py(T) (T t) {
     // If converting a struct by reference, wrap the thing directly
     } else static if (is(typeof(*t) == struct)) {
         if (is_wrapped!(T)) {
+            if (t is null) {
+                Py_INCREF(Py_None);
+                return Py_None;
+            }
             return WrapPyObject_FromObject(t);
         }
     // The function expects to be passed a borrowed reference and return an
@@ -247,7 +279,11 @@ T d_type(T) (PyObject* o) {
     } else static if (is(T == class)) {
         // We can only convert to a class if it has been wrapped, and of course
         // we can only convert the object if it is the wrapped type.
-        if (is_wrapped!(T) && cast(T)((cast(wrapped_class_object!(Object)*)o).d_obj) !is null) {
+        if (
+            is_wrapped!(T) &&
+            PyObject_IsInstance(o, cast(PyObject*)&wrapped_class_type!(T)) &&
+            cast(T)((cast(wrapped_class_object!(Object)*)o).d_obj) !is null
+        ) {
             return WrapPyObject_AsObject!(T)(o);
         }
         // Otherwise, throw up an exception.
@@ -296,6 +332,38 @@ T d_type(T) (PyObject* o) {
         }
         if (result is null) handle_exception();
         return .toString(result).dup;
+    } else static if (is(T E : E[])) {
+        // Dynamic arrays
+        PyObject* iter = PyObject_GetIter(o);
+        if (iter is null) {
+            PyErr_Clear();
+            could_not_convert!(T)(o);
+        }
+        scope(exit) Py_DECREF(iter);
+        int len = PyObject_Length(o);
+        if (len == -1) {
+            PyErr_Clear();
+            could_not_convert!(T)(o);
+        }
+        T array;
+        array.length = len;
+        int i = 0;
+        PyObject* item = PyIter_Next(iter);
+        while (item) {
+            try {
+                array[i] = d_type!(E)(item);
+            } catch(PydConversionException e) {
+                Py_DECREF(item);
+                // We re-throw the original conversion exception, rather than
+                // complaining about being unable to convert to an array. The
+                // partially constructed array is left to the GC.
+                throw e;
+            }
+            ++i;
+            Py_DECREF(item);
+            item = PyIter_Next(iter);
+        }
+        return array;
     } else static if (is(cdouble : T)) {
         double real_ = PyComplex_RealAsDouble(o);
         handle_exception();

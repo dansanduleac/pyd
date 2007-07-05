@@ -176,21 +176,19 @@ template wrapped_methods(T) {
     extern(C)
     void wrapped_dealloc(PyObject* self) {
         exception_catcher(delegate void() {
-            WrapPyObject_SetObj(self, null);
+            WrapPyObject_SetObj(self, cast(T)null);
             self.ob_type.tp_free(self);
         });
     }
 }
 
-template wrapped_repr(T) {
+template wrapped_repr(T, alias fn) {
     alias wrapped_class_object!(T) wrap_object;
     /// The default repr method calls the class's toString.
     extern(C)
-    PyObject* repr(PyObject* _self) {
-        return exception_catcher({
-            wrap_object* self = cast(wrap_object*)_self;
-            char[] repr = objToStr(self.d_obj);
-            return _py(repr);
+    PyObject* repr(PyObject* self) {
+        return exception_catcher(delegate PyObject*() {
+            return method_wrap!(T, fn, char[] function()).func(self, null);
         });
     }
 }
@@ -425,6 +423,19 @@ struct Property(alias fn, char[] _realname, char[] name, bool RO, char[] docstri
             "        return __pyd_get_overload!(\""~_realname~"\", __pyd_p"~ToString!(i)~".get_t).func(\""~name~"\");\n"
             "    }\n" ~
             shim_setter!(i);
+    }
+}
+
+/**
+Wraps a method as the class's __repr__ in Python.
+*/
+struct Repr(alias fn) {
+    static void call(T, shim)() {
+        alias wrapped_class_type!(T) type;
+        type.tp_repr = &wrapped_repr!(T, fn).repr;
+    }
+    template shim(uint i) {
+        const char[] shim = "";
     }
 }
 
@@ -721,7 +732,7 @@ T WrapPyObject_AsObject(T) (PyObject* _self) {
     alias wrapped_class_object!(T) wrapped_object;
     alias wrapped_class_type!(T) type;
     wrapped_object* self = cast(wrapped_object*)_self;
-    if (!is_wrapped!(T) || self is null || (is(T : Object) && cast(T)cast(Object)self.d_obj is null)) {
+    if (!is_wrapped!(T) || self is null || (is(T : Object) && cast(T)cast(Object)(self.d_obj) is null)) {
         throw new Exception("Error extracting D object from Python object...");
     }
     return self.d_obj;

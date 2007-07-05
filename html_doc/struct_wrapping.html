@@ -54,6 +54,9 @@
 <dt><code>struct Property(alias <span class="t_arg">fn</span>, char[] <span class="t_arg">name</span> = symbolnameof!(fn), bool <span class="t_arg">RO</span> = false);</code></dt>
 <dd>This wraps a property. It is the same <code>Property</code> struct template used to <a href="class_wrapping.html">wrap class properties</a>.</dd>
 
+<dt><code>struct Repr(alias <span class="t_arg">fn</span>);</code></dt>
+<dd>This allows you to expose a member function of the struct as the Python type's <code>__repr__</code> function. The member function must have the signature <code>char[] function()</code>. It is the same <code>Repr</code> struct template used when <a href="class_wrapping.html">wrapping classes</a>.</dd>
+
 <dt><code>struct Iter(<span class="t_arg">iter_t</span>);</code></dt>
 <dd>This allows the user to specify a different overload of opApply than the default. (The default is always the one that is lexically first.) It is the same <code>Iter</code> struct template used in <a href="class_wrapping.html">class wrapping</a>.</dd>
 
