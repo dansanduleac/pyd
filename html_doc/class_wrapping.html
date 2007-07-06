@@ -9,19 +9,22 @@
 <body>
 <div id="nav">
 <p><big>Contents</big></p>
-<a class="nav" href="index.html">Main</a><br />
-<a class="nav" href="install.html">Installation</a><br />
-<a class="nav" href="basics.html">The basics</a><br />
-<a class="nav" href="celerid.html">CeleriD</a><br />
-<a class="nav" href="conversion.html">Type conversion</a><br />
-<a class="nav" href="func_wrapping.html">Function wrapping</a><br />
-<a class="navcur" href="class_wrapping.html">Class wrapping</a><br />
-<a class="nav" href="inherit.html">Inheritance</a><br />
-<a class="nav" href="struct_wrapping.html">Struct wrapping</a><br />
-<a class="nav" href="except_wrapping.html">Exception wrapping</a><br />
-<a class="nav" href="pydobject.html">PydObject</a><br />
-<a class="nav" href="vsboost.html">vs. Boost.Python</a><br />
-<a class="nav" href="credits.html">Credits</a>
+<ul>
+<li><a class="nav" href="index.html">Main</a></li>
+<li><a class="nav" href="install.html">Installation</a></li>
+<li><a class="nav" href="basics.html">The basics</a></li>
+<li><a class="nav" href="celerid.html">CeleriD</a></li>
+<li><a class="nav" href="conversion.html">Type conversion</a></li>
+<li><a class="nav" href="adv_conversion.html">Advanced type conversion</a></li>
+<li><a class="nav" href="func_wrapping.html">Function wrapping</a></li>
+<li><a class="navcur" href="class_wrapping.html">Class wrapping</a></li>
+<li><a class="nav" href="inherit.html">Inheritance</a></li>
+<li><a class="nav" href="struct_wrapping.html">Struct wrapping</a></li>
+<li><a class="nav" href="except_wrapping.html">Exception wrapping</a></li>
+<li><a class="nav" href="pydobject.html">PydObject</a></li>
+<li><a class="nav" href="vsboost.html">vs. Boost.Python</a></li>
+<li><a class="nav" href="credits.html">Credits</a></li>
+</ul>
 </div>
 
 <div id="content">
@@ -149,13 +152,13 @@ wrap_class!(
 &gt;&gt;&gt; f = Foo()
 &gt;&gt;&gt; f.i
 0
-&gt;&gt;&gt; f.i = 20
+&gt;&gt;&gt; f.i = <span class="number">20</span>
 &gt;&gt;&gt; f.foo(<span class="string">"Hello! i is "</span>)
 Hello! i is 20
-&gt;&gt;&gt; f = Foo(10, 10)
+&gt;&gt;&gt; f = Foo(<span class="number">10</span>, <span class="number">10</span>)
 &gt;&gt;&gt; f.i
 20
-&gt;&gt;&gt; g = Foo(30)
+&gt;&gt;&gt; g = Foo(<span class="number">30</span>)
 &gt;&gt;&gt; g.i
 30
 &gt;&gt;&gt; e = f + g
@@ -164,9 +167,9 @@ Hello! i is 20
 &gt;&gt;&gt; <span class="comment"># We can even subclass our D type</span>
 &gt;&gt;&gt; <span class="keyword">class</span> MyFoo(Foo):
 ... 	<span class="keyword">def</span> bar(self):
-... 		<span class="keyword">print</span> <span class="string">"Hey, i+3 is"</span>, self.i + 3
+... 		<span class="keyword">print</span> <span class="string">"Hey, i+3 is"</span>, self.i + <span class="number">3</span>
 ... 
-&gt;&gt;&gt; h = MyFoo(3)
+&gt;&gt;&gt; h = MyFoo(<span class="number">3</span>)
 &gt;&gt;&gt; h.bar()
 Hey, i+3 is 6
 &gt;&gt;&gt; </pre>

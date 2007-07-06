@@ -76,6 +76,12 @@ s.write_s()
 
 print
 
+print "Testing custom conversion function"
+print testdll.conv1()
+testdll.conv2(20)
+
+print
+
 print '--------'
 print 'SUCCESS'
 print '--------'

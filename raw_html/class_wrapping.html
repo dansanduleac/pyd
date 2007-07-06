@@ -133,13 +133,13 @@ wrap_class!(
 &gt;&gt;&gt; f = Foo()
 &gt;&gt;&gt; f.i
 0
-&gt;&gt;&gt; f.i = 20
+&gt;&gt;&gt; f.i = <span class="number">20</span>
 &gt;&gt;&gt; f.foo(<span class="string">"Hello! i is "</span>)
 Hello! i is 20
-&gt;&gt;&gt; f = Foo(10, 10)
+&gt;&gt;&gt; f = Foo(<span class="number">10</span>, <span class="number">10</span>)
 &gt;&gt;&gt; f.i
 20
-&gt;&gt;&gt; g = Foo(30)
+&gt;&gt;&gt; g = Foo(<span class="number">30</span>)
 &gt;&gt;&gt; g.i
 30
 &gt;&gt;&gt; e = f + g
@@ -148,9 +148,9 @@ Hello! i is 20
 &gt;&gt;&gt; <span class="comment"># We can even subclass our D type</span>
 &gt;&gt;&gt; <span class="keyword">class</span> MyFoo(Foo):
 ... 	<span class="keyword">def</span> bar(self):
-... 		<span class="keyword">print</span> <span class="string">"Hey, i+3 is"</span>, self.i + 3
+... 		<span class="keyword">print</span> <span class="string">"Hey, i+3 is"</span>, self.i + <span class="number">3</span>
 ... 
-&gt;&gt;&gt; h = MyFoo(3)
+&gt;&gt;&gt; h = MyFoo(<span class="number">3</span>)
 &gt;&gt;&gt; h.bar()
 Hey, i+3 is 6
 &gt;&gt;&gt; </pre>

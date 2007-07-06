@@ -90,6 +90,11 @@ struct S {
     }
 }
 
+
+struct A {
+    int i;
+}
+
 Foo spam(Foo f) {
     f.foo();
     Foo g = new Foo(f.i + 10);
@@ -100,8 +105,20 @@ void throws() {
     throw new Exception("Yay! An exception!");
 }
 
+A conv1() {
+    A a;
+    a.i = 12;
+    return a;
+}
+void conv2(A a) {
+    writefln(a.i);
+}
+
 extern(C) void PydMain() {
     pragma(msg, "testdll.PydMain");
+    d_to_python(delegate int(A a) { return a.i; });
+    python_to_d(delegate A(int i) { A a; a.i = i; return a; });
+
     def!(foo);
     // Python does not support function overloading. This allows us to wrap
     // an overloading function under a different name. Note that if the
@@ -115,6 +132,8 @@ extern(C) void PydMain() {
     def!(func_test);
     def!(dg_test);
     def!(throws);
+    def!(conv1);
+    def!(conv2);
 
     module_init();
 
