@@ -181,7 +181,7 @@ template make_wrapper(T, Params...) {
     const char[] cls = 
     "class wrapper : T {\n"~
     "    mixin OverloadShim;\n"~
-    class_decls!(0, Params)~"\n"~
+    pyd.make_wrapper.class_decls!(0, Params)~"\n"~
 //    op_shims!(0, T)~
     "}\n";
     pragma(msg, cls);

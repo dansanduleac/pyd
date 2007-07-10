@@ -66,11 +66,12 @@ template wrapped_struct_init(T) {
 
 // This template accepts a tuple of function pointer types, which each describe
 // a ctor of T, and  uses them to wrap a Python tp_init function.
-template wrapped_ctors(T, C ...) {
+template wrapped_ctors(/*T,*/ C ...) {
+    alias shim_class T;
     alias wrapped_class_object!(T) wrap_object;
 
     extern(C)
-    int init_func(PyObject* self, PyObject* args, PyObject* kwds) {
+    static int init_func(PyObject* self, PyObject* args, PyObject* kwds) {
         int len = PyObject_Length(args);
 
         return exception_catcher({
@@ -91,6 +92,8 @@ template wrapped_ctors(T, C ...) {
                         PyErr_SetString(PyExc_RuntimeError, "Couldn't get pointer to class ctor redirect.");
                         return -1;
                     }
+                    alias typeof(fn) dg_t;
+                    mixin applyPyTupleToDelegate!(dg_t);
                     T t = applyPyTupleToDelegate(fn, args);
                     if (t is null) {
                         PyErr_SetString(PyExc_RuntimeError, "Class ctor redirect didn't return a class instance!");

@@ -25,6 +25,7 @@ import python;
 
 import pyd.ctor_wrap;
 import pyd.def;
+import pyd.dg_convert;
 import pyd.exception;
 import pyd.func_wrap;
 version (Pyd_with_StackThreads) {
@@ -271,33 +272,42 @@ name = The name of the function as it will appear in Python.
 fn_t = The type of the function. It is only useful to specify this
        if more than one function has the same name as this one.
 */
-//template Def(alias fn, char[] name = symbolnameof!(fn), fn_t=typeof(&fn), uint MIN_ARGS=minArgs!(fn), char[] docstring="") {
-//    alias Def!(fn, symbolnameof!(fn), name, fn_t, MIN_ARGS, docstring) Def;
-//}
-template Def(alias fn, char[] docstring="") {
-    alias Def!(fn, symbolnameof!(fn), symbolnameof!(fn), typeof(&fn), minArgs!(fn), docstring) Def;
+struct Def(alias fn) {
+    mixin _Def!(fn, symbolnameof!(fn), typeof(&fn), "");
 }
-template Def(alias fn, char[] name, char[] docstring) {
-    alias Def!(fn, symbolnameof!(fn), name, typeof(&fn), minArgs!(fn), docstring) Def;
+struct Def(alias fn, char[] docstring) {
+    mixin _Def!(fn, /*symbolnameof!(fn),*/ symbolnameof!(fn), typeof(&fn)/+, minArgs!(fn)+/, docstring);
 }
-template Def(alias fn, char[] name, fn_t, char[] docstring) {
-    alias Def!(fn, symbolnameof!(fn), name, fn_t, minArgs!(fn), docstring) Def;
+struct Def(alias fn, char[] name, char[] docstring) {
+    mixin _Def!(fn, /*symbolnameof!(fn),*/ name, typeof(&fn)/+, minArgs!(fn)+/, docstring);
 }
-template Def(alias fn, fn_t, char[] docstring="") {
-    alias Def!(fn, symbolnameof!(fn), symbolnameof!(fn), fn_t, minArgs!(fn), docstring) Def;
+struct Def(alias fn, char[] name, fn_t) {
+    mixin _Def!(fn, /*symbolnameof!(fn),*/ name, fn_t/+, minArgs!(fn)+/, "");
 }
-template Def(alias fn, char[] name, fn_t, uint MIN_ARGS=minArgs!(fn), char[] docstring="") {
-    alias Def!(fn, symbolnameof!(fn), name, fn_t, MIN_ARGS, docstring) Def;
+struct Def(alias fn, fn_t) {
+    mixin _Def!(fn, /*symbolnameof!(fn),*/ symbolnameof!(fn), fn_t/+, minArgs!(fn)+/, "");
 }
-struct Def(alias fn, char[] _realname, char[] name, fn_t, uint MIN_ARGS, char[] docstring) {
+struct Def(alias fn, fn_t, char[] docstring) {
+    mixin _Def!(fn, /*symbolnameof!(fn),*/ symbolnameof!(fn), fn_t/+, minArgs!(fn)+/, docstring);
+}
+struct Def(alias fn, char[] name, fn_t, char[] docstring) {
+    mixin _Def!(fn, /*symbolnameof!(fn),*/ name, fn_t/+, minArgs!(fn)+/, docstring);
+}
+/+
+template Def(alias fn, char[] name, fn_t, uint MIN_ARGS=minArgs!(fn)/+, char[] docstring=""+/) {
+    alias Def!(fn, /*symbolnameof!(fn),*/ name, fn_t, MIN_ARGS/+, docstring+/) Def;
+}
++/
+template _Def(alias fn, /*char[] _realname,*/ char[] name, fn_t/+, uint MIN_ARGS=minArgs!(fn)+/, char[] docstring) {
     //static const type = ParamType.Def;
     alias fn func;
     alias fn_t func_t;
-    static const char[] realname = _realname;
+    static const char[] realname = symbolnameof!(fn);//_realname;
     static const char[] funcname = name;
-    static const uint min_args = MIN_ARGS;
+    static const uint min_args = minArgs!(fn);
+    static const bool needs_shim = false;
 
-    static void call(T, shim) () {
+    static void call(T) () {
         pragma(msg, "class.def: " ~ name);
         static PyMethodDef empty = { null, null, 0, null };
         alias wrapped_method_list!(T) list;
@@ -313,8 +323,8 @@ struct Def(alias fn, char[] _realname, char[] name, fn_t, uint MIN_ARGS, char[] 
     template shim(uint i) {
         const char[] shim =
             "    alias Params["~ToString!(i)~"] __pyd_p"~ToString!(i)~";\n"
-            "    ReturnType!(__pyd_p"~ToString!(i)~".func_t) "~_realname~"(ParameterTypeTuple!(__pyd_p"~ToString!(i)~".func_t) t) {\n"
-            "        return __pyd_get_overload!(\""~_realname~"\", __pyd_p"~ToString!(i)~".func_t).func(\""~name~"\", t);\n"
+            "    ReturnType!(__pyd_p"~ToString!(i)~".func_t) "~realname~"(ParameterTypeTuple!(__pyd_p"~ToString!(i)~".func_t) t) {\n"
+            "        return __pyd_get_overload!(\""~realname~"\", __pyd_p"~ToString!(i)~".func_t).func(\""~name~"\", t);\n"
             "    }\n";
     }
 }
@@ -322,28 +332,41 @@ struct Def(alias fn, char[] _realname, char[] name, fn_t, uint MIN_ARGS, char[] 
 /**
 Wraps a static member function of the class. Identical to pyd.def.def
 */
-template StaticDef(alias fn, char[] docstring="") {
-    alias StaticDef!(fn, symbolnameof!(fn), symbolnameof!(fn), typeof(&fn), minArgs!(fn), docstring) StaticDef;
+struct StaticDef(alias fn) {
+    mixin _StaticDef!(fn,/+ symbolnameof!(fn),+/ symbolnameof!(fn), typeof(&fn), minArgs!(fn), "");
 }
-template StaticDef(alias fn, char[] name, char[] docstring) {
-    alias StaticDef!(fn, symbolnameof!(fn), name, typeof(&fn), minArgs!(fn), docstring) StaticDef;
+struct StaticDef(alias fn, char[] docstring) {
+    mixin _StaticDef!(fn,/+ symbolnameof!(fn),+/ symbolnameof!(fn), typeof(&fn), minArgs!(fn), docstring);
 }
-template StaticDef(alias fn, char[] name, fn_t, char[] docstring) {
-    alias StaticDef!(fn, symbolnameof!(fn), name, fn_t, minArgs!(fn), docstring) StaticDef;
+struct StaticDef(alias _fn, char[] name, char[] docstring) {
+    mixin _StaticDef!(fn,/+ symbolnameof!(fn),+/ name, typeof(&fn), minArgs!(fn), docstring);
 }
-template StaticDef(alias fn, fn_t, char[] docstring="") {
-    alias StaticDef!(fn, symbolnameof!(fn), symbolnameof!(fn), fn_t, minArgs!(fn), docstring) StaticDef;
+struct StaticDef(alias _fn, char[] name, fn_t, char[] docstring) {
+    mixin _StaticDef!(fn,/+ symbolnameof!(fn),+/ name, fn_t, minArgs!(fn), docstring);
 }
-template StaticDef(alias fn, char[] name, fn_t, uint MIN_ARGS=minArgs!(fn), char[] docstring="") {
-    alias StaticDef!(fn, symbolnameof!(fn), name, fn_t, MIN_ARGS, docstring) StaticDef;
+struct StaticDef(alias _fn, fn_t) {
+    mixin _StaticDef!(fn,/+ symbolnameof!(fn),+/ symbolnameof!(fn), fn_t, minArgs!(fn), "");
 }
-struct StaticDef(alias fn, char[] _realname, char[] name, fn_t, uint MIN_ARGS, char[] docstring) {
+struct StaticDef(alias _fn, fn_t, char[] docstring) {
+    mixin _StaticDef!(fn,/+ symbolnameof!(fn),+/ symbolnameof!(fn), fn_t, minArgs!(fn), docstring);
+}
+struct StaticDef(alias _fn, char[] name, fn_t) {
+    mixin _StaticDef!(fn,/+ symbolnameof!(fn),+/ name, fn_t, minArgs!(fn), "");
+}
+struct StaticDef(alias _fn, char[] name, fn_t, uint MIN_ARGS) {
+    mixin _StaticDef!(fn,/+ symbolnameof!(fn),+/ name, fn_t, MIN_ARGS, "");
+}
+struct StaticDef(alias _fn, char[] name, fn_t, uint MIN_ARGS, char[] docstring) {
+    mixin _StaticDef!(fn,/+ symbolnameof!(fn),+/ name, fn_t, MIN_ARGS, docstring);
+}
+template _StaticDef(alias fn,/+ char[] _realname,+/ char[] name, fn_t, uint MIN_ARGS, char[] docstring) {
     //static const type = ParamType.StaticDef;
     alias fn func;
     alias fn_t func_t;
     static const char[] funcname = name;
     static const uint min_args = MIN_ARGS;
-    static void call(T, shim) () {
+    static const bool needs_shim = false;
+    static void call(T) () {
         pragma(msg, "class.static_def: " ~ name);
         static PyMethodDef empty = { null, null, 0, null };
         alias wrapped_method_list!(T) list;
@@ -370,25 +393,35 @@ RO = Whether this is a read-only property.
 //template Property(alias fn, char[] name = symbolnameof!(fn), bool RO=false, char[] docstring = "") {
 //    alias Property!(fn, symbolnameof!(fn), name, RO, docstring) Property;
 //}
-template Property(alias fn, char[] docstring="") {
-    alias Property!(fn, symbolnameof!(fn), symbolnameof!(fn), false, docstring) Property;
+struct Property(alias fn) {
+    mixin _Property!(fn, symbolnameof!(fn), symbolnameof!(fn), false, "");
 }
-template Property(alias fn, char[] name, char[] docstring) {
-    alias Property!(fn, symbolnameof!(fn), name, false, docstring) Property;
+struct Property(alias fn, char[] docstring) {
+    mixin _Property!(fn, symbolnameof!(fn), symbolnameof!(fn), false, docstring);
 }
-template Property(alias fn, char[] name, bool RO, char[] docstring="") {
-    alias Property!(fn, symbolnameof!(fn), name, RO, docstring) Property;
+struct Property(alias fn, char[] name, char[] docstring) {
+    mixin _Property!(fn, symbolnameof!(fn), name, false, docstring);
 }
-template Property(alias fn, bool RO, char[] docstring="") {
-    alias Property!(fn, symbolnameof!(fn), symbolnameof!(fn), RO, docstring) Property;
+struct Property(alias fn, char[] name, bool RO) {
+    mixin _Property!(fn, symbolnameof!(fn), name, RO, "");
 }
-struct Property(alias fn, char[] _realname, char[] name, bool RO, char[] docstring) {
+struct Property(alias fn, char[] name, bool RO, char[] docstring) {
+    mixin _Property!(fn, symbolnameof!(fn), name, RO, docstring);
+}
+struct Property(alias fn, bool RO) {
+    mixin _Property!(fn, symbolnameof!(fn), symbolnameof!(fn), RO, "");
+}
+struct Property(alias fn, bool RO, char[] docstring) {
+    mixin _Property!(fn, symbolnameof!(fn), symbolnameof!(fn), RO, docstring);
+}
+template _Property(alias fn, char[] _realname, char[] name, bool RO, char[] docstring) {
     alias property_parts!(fn).getter_type get_t;
     alias property_parts!(fn).setter_type set_t;
     static const char[] realname = _realname;
     static const char[] funcname = name;
     static const bool readonly = RO;
-    static void call(T, shim) () {
+    static const bool needs_shim = false;
+    static void call(T) () {
         pragma(msg, "class.prop: " ~ name);
         static PyGetSetDef empty = { null, null, null, null, null };
         wrapped_prop_list!(T)[length-1].name = (name ~ \0).ptr;
@@ -430,7 +463,8 @@ struct Property(alias fn, char[] _realname, char[] name, bool RO, char[] docstri
 Wraps a method as the class's __repr__ in Python.
 */
 struct Repr(alias fn) {
-    static void call(T, shim)() {
+    static const bool needs_shim = false;
+    static void call(T)() {
         alias wrapped_class_type!(T) type;
         type.tp_repr = &wrapped_repr!(T, fn).repr;
     }
@@ -453,9 +487,13 @@ the same number of arguments.
 */
 struct Init(C ...) {
     alias C ctors;
-    static void call(T, shim) () {
-        wrapped_class_type!(T).tp_init =
-            &wrapped_ctors!(shim, C).init_func;
+    static const bool needs_shim = true;
+    template call(T) {
+        mixin wrapped_ctors!(param.ctors) Ctors;
+        static void call() {
+            wrapped_class_type!(T).tp_init =
+                &Ctors.init_func;
+        }
     }
     template shim_impl(uint i, uint c=0) {
         static if (c < ctors.length) {
@@ -487,8 +525,9 @@ the type of the delegate in the opApply function that the user wants
 to be the default.
 */
 struct Iter(iter_t) {
+    static const bool needs_shim = false;
     alias iter_t iterator_t;
-    static void call(T, shim) () {
+    static void call(T) () {
         PydStackContext_Ready();
         // This strange bit of hackery is needed since we operate on pointer-
         // to-struct types, rather than just struct types.
@@ -506,7 +545,8 @@ D's delegate-as-iterator features, as methods returning a Python
 iterator.
 */
 struct AltIter(alias fn, char[] name = symbolnameof!(fn), iter_t = ParameterTypeTuple!(fn)[0]) {
-    static void call(T, shim) () {
+    static const bool needs_shim = false;
+    static void call(T) () {
         static PyMethodDef empty = { null, null, 0, null };
         alias wrapped_method_list!(T) list;
         PydStackContext_Ready();
@@ -524,14 +564,18 @@ struct AltIter(alias fn, char[] name = symbolnameof!(fn), iter_t = ParameterType
 } /*Pyd_with_StackThreads*/
 
 void wrap_class(T, Params...) (char[] docstring="", char[] modulename="") {
-    wrap_class!(T, symbolnameof!(T), Params)(docstring, modulename);
+    _wrap_class!(T, symbolnameof!(T), Params).wrap_class(docstring, modulename);
 }
-void wrap_class(_T, char[] name, Params...) (char[] docstring="", char[] modulename="") {
-    //alias CLS.wrapped_type T;
-    //const char[] name = CLS._name;
+/+
+template _wrap_class(T, Params...) {
+    mixin _wrap_class!(T, symbolnameof!(T), Params);
+}
++/
+template _wrap_class(_T, char[] name, Params...) {
     static if (is(_T == class)) {
         pragma(msg, "wrap_class: " ~ name);
-        alias make_wrapper!(_T, Params).wrapper shim_class;
+        mixin pyd.make_wrapper.make_wrapper!(_T, Params);
+        alias wrapper shim_class;
         alias _T T;
 //    } else static if (is(_T == interface)) {
 //        pragma(msg, "wrap_interface: " ~ name);
@@ -542,24 +586,31 @@ void wrap_class(_T, char[] name, Params...) (char[] docstring="", char[] modulen
         alias void shim_class;
         alias _T* T;
     }
+void wrap_class(char[] docstring="", char[] modulename="") {
+    pragma(msg, "shim.mangleof: " ~ shim_class.mangleof);
     alias wrapped_class_type!(T) type;
     //pragma(msg, "wrap_class, T is " ~ prettytypeof!(T));
 
     //Params params;
     foreach (param; Params) {
-        param.call!(T, shim_class)();
+        static if (param.needs_shim) {
+            mixin param.call!(T) PCall;
+            PCall.call();
+        } else {
+            param.call!(T)();
+        }
     }
 
     assert(Pyd_Module_p(modulename) !is null, "Must initialize module before wrapping classes.");
-    char[] module_name = toString(PyModule_GetName(Pyd_Module_p(modulename)));
+    char[] module_name = toString(python.PyModule_GetName(Pyd_Module_p(modulename)));
 
     //////////////////
     // Basic values //
     //////////////////
-    type.ob_type      = PyType_Type_p();
+    type.ob_type      = python.PyType_Type_p();
     type.tp_basicsize = (wrapped_class_object!(T)).sizeof;
     type.tp_doc       = (docstring ~ \0).ptr;
-    type.tp_flags     = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE;
+    type.tp_flags     = python.Py_TPFLAGS_DEFAULT | python.Py_TPFLAGS_BASETYPE;
     //type.tp_repr      = &wrapped_repr!(T).repr;
     type.tp_methods   = wrapped_method_list!(T).ptr;
     type.tp_name      = (module_name ~ "." ~ name ~ \0).ptr;
@@ -582,16 +633,16 @@ void wrap_class(_T, char[] name, Params...) (char[] docstring="", char[] modulen
     // Operator overloads //
     ////////////////////////
     // Numerical operator overloads
-    if (wrapped_class_as_number!(T) != PyNumberMethods.init) {
-        type.tp_as_number = &wrapped_class_as_number!(T);
+    if (pyd.op_wrap.wrapped_class_as_number!(T) != python.PyNumberMethods.init) {
+        type.tp_as_number = &pyd.op_wrap.wrapped_class_as_number!(T);
     }
     // Sequence operator overloads
-    if (wrapped_class_as_sequence!(T) != PySequenceMethods.init) {
-        type.tp_as_sequence = &wrapped_class_as_sequence!(T);
+    if (pyd.op_wrap.wrapped_class_as_sequence!(T) != python.PySequenceMethods.init) {
+        type.tp_as_sequence = &pyd.op_wrap.wrapped_class_as_sequence!(T);
     }
     // Mapping operator overloads
-    if (wrapped_class_as_mapping!(T) != PyMappingMethods.init) {
-        type.tp_as_mapping = &wrapped_class_as_mapping!(T);
+    if (pyd.op_wrap.wrapped_class_as_mapping!(T) != python.PyMappingMethods.init) {
+        type.tp_as_mapping = &pyd.op_wrap.wrapped_class_as_mapping!(T);
     }
 
     // Standard operator overloads
@@ -606,7 +657,7 @@ void wrap_class(_T, char[] name, Params...) (char[] docstring="", char[] modulen
     }
     // opCmp
     static if (is(typeof(&T.opCmp))) {
-        type.tp_compare = &opcmp_wrap!(T).func;
+        type.tp_compare = &pyd.op_wrap.opcmp_wrap!(T).func;
     }
     // opCall
     static if (is(typeof(&T.opCall))) {
@@ -636,8 +687,8 @@ void wrap_class(_T, char[] name, Params...) (char[] docstring="", char[] modulen
     if (PyType_Ready(&type) < 0) {
         throw new Exception("Couldn't ready wrapped type!");
     }
-    Py_INCREF(cast(PyObject*)&type);
-    PyModule_AddObject(Pyd_Module_p(modulename), (name~\0).ptr, cast(PyObject*)&type);
+    python.Py_INCREF(cast(PyObject*)&type);
+    python.PyModule_AddObject(Pyd_Module_p(modulename), (name~\0).ptr, cast(PyObject*)&type);
 
     is_wrapped!(T) = true;
     static if (is(T == class)) {
@@ -646,7 +697,7 @@ void wrap_class(_T, char[] name, Params...) (char[] docstring="", char[] modulen
         wrapped_classes[shim_class.classinfo] = &type;
     }
 }
-
+}
 ////////////////
 // DOCSTRINGS //
 ////////////////

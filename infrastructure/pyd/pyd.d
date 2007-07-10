@@ -43,5 +43,6 @@ public {
     version(Pyd_with_StackThreads) {
         import pyd.iteration;
     }
+    import pyd.make_wrapper;
 }
 

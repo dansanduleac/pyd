@@ -62,11 +62,18 @@ template wrapped_member(T, char[] name, _M=void) {
     }
 }
 
-template Member(char[] realname, char[] docstring="") {
-    alias Member!(realname, realname, docstring) Member;
+struct Member(char[] realname) {
+    mixin _Member!(realname, realname, "");
+}
+struct Member(char[] realname, char[] docstring) {
+    mixin _Member!(realname, realname, docstring);
 }
 struct Member(char[] realname, char[] name, char[] docstring) {
-    static void call(T, dummy) () {
+    mixin _Member!(realname, name, docstring);
+}
+template _Member(char[] realname, char[] name, char[] docstring) {
+    static const bool needs_shim = false;
+    static void call(T) () {
         pragma(msg, "struct.member: " ~ name);
         static PyGetSetDef empty = {null, null, null, null, null};
         alias wrapped_prop_list!(T) list;

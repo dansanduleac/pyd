@@ -58,6 +58,31 @@ class Foo {
     }
     int i() { return m_i; }
     void i(int j) { m_i = j; }
+    void a() {}
+    void b() {}
+    void c() {}
+    void d() {}
+    void e() {}
+    void f() {}
+    void g() {}
+    void h() {}
+    void j() {}
+    void k() {}
+    void l() {}
+    void m() {}
+    void n() {}
+    void o() {}
+    void p() {}
+    void q() {}
+    void r() {}
+    void s() {}
+    void t() {}
+    void u() {}
+    void v() {}
+    void w() {}
+    void x() {}
+    void y() {}
+    void z() {}
 }
 
 void delegate() func_test() {
@@ -114,6 +139,39 @@ void conv2(A a) {
     writefln(a.i);
 }
 
+mixin _wrap_class!(
+    Foo,
+    "Foo",
+    Init!(void delegate(int), void delegate(int, int)),
+    Property!(Foo.i, "A sample property of Foo."),
+    Def!(Foo.foo, "A sample method of Foo."),
+    Def!(Foo.a),
+    Def!(Foo.b),
+    Def!(Foo.c),
+    Def!(Foo.d),
+    Def!(Foo.e),
+    Def!(Foo.f),
+    Def!(Foo.g),
+    Def!(Foo.h),
+    Def!(Foo.j),
+    Def!(Foo.k),
+    Def!(Foo.l),
+    Def!(Foo.m),
+    Def!(Foo.n)/*, // Maximum length
+    Def!(Foo.o),
+    Def!(Foo.p),
+    Def!(Foo.q),
+    Def!(Foo.r),
+    Def!(Foo.s),
+    Def!(Foo.t),
+    Def!(Foo.u),
+    Def!(Foo.v),
+    Def!(Foo.w),
+    Def!(Foo.x),
+    Def!(Foo.y),
+    Def!(Foo.z)*/
+) F;
+
 extern(C) void PydMain() {
     pragma(msg, "testdll.PydMain");
     d_to_python(delegate int(A a) { return a.i; });
@@ -137,12 +195,7 @@ extern(C) void PydMain() {
 
     module_init();
 
-    wrap_class!(
-        Foo,
-        Init!(void delegate(int), void delegate(int, int)),
-        Property!(Foo.i, "A sample property of Foo."),
-        Def!(Foo.foo, "A sample method of Foo.")
-    ) ("A sample class.");
+    F.wrap_class("A sample class.");
 
     wrap_struct!(
         S,
