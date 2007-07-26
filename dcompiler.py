@@ -160,10 +160,10 @@ class DCompiler(cc.CCompiler):
 
         # To sources, add the appropriate D header file python.d, as well as
         # any platform-specific boilerplate.
-        pythonHeaderPath = os.path.join(_infraDir, 'python', _pyVerXDotY, 'python.d')
+        pythonHeaderPath = os.path.join(_infraDir, 'python', 'python.d')
         # Add the python header's directory to the include path
         includePathOpts += self._includeOpts
-        includePathOpts[-1] = includePathOpts[-1] % os.path.join(_infraDir, 'python', _pyVerXDotY)
+        includePathOpts[-1] = includePathOpts[-1] % os.path.join(_infraDir, 'python')
         if not os.path.isfile(pythonHeaderPath):
             raise DistutilsPlatformError('Required D translation of Python'
                 ' header files "%s" is missing.' % pythonHeaderPath
@@ -449,7 +449,7 @@ class DMDDCompiler(DCompiler):
             # code because Python X.Y releases are fairly infrequent, so it's
             # more convenient to distribute a pre-extracted .lib file to the
             # users and spare them the need for the "Basic Utilities" package.
-            pythonDMDLibPath = _qp(os.path.join(_infraDir, 'python', _pyVerXDotY,
+            pythonDMDLibPath = _qp(os.path.join(_infraDir, 'python',
                 'python%s_digitalmars.lib' % _pyVerXY
             ))
             if not os.path.isfile(pythonDMDLibPath):
