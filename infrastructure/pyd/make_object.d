@@ -151,7 +151,7 @@ PyObject* _py(T) (T t) {
         return PyComplex_FromDoubles(0.0, t.im);
     } else static if (is(T : cdouble)) {
         return PyComplex_FromDoubles(t.re, t.im);
-    } else static if (is(T : char[])) {
+    } else static if (is(T : string)) {
         return PyString_FromString((t ~ \0).ptr);
     } else static if (is(T : wchar[])) {
         return PyUnicode_FromWideChar(t, t.length);
@@ -278,7 +278,7 @@ PydObject py(T) (T t) {
  * An exception class used by d_type.
  */
 class PydConversionException : Exception {
-    this(char[] msg) { super(msg); }
+    this(string msg) { super(msg); }
 }
 
 /**
@@ -352,8 +352,23 @@ T d_type(T) (PyObject* o) {
         PyUnicode_AsWideChar(cast(PyUnicodeObject*)o, temp, temp.length);
         return temp;
     +/
+    } else static if (is(string : T)) {
+        const(char)* result;
+        PyObject* repr;
+        // If it's a string, convert it
+        if (PyString_Check(o) || PyUnicode_Check(o)) {
+            result = PyString_AsString(o);
+        // If it's something else, convert its repr
+        } else {
+            repr = PyObject_Repr(o);
+            if (repr is null) handle_exception();
+            result = PyString_AsString(repr);
+            Py_DECREF(repr);
+        }
+        if (result is null) handle_exception();
+        return .toString(result);
     } else static if (is(char[] : T)) {
-        char* result;
+        const(char)* result;
         PyObject* repr;
         // If it's a string, convert it
         if (PyString_Check(o) || PyUnicode_Check(o)) {
@@ -439,7 +454,7 @@ private
 void could_not_convert(T) (PyObject* o) {
     // Pull out the name of the type of this Python object, and the
     // name of the D type.
-    char[] py_typename, d_typename;
+    string py_typename, d_typename;
     PyObject* py_type, py_type_str;
     py_type = PyObject_Type(o);
     if (py_type is null) {

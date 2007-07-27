@@ -36,7 +36,7 @@ import pyd.lib_abstract :
 // It is intended that all of these templates accept a pointer-to-struct type
 // as a template parameter, rather than the struct type itself.
 
-template wrapped_member(T, char[] name, _M=void) {
+template wrapped_member(T, string name, _M=void) {
     alias wrapped_class_type!(T) type;
     alias wrapped_class_object!(T) obj;
     static if (is(_M == void)) {
@@ -62,16 +62,16 @@ template wrapped_member(T, char[] name, _M=void) {
     }
 }
 
-struct Member(char[] realname) {
+struct Member(string realname) {
     mixin _Member!(realname, realname, "");
 }
-struct Member(char[] realname, char[] docstring) {
+struct Member(string realname, string docstring) {
     mixin _Member!(realname, realname, docstring);
 }
-struct Member(char[] realname, char[] name, char[] docstring) {
+struct Member(string realname, string name, string docstring) {
     mixin _Member!(realname, name, docstring);
 }
-template _Member(char[] realname, char[] name, char[] docstring) {
+template _Member(string realname, string name, string docstring) {
     static const bool needs_shim = false;
     static void call(T) () {
         pragma(msg, "struct.member: " ~ name);

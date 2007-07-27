@@ -28,7 +28,7 @@ enum MangledNameType
 /*****************************************
  * Pretty-prints a mangled type string.
  */
-template demangleType(char[] str, MangledNameType wantQualifiedNames = MangledNameType.PrettyName)
+template demangleType(string str, MangledNameType wantQualifiedNames = MangledNameType.PrettyName)
 {
     static if (wantQualifiedNames != MangledNameType.PrettyName) {
         // There are only a few types where symbolnameof!(), qualifiednameof!()
@@ -69,7 +69,7 @@ template demangleType(char[] str, MangledNameType wantQualifiedNames = MangledNa
 
 // split these off because they're numerous and simple
 // Note: For portability, could replace "v" with void.mangleof, etc.
-template demangleBasicType(char [] str)
+template demangleBasicType(string str)
 {
          static if (str == "v") const char [] demangleBasicType = "void";
     else static if (str == "b") const char [] demangleBasicType = "bool";
@@ -105,7 +105,7 @@ template demangleBasicType(char [] str)
     else static assert(0, "Demangle Error: '" ~ str ~ "' is not a recognised basic type");
 }
 
-template demangleTypeConsumed(char [] str)
+template demangleTypeConsumed(string str)
 {
     static if (str[0]=='A')
         const int demangleTypeConsumed = 1 + demangleTypeConsumed!(str[1..$]);
@@ -131,7 +131,7 @@ template demangleTypeConsumed(char [] str)
 //              STATIC ARRAYS
 
 // For static arrays, count number of digits used (eg, return 3 for "674")
-template countLeadingDigits(char [] str)
+template countLeadingDigits(string str)
 {
     static if (str.length>0 && beginsWithDigit!( str))
         const int countLeadingDigits = 1 + countLeadingDigits!( str[1..$]);
@@ -146,7 +146,7 @@ template countLeadingDigits(char [] str)
 // Sometimes the characters following the length are also digits!
 // (this happens with templates, when the name being 'lengthed' is itself an Lname).
 // We guard against this by ensuring that the L is less than the length of the string.
-template getLname(char [] str)
+template getLname(string str)
 {
     static if (str.length <= 9+1 || !beginsWithDigit!(str[1..$]) )
         const char [] getLname = str[1..(str[0]-'0' + 1)];
@@ -162,7 +162,7 @@ template getLname(char [] str)
 
 // Deal with the case where an Lname contains an embedded "__D".
 // This can happen when classes, typedefs, etc are declared inside a function.
-template pretty_Dname(char [] str, int dotnameconsumed, MangledNameType wantQualifiedNames)
+template pretty_Dname(string str, int dotnameconsumed, MangledNameType wantQualifiedNames)
 {
     static if ( isMangledFunction!( (str[2+dotnameconsumed]))) {
         const char [] pretty_Dname = pretty_Dfunction!(str, dotnameconsumed,
@@ -180,7 +180,7 @@ template pretty_Dname(char [] str, int dotnameconsumed, MangledNameType wantQual
 
 // Deal with the case where an Lname contains an embedded ("__D") function.
 // Split into a seperate function because it's so complicated.
-template pretty_Dfunction(char [] str, int dotnameconsumed, int paramlistconsumed,
+template pretty_Dfunction(string str, int dotnameconsumed, int paramlistconsumed,
     MangledNameType wantQualifiedNames)
 {
     static if (wantQualifiedNames == MangledNameType.PrettyName) {
@@ -202,14 +202,14 @@ template pretty_Dfunction(char [] str, int dotnameconsumed, int paramlistconsume
  }
 
 // for an Lname that begins with "_D"
-template get_DnameConsumed(char [] str)
+template get_DnameConsumed(string str)
 {
     const int get_DnameConsumed = 2 + getQualifiedNameConsumed!(str[2..$])
         + demangleTypeConsumed!(str[2+getQualifedNameConsumed!(str[2..$])..$]);
 }
 
 // If Lname is a template, shows it as a template
-template prettyLname(char [] str, MangledNameType wantQualifiedNames)
+template prettyLname(string str, MangledNameType wantQualifiedNames)
 {
     static if (str.length>3 && str[0..3] == "__T") // Template instance name
         static if (wantQualifiedNames == MangledNameType.PrettyName) {
@@ -230,7 +230,7 @@ template prettyLname(char [] str, MangledNameType wantQualifiedNames)
 
 // str must start with an lname: first chars give the length
 // how many chars are taken up with length digits + the name itself
-template getLnameConsumed(char [] str)
+template getLnameConsumed(string str)
 {
     static if (str.length==0)
         const int getLnameConsumed=0;
@@ -244,7 +244,7 @@ template getLnameConsumed(char [] str)
         const int getLnameConsumed = (str[0]-'0')*1000 + (str[1]-'0')*100 + (str[2]-'0')*10 + (str[3]-'0') + 4;
 }
 
-template getQualifiedName(char [] str, MangledNameType wantQualifiedNames, char [] dotstr = "")
+template getQualifiedName(string str, MangledNameType wantQualifiedNames, string dotstr = "")
 {
     static if (str.length==0) const char [] getQualifiedName="";
 //    else static if (str.length>2 && str[0]=='_' && str[1]=='D')
@@ -268,7 +268,7 @@ template getQualifiedName(char [] str, MangledNameType wantQualifiedNames, char 
     }
 }
 
-template getQualifiedNameConsumed (char [] str)
+template getQualifiedNameConsumed (string str)
 {
     static if ( str.length>1 &&  beginsWithDigit!(str) ) {
         static if (getLnameConsumed!(str) < str.length && beginsWithDigit!( str[getLnameConsumed!(str)..$])) {
@@ -289,7 +289,7 @@ template getQualifiedNameConsumed (char [] str)
 /* str[0] must indicate the extern linkage of the function. funcOrDelegStr is the name of the function,
 * or "function " or "delegate "
 */
-template demangleFunctionOrDelegate(char [] str, char [] funcOrDelegStr, MangledNameType wantQualifiedNames)
+template demangleFunctionOrDelegate(string str, string funcOrDelegStr, MangledNameType wantQualifiedNames)
 {
     const char [] demangleFunctionOrDelegate = demangleExtern!(( str[0] ))
         ~ demangleReturnValue!(str[1..$], wantQualifiedNames)
@@ -300,7 +300,7 @@ template demangleFunctionOrDelegate(char [] str, char [] funcOrDelegStr, Mangled
 
 // Special case: types that are in function parameters
 // For function parameters, the type can also contain 'lazy', 'out' or 'inout'.
-template demangleFunctionParamType(char[] str, MangledNameType wantQualifiedNames)
+template demangleFunctionParamType(string str, MangledNameType wantQualifiedNames)
 {
     static if (str[0]=='L')
         const char [] demangleFunctionParamType = "lazy " ~ demangleType!(str[1..$], wantQualifiedNames);
@@ -312,7 +312,7 @@ template demangleFunctionParamType(char[] str, MangledNameType wantQualifiedName
 }
 
 // Deal with 'out' and 'inout' parameters
-template demangleFunctionParamTypeConsumed(char[] str)
+template demangleFunctionParamTypeConsumed(string str)
 {
     static if (str[0]=='K' || str[0]=='J' || str[0]=='L')
         const int demangleFunctionParamTypeConsumed = 1 + demangleTypeConsumed!(str[1..$]);
@@ -337,7 +337,7 @@ template demangleExtern(char c)
 
 // Skip through the string until we find the return value. It can either be Z for normal
 // functions, or Y for vararg functions.
-template demangleReturnValue(char [] str, MangledNameType wantQualifiedNames)
+template demangleReturnValue(string str, MangledNameType wantQualifiedNames)
 {
     static assert(str.length>=1, "Demangle error(Function): No return value found");
     static if (str[0]=='Z' || str[0]=='Y' || str[0]=='X')
@@ -346,7 +346,7 @@ template demangleReturnValue(char [] str, MangledNameType wantQualifiedNames)
 }
 
 // Stop when we get to the return value
-template demangleParamList(char [] str, MangledNameType wantQualifiedNames, char[] commastr = "")
+template demangleParamList(string str, MangledNameType wantQualifiedNames, string commastr = "")
 {
     static if (str[0] == 'Z')
         const char [] demangleParamList = "";
@@ -361,7 +361,7 @@ template demangleParamList(char [] str, MangledNameType wantQualifiedNames, char
 }
 
 // How many characters are used in the parameter list and return value
-template demangleParamListAndRetValConsumed(char [] str)
+template demangleParamListAndRetValConsumed(string str)
 {
     static assert (str.length>0, "Demangle error(ParamList): No return value found");
     static if (str[0]=='Z' || str[0]=='Y' || str[0]=='X')
@@ -375,7 +375,7 @@ template demangleParamListAndRetValConsumed(char [] str)
 // --------------------------------------------
 //              TEMPLATES
 
-template templateValueArgConsumed(char [] str)
+template templateValueArgConsumed(string str)
 {
     static if (str[0]=='n') const int templateValueArgConsumed = 1;
     else static if (beginsWithDigit!(str)) const int templateValueArgConsumed = countLeadingDigits!(str);
@@ -386,7 +386,7 @@ template templateValueArgConsumed(char [] str)
 }
 
 // pretty-print a template value argument.
-template prettyValueArg(char [] str)
+template prettyValueArg(string str)
 {
     static if (str[0]=='n') const char [] prettyValueArg = "null";
     else static if (beginsWithDigit!(str)) const char [] prettyValueArg = str;
@@ -397,7 +397,7 @@ template prettyValueArg(char [] str)
 }
 
 // Pretty-print a template argument
-template prettyTemplateArg(char [] str, MangledNameType wantQualifiedNames)
+template prettyTemplateArg(string str, MangledNameType wantQualifiedNames)
 {
     static if (str[0]=='S') // symbol name
         const char [] prettyTemplateArg = prettyLname!(str[1..$], wantQualifiedNames);
@@ -410,7 +410,7 @@ template prettyTemplateArg(char [] str, MangledNameType wantQualifiedNames)
     else static assert(0, "Unrecognised template argument type: {" ~ str ~ "}");
 }
 
-template templateArgConsumed(char [] str)
+template templateArgConsumed(string str)
 {
     static if (str[0]=='S') // symbol name
         const int templateArgConsumed = 1 + getLnameConsumed!(str[1..$]);
@@ -424,7 +424,7 @@ template templateArgConsumed(char [] str)
 
 // Like function parameter lists, template parameter lists also end in a Z,
 // but they don't have a return value at the end.
-template prettyTemplateArgList(char [] str, MangledNameType wantQualifiedNames, char [] commastr="")
+template prettyTemplateArgList(string str, MangledNameType wantQualifiedNames, string commastr="")
 {
     static if (str[0]=='Z')
         const char[] prettyTemplateArgList = "";
@@ -434,7 +434,7 @@ template prettyTemplateArgList(char [] str, MangledNameType wantQualifiedNames, 
             ~ prettyTemplateArgList!(str[templateArgConsumed!(str)..$], wantQualifiedNames, ", ");
 }
 
-template templateArgListConsumed(char [] str)
+template templateArgListConsumed(string str)
 {
     static assert(str.length>0, "No Z found at end of template argument list");
     static if (str[0]=='Z')
@@ -451,7 +451,7 @@ private {
    * beginsWithDigit!(s) is equivalent to isdigit!((s[0]));
    * it allows us to avoid the ugly double parentheses.
    */
-template beginsWithDigit(char [] s)
+template beginsWithDigit(string s)
 {
   static if (s[0]>='0' && s[0]<='9')
     const bool beginsWithDigit = true;

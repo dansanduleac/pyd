@@ -275,30 +275,30 @@ fn_t = The type of the function. It is only useful to specify this
 struct Def(alias fn) {
     mixin _Def!(fn, symbolnameof!(fn), typeof(&fn), "");
 }
-struct Def(alias fn, char[] docstring) {
+struct Def(alias fn, string docstring) {
     mixin _Def!(fn, /*symbolnameof!(fn),*/ symbolnameof!(fn), typeof(&fn)/+, minArgs!(fn)+/, docstring);
 }
-struct Def(alias fn, char[] name, char[] docstring) {
+struct Def(alias fn, string name, string docstring) {
     mixin _Def!(fn, /*symbolnameof!(fn),*/ name, typeof(&fn)/+, minArgs!(fn)+/, docstring);
 }
-struct Def(alias fn, char[] name, fn_t) {
+struct Def(alias fn, string name, fn_t) {
     mixin _Def!(fn, /*symbolnameof!(fn),*/ name, fn_t/+, minArgs!(fn)+/, "");
 }
 struct Def(alias fn, fn_t) {
     mixin _Def!(fn, /*symbolnameof!(fn),*/ symbolnameof!(fn), fn_t/+, minArgs!(fn)+/, "");
 }
-struct Def(alias fn, fn_t, char[] docstring) {
+struct Def(alias fn, fn_t, string docstring) {
     mixin _Def!(fn, /*symbolnameof!(fn),*/ symbolnameof!(fn), fn_t/+, minArgs!(fn)+/, docstring);
 }
-struct Def(alias fn, char[] name, fn_t, char[] docstring) {
+struct Def(alias fn, string name, fn_t, string docstring) {
     mixin _Def!(fn, /*symbolnameof!(fn),*/ name, fn_t/+, minArgs!(fn)+/, docstring);
 }
 /+
-template Def(alias fn, char[] name, fn_t, uint MIN_ARGS=minArgs!(fn)/+, char[] docstring=""+/) {
+template Def(alias fn, string name, fn_t, uint MIN_ARGS=minArgs!(fn)/+, string docstring=""+/) {
     alias Def!(fn, /*symbolnameof!(fn),*/ name, fn_t, MIN_ARGS/+, docstring+/) Def;
 }
 +/
-template _Def(alias fn, /*char[] _realname,*/ char[] name, fn_t/+, uint MIN_ARGS=minArgs!(fn)+/, char[] docstring) {
+template _Def(alias fn, /*string _realname,*/ string name, fn_t/+, uint MIN_ARGS=minArgs!(fn)+/, string docstring) {
     //static const type = ParamType.Def;
     alias fn func;
     alias fn_t func_t;
@@ -335,31 +335,31 @@ Wraps a static member function of the class. Identical to pyd.def.def
 struct StaticDef(alias fn) {
     mixin _StaticDef!(fn,/+ symbolnameof!(fn),+/ symbolnameof!(fn), typeof(&fn), minArgs!(fn), "");
 }
-struct StaticDef(alias fn, char[] docstring) {
+struct StaticDef(alias fn, string docstring) {
     mixin _StaticDef!(fn,/+ symbolnameof!(fn),+/ symbolnameof!(fn), typeof(&fn), minArgs!(fn), docstring);
 }
-struct StaticDef(alias _fn, char[] name, char[] docstring) {
+struct StaticDef(alias _fn, string name, string docstring) {
     mixin _StaticDef!(fn,/+ symbolnameof!(fn),+/ name, typeof(&fn), minArgs!(fn), docstring);
 }
-struct StaticDef(alias _fn, char[] name, fn_t, char[] docstring) {
+struct StaticDef(alias _fn, string name, fn_t, string docstring) {
     mixin _StaticDef!(fn,/+ symbolnameof!(fn),+/ name, fn_t, minArgs!(fn), docstring);
 }
 struct StaticDef(alias _fn, fn_t) {
     mixin _StaticDef!(fn,/+ symbolnameof!(fn),+/ symbolnameof!(fn), fn_t, minArgs!(fn), "");
 }
-struct StaticDef(alias _fn, fn_t, char[] docstring) {
+struct StaticDef(alias _fn, fn_t, string docstring) {
     mixin _StaticDef!(fn,/+ symbolnameof!(fn),+/ symbolnameof!(fn), fn_t, minArgs!(fn), docstring);
 }
-struct StaticDef(alias _fn, char[] name, fn_t) {
+struct StaticDef(alias _fn, string name, fn_t) {
     mixin _StaticDef!(fn,/+ symbolnameof!(fn),+/ name, fn_t, minArgs!(fn), "");
 }
-struct StaticDef(alias _fn, char[] name, fn_t, uint MIN_ARGS) {
+struct StaticDef(alias _fn, string name, fn_t, uint MIN_ARGS) {
     mixin _StaticDef!(fn,/+ symbolnameof!(fn),+/ name, fn_t, MIN_ARGS, "");
 }
-struct StaticDef(alias _fn, char[] name, fn_t, uint MIN_ARGS, char[] docstring) {
+struct StaticDef(alias _fn, string name, fn_t, uint MIN_ARGS, string docstring) {
     mixin _StaticDef!(fn,/+ symbolnameof!(fn),+/ name, fn_t, MIN_ARGS, docstring);
 }
-template _StaticDef(alias fn,/+ char[] _realname,+/ char[] name, fn_t, uint MIN_ARGS, char[] docstring) {
+template _StaticDef(alias fn,/+ string _realname,+/ string name, fn_t, uint MIN_ARGS, string docstring) {
     //static const type = ParamType.StaticDef;
     alias fn func;
     alias fn_t func_t;
@@ -396,25 +396,25 @@ RO = Whether this is a read-only property.
 struct Property(alias fn) {
     mixin _Property!(fn, symbolnameof!(fn), symbolnameof!(fn), false, "");
 }
-struct Property(alias fn, char[] docstring) {
+struct Property(alias fn, string docstring) {
     mixin _Property!(fn, symbolnameof!(fn), symbolnameof!(fn), false, docstring);
 }
-struct Property(alias fn, char[] name, char[] docstring) {
+struct Property(alias fn, string name, string docstring) {
     mixin _Property!(fn, symbolnameof!(fn), name, false, docstring);
 }
-struct Property(alias fn, char[] name, bool RO) {
+struct Property(alias fn, string name, bool RO) {
     mixin _Property!(fn, symbolnameof!(fn), name, RO, "");
 }
-struct Property(alias fn, char[] name, bool RO, char[] docstring) {
+struct Property(alias fn, string name, bool RO, string docstring) {
     mixin _Property!(fn, symbolnameof!(fn), name, RO, docstring);
 }
 struct Property(alias fn, bool RO) {
     mixin _Property!(fn, symbolnameof!(fn), symbolnameof!(fn), RO, "");
 }
-struct Property(alias fn, bool RO, char[] docstring) {
+struct Property(alias fn, bool RO, string docstring) {
     mixin _Property!(fn, symbolnameof!(fn), symbolnameof!(fn), RO, docstring);
 }
-template _Property(alias fn, char[] _realname, char[] name, bool RO, char[] docstring) {
+template _Property(alias fn, string _realname, string name, bool RO, string docstring) {
     alias property_parts!(fn).getter_type get_t;
     alias property_parts!(fn).setter_type set_t;
     static const char[] realname = _realname;
@@ -544,7 +544,7 @@ Exposes alternate iteration methods, originally intended for use with
 D's delegate-as-iterator features, as methods returning a Python
 iterator.
 */
-struct AltIter(alias fn, char[] name = symbolnameof!(fn), iter_t = ParameterTypeTuple!(fn)[0]) {
+struct AltIter(alias fn, string name = symbolnameof!(fn), iter_t = ParameterTypeTuple!(fn)[0]) {
     static const bool needs_shim = false;
     static void call(T) () {
         static PyMethodDef empty = { null, null, 0, null };
@@ -563,7 +563,7 @@ struct AltIter(alias fn, char[] name = symbolnameof!(fn), iter_t = ParameterType
 
 } /*Pyd_with_StackThreads*/
 
-void wrap_class(T, Params...) (char[] docstring="", char[] modulename="") {
+void wrap_class(T, Params...) (string docstring="", string modulename="") {
     _wrap_class!(T, symbolnameof!(T), Params).wrap_class(docstring, modulename);
 }
 /+
@@ -571,7 +571,7 @@ template _wrap_class(T, Params...) {
     mixin _wrap_class!(T, symbolnameof!(T), Params);
 }
 +/
-template _wrap_class(_T, char[] name, Params...) {
+template _wrap_class(_T, string name, Params...) {
     static if (is(_T == class)) {
         pragma(msg, "wrap_class: " ~ name);
         mixin pyd.make_wrapper.make_wrapper!(_T, Params);
@@ -586,7 +586,7 @@ template _wrap_class(_T, char[] name, Params...) {
         alias void shim_class;
         alias _T* T;
     }
-void wrap_class(char[] docstring="", char[] modulename="") {
+void wrap_class(string docstring="", string modulename="") {
     pragma(msg, "shim.mangleof: " ~ shim_class.mangleof);
     alias wrapped_class_type!(T) type;
     //pragma(msg, "wrap_class, T is " ~ prettytypeof!(T));
@@ -602,7 +602,7 @@ void wrap_class(char[] docstring="", char[] modulename="") {
     }
 
     assert(Pyd_Module_p(modulename) !is null, "Must initialize module before wrapping classes.");
-    char[] module_name = toString(python.PyModule_GetName(Pyd_Module_p(modulename)));
+    string module_name = toString(python.PyModule_GetName(Pyd_Module_p(modulename)));
 
     //////////////////
     // Basic values //

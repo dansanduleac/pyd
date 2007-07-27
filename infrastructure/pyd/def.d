@@ -35,10 +35,10 @@ private PyMethodDef module_global_methods[] = [
     { null, null, 0, null }
 ];
 
-private PyMethodDef[][char[]] module_methods;
-private PyObject*[char[]] pyd_modules;
+private PyMethodDef[][string] module_methods;
+private PyObject*[string] pyd_modules;
 
-private void ready_module_methods(char[] modulename) {
+private void ready_module_methods(string modulename) {
     PyMethodDef empty;
     if (!(modulename in module_methods)) {
         module_methods[modulename] = (PyMethodDef[]).init;
@@ -46,7 +46,7 @@ private void ready_module_methods(char[] modulename) {
     }
 }
 
-PyObject* Pyd_Module_p(char[] modulename="") {
+PyObject* Pyd_Module_p(string modulename="") {
     PyObject** m = modulename in pyd_modules;
     if (m is null) return null;
     else return *m;
@@ -84,11 +84,11 @@ PyObject* Pyd_Module_p(char[] modulename="") {
  *>>> print testdll.foo(20)
  *It's greater than 10!)
  */
-void def(alias fn, char[] name = symbolnameof!(fn), fn_t=typeof(&fn), uint MIN_ARGS = minArgs!(fn, fn_t)) (char[] docstring="") {
+void def(alias fn, string name = symbolnameof!(fn), fn_t=typeof(&fn), uint MIN_ARGS = minArgs!(fn, fn_t)) (string docstring="") {
     def!("", fn, name, fn_t, MIN_ARGS)(docstring);
 }
 
-void def(char[] modulename, alias fn, char[] name = symbolnameof!(fn), fn_t=typeof(&fn), uint MIN_ARGS = minArgs!(fn, fn_t)) (char[] docstring) {
+void def(string modulename, alias fn, string name = symbolnameof!(fn), fn_t=typeof(&fn), uint MIN_ARGS = minArgs!(fn, fn_t)) (string docstring) {
     pragma(msg, "def: " ~ name);
     PyMethodDef empty;
     ready_module_methods(modulename);
@@ -101,14 +101,14 @@ void def(char[] modulename, alias fn, char[] name = symbolnameof!(fn), fn_t=type
     (*list) ~= empty;
 }
 
-char[] pyd_module_name;
+string pyd_module_name;
 
 /**
  * Module initialization function. Should be called after the last call to def.
  */
-PyObject* module_init(char[] docstring="") {
+PyObject* module_init(string docstring="") {
     //_loadPythonSupport();
-    char[] name = pyd_module_name;
+    string name = pyd_module_name;
     ready_module_methods("");
     pyd_modules[""] = Py_InitModule3((name ~ \0).ptr, module_methods[""].ptr, (docstring ~ \0).ptr);
     return pyd_modules[""];
@@ -117,7 +117,7 @@ PyObject* module_init(char[] docstring="") {
 /**
  * Module initialization function. Should be called after the last call to def.
  */
-PyObject* add_module(char[] name, char[] docstring="") {
+PyObject* add_module(string name, string docstring="") {
     ready_module_methods(name);
     pyd_modules[name] = Py_InitModule3((name ~ \0).ptr, module_methods[name].ptr, (docstring ~ \0).ptr);
     return pyd_modules[name];

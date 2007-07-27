@@ -113,8 +113,8 @@ template OverloadShim() {
             }
         }
     }
-    template __pyd_get_overload(char[] realname, fn_t) {
-        ReturnType!(fn_t) func(T ...) (char[] name, T t) {
+    template __pyd_get_overload(string realname, fn_t) {
+        ReturnType!(fn_t) func(T ...) (string name, T t) {
             PyObject* _pyobj = this.__pyd_get_pyobj();
             if (_pyobj !is null) {
                 // If this object's type is not the wrapped class's type (that is,

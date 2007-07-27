@@ -41,10 +41,17 @@ version (Tango) {
         return o.toUtf8();
     }
 } else {
-    char[] objToStr(Object o) {
+    string objToStr(Object o) {
         return o.toString();
     }
-    public import meta.Nameof : symbolnameof, prettytypeof, prettynameof;
+    template symbolnameof(alias symbol) {
+        static if (is(typeof(symbol) == function)) {
+            const char[] symbolnameof = (&symbol).stringof[2 .. $];
+        } else {
+            const char[] symbolnameof = symbol.stringof;
+        }
+    }
+    public import meta.Nameof : /*symbolnameof,*/ prettytypeof, prettynameof;
 
     public import std.string : toString;
     public import std.traits : ParameterTypeTuple, ReturnType;

@@ -12,7 +12,7 @@ void foo(int i) {
     writefln("You entered %s", i);
 }
 
-char[] bar(int i) {
+string bar(int i) {
     if (i > 10) {
         return "It's greater than 10!";
     } else {
@@ -20,7 +20,7 @@ char[] bar(int i) {
     }
 }
 
-void baz(int i=10, char[] s="moo") {
+void baz(int i=10, string s="moo") {
     writefln("i = %s\ns = %s", i, s);
 }
 

@@ -58,7 +58,7 @@ void PydWrappedFunc_Ready(T)() {
     }
 }
 
-void setWrongArgsError(int gotArgs, uint minArgs, uint maxArgs, char[] funcName="") {
+void setWrongArgsError(int gotArgs, uint minArgs, uint maxArgs, string funcName="") {
     char[] str;
     if (funcName == "") {
         str ~= "function takes ";
@@ -237,7 +237,7 @@ template method_wrap(C, alias real_fn, fn_t=typeof(&real_fn)) {
                 PyErr_SetString(PyExc_ValueError, "Wrapped class instance is null!");
                 return null;
             }
-            fn_to_dg!(fn_t) dg = dg_wrapper!(C, fn_t)(instance, &real_fn);
+            fn_to_dg!(fn_t) dg = dg_wrapper!(C, fn_t)(instance, cast(fn_t)&real_fn);
             return pyApplyToDelegate(dg, args);
         });
     }

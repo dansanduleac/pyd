@@ -60,6 +60,12 @@ version(Windows) {
   }
 }
 
+version (D_Version2) {
+    alias const(char)* c_str;
+} else {
+    alias char* c_str;
+}
+
 /*
  * Py_ssize_t is defined as a signed type which is 8 bytes on X86_64 and 4
  * bytes on X86.
@@ -136,12 +142,12 @@ extern (C) {
   alias int (*getreadbufferproc)(PyObject *, int, void **);
   alias int (*getwritebufferproc)(PyObject *, int, void **);
   alias int (*getsegcountproc)(PyObject *, int *);
-  alias int (*getcharbufferproc)(PyObject *, int, char **);
+  alias int (*getcharbufferproc)(PyObject *, int, c_str*);
   // ssize_t-based buffer interface
   alias Py_ssize_t (*readbufferproc)(PyObject *, Py_ssize_t, void **);
   alias Py_ssize_t (*writebufferproc)(PyObject *, Py_ssize_t, void **);
   alias Py_ssize_t (*segcountproc)(PyObject *, Py_ssize_t *);
-  alias Py_ssize_t (*charbufferproc)(PyObject *, Py_ssize_t, char **);
+  alias Py_ssize_t (*charbufferproc)(PyObject *, Py_ssize_t, c_str*);
 
   alias int (*objobjproc)(PyObject *, PyObject *);
   alias int (*visitproc)(PyObject *, void *);
@@ -225,9 +231,9 @@ extern (C) {
   alias void (*freefunc)(void *);
   alias void (*destructor)(PyObject *);
   alias int (*printfunc)(PyObject *, FILE *, int);
-  alias PyObject *(*getattrfunc)(PyObject *, char *);
+  alias PyObject *(*getattrfunc)(PyObject *, c_str);
   alias PyObject *(*getattrofunc)(PyObject *, PyObject *);
-  alias int (*setattrfunc)(PyObject *, char *, PyObject *);
+  alias int (*setattrfunc)(PyObject *, c_str, PyObject *);
   alias int (*setattrofunc)(PyObject *, PyObject *, PyObject *);
   alias int (*cmpfunc)(PyObject *, PyObject *);
   alias PyObject *(*reprfunc)(PyObject *);
@@ -244,7 +250,7 @@ extern (C) {
   struct PyTypeObject {
     mixin PyObject_VAR_HEAD;
 
-    char *tp_name;
+    c_str tp_name;
     Py_ssize_t tp_basicsize, tp_itemsize;
 
     destructor tp_dealloc;
@@ -268,7 +274,7 @@ extern (C) {
 
     C_long tp_flags;
 
-    char *tp_doc;
+    c_str tp_doc;
 
     traverseproc tp_traverse;
 
@@ -361,9 +367,9 @@ extern (C) {
   int PyObject_Compare(PyObject *, PyObject *);
   PyObject * PyObject_RichCompare(PyObject *, PyObject *, int);
   int PyObject_RichCompareBool(PyObject *, PyObject *, int);
-  PyObject * PyObject_GetAttrString(PyObject *, char *);
-  int PyObject_SetAttrString(PyObject *, char *, PyObject *);
-  int PyObject_HasAttrString(PyObject *, char *);
+  PyObject * PyObject_GetAttrString(PyObject *, c_str);
+  int PyObject_SetAttrString(PyObject *, c_str, PyObject *);
+  int PyObject_HasAttrString(PyObject *, c_str);
   PyObject * PyObject_GetAttr(PyObject *, PyObject *);
   int PyObject_SetAttr(PyObject *, PyObject *, PyObject *);
   int PyObject_HasAttr(PyObject *, PyObject *);
@@ -541,7 +547,7 @@ extern (C) {
     Py_UNICODE PyUnicodeUCS2_GetMax();
 
     int PyUnicodeUCS2_Resize(PyObject **unicode, Py_ssize_t length);
-    PyObject *PyUnicodeUCS2_FromEncodedObject(PyObject *obj, char *encoding, char *errors);
+    PyObject *PyUnicodeUCS2_FromEncodedObject(PyObject *obj, c_str encoding, c_str errors);
     PyObject *PyUnicodeUCS2_FromObject(PyObject *obj);
 
     PyObject *PyUnicodeUCS2_FromWideChar(wchar *w, Py_ssize_t size);
@@ -549,72 +555,72 @@ extern (C) {
 
     PyObject *PyUnicodeUCS2_FromOrdinal(int ordinal);
 
-    PyObject *_PyUnicodeUCS2_AsDefaultEncodedString(PyObject *, char *);
+    PyObject *_PyUnicodeUCS2_AsDefaultEncodedString(PyObject *, c_str);
 
-    char *PyUnicodeUCS2_GetDefaultEncoding();
-    int PyUnicodeUCS2_SetDefaultEncoding(char *encoding);
+    c_str PyUnicodeUCS2_GetDefaultEncoding();
+    int PyUnicodeUCS2_SetDefaultEncoding(c_str encoding);
 
-    PyObject *PyUnicodeUCS2_Decode(char *s, Py_ssize_t size, char *encoding, char *errors);
-    PyObject *PyUnicodeUCS2_Encode(Py_UNICODE *s, Py_ssize_t size, char *encoding, char *errors);
-    PyObject *PyUnicodeUCS2_AsEncodedObject(PyObject *unicode, char *encoding, char *errors);
-    PyObject *PyUnicodeUCS2_AsEncodedString(PyObject *unicode, char *encoding, char *errors);
+    PyObject *PyUnicodeUCS2_Decode(c_str s, Py_ssize_t size, c_str encoding, c_str errors);
+    PyObject *PyUnicodeUCS2_Encode(Py_UNICODE *s, Py_ssize_t size, c_str encoding, c_str errors);
+    PyObject *PyUnicodeUCS2_AsEncodedObject(PyObject *unicode, c_str encoding, c_str errors);
+    PyObject *PyUnicodeUCS2_AsEncodedString(PyObject *unicode, c_str encoding, c_str errors);
 
-    PyObject *PyUnicodeUCS2_DecodeUTF7(char *string, Py_ssize_t length, char *errors);
+    PyObject *PyUnicodeUCS2_DecodeUTF7(c_str s, Py_ssize_t length, c_str errors);
     PyObject *PyUnicodeUCS2_EncodeUTF7(Py_UNICODE *data, Py_ssize_t length,
-        int encodeSetO, int encodeWhiteSpace, char *errors
+        int encodeSetO, int encodeWhiteSpace, c_str errors
       );
 
-    PyObject *PyUnicodeUCS2_DecodeUTF8(char *string, Py_ssize_t length, char *errors);
-    PyObject *PyUnicodeUCS2_DecodeUTF8Stateful(char *string, Py_ssize_t length,
-        char *errors, Py_ssize_t *consumed
+    PyObject *PyUnicodeUCS2_DecodeUTF8(c_str s, Py_ssize_t length, c_str errors);
+    PyObject *PyUnicodeUCS2_DecodeUTF8Stateful(c_str s, Py_ssize_t length,
+        c_str errors, Py_ssize_t *consumed
       );
     PyObject *PyUnicodeUCS2_AsUTF8String(PyObject *unicode);
-    PyObject *PyUnicodeUCS2_EncodeUTF8(Py_UNICODE *data, Py_ssize_t length, char *errors);
+    PyObject *PyUnicodeUCS2_EncodeUTF8(Py_UNICODE *data, Py_ssize_t length, c_str errors);
 
-    PyObject *PyUnicodeUCS2_DecodeUTF16(char *string, Py_ssize_t length, char *errors, int *byteorder);
-    PyObject *PyUnicodeUCS2_DecodeUTF16Stateful(char *string, Py_ssize_t length,
-        char *errors, int *byteorder, Py_ssize_t *consumed
+    PyObject *PyUnicodeUCS2_DecodeUTF16(c_str s, Py_ssize_t length, c_str errors, int *byteorder);
+    PyObject *PyUnicodeUCS2_DecodeUTF16Stateful(c_str s, Py_ssize_t length,
+        c_str errors, int *byteorder, Py_ssize_t *consumed
       );
     PyObject *PyUnicodeUCS2_AsUTF16String(PyObject *unicode);
     PyObject *PyUnicodeUCS2_EncodeUTF16(Py_UNICODE *data, Py_ssize_t length,
-        char *errors, int byteorder
+        c_str errors, int byteorder
       );
 
-    PyObject *PyUnicodeUCS2_DecodeUnicodeEscape(char *string, Py_ssize_t length, char *errors);
+    PyObject *PyUnicodeUCS2_DecodeUnicodeEscape(c_str s, Py_ssize_t length, c_str errors);
     PyObject *PyUnicodeUCS2_AsUnicodeEscapeString(PyObject *unicode);
     PyObject *PyUnicodeUCS2_EncodeUnicodeEscape(Py_UNICODE *data, Py_ssize_t length);
-    PyObject *PyUnicodeUCS2_DecodeRawUnicodeEscape(char *string, Py_ssize_t length, char *errors);
+    PyObject *PyUnicodeUCS2_DecodeRawUnicodeEscape(c_str s, Py_ssize_t length, c_str errors);
     PyObject *PyUnicodeUCS2_AsRawUnicodeEscapeString(PyObject *unicode);
     PyObject *PyUnicodeUCS2_EncodeRawUnicodeEscape(Py_UNICODE *data, Py_ssize_t length);
 
-    PyObject *_PyUnicodeUCS2_DecodeUnicodeInternal(char *string, Py_ssize_t length, char *errors);
+    PyObject *_PyUnicodeUCS2_DecodeUnicodeInternal(c_str s, Py_ssize_t length, c_str errors);
 
-    PyObject *PyUnicodeUCS2_DecodeLatin1(char *string, Py_ssize_t length, char *errors);
+    PyObject *PyUnicodeUCS2_DecodeLatin1(c_str s, Py_ssize_t length, c_str errors);
     PyObject *PyUnicodeUCS2_AsLatin1String(PyObject *unicode);
-    PyObject *PyUnicodeUCS2_EncodeLatin1(Py_UNICODE *data, Py_ssize_t length, char *errors);
+    PyObject *PyUnicodeUCS2_EncodeLatin1(Py_UNICODE *data, Py_ssize_t length, c_str errors);
 
-    PyObject *PyUnicodeUCS2_DecodeASCII(char *string, Py_ssize_t length, char *errors);
+    PyObject *PyUnicodeUCS2_DecodeASCII(c_str s, Py_ssize_t length, c_str errors);
     PyObject *PyUnicodeUCS2_AsASCIIString(PyObject *unicode);
-    PyObject *PyUnicodeUCS2_EncodeASCII(Py_UNICODE *data, Py_ssize_t length, char *errors);
+    PyObject *PyUnicodeUCS2_EncodeASCII(Py_UNICODE *data, Py_ssize_t length, c_str errors);
 
-    PyObject *PyUnicodeUCS2_DecodeCharmap(char *string, Py_ssize_t length,
-        PyObject *mapping, char *errors
+    PyObject *PyUnicodeUCS2_DecodeCharmap(c_str s, Py_ssize_t length,
+        PyObject *mapping, c_str errors
       );
     PyObject *PyUnicodeUCS2_AsCharmapString(PyObject *unicode, PyObject *mapping);
     PyObject *PyUnicodeUCS2_EncodeCharmap(Py_UNICODE *data, Py_ssize_t length,
-        PyObject *mapping, char *errors
+        PyObject *mapping, c_str errors
       );
     PyObject *PyUnicodeUCS2_TranslateCharmap(Py_UNICODE *data, Py_ssize_t length,
-        PyObject *table, char *errors
+        PyObject *table, c_str errors
       );
 
     version (Windows) {
-      PyObject *PyUnicodeUCS2_DecodeMBCS(char *string, Py_ssize_t length, char *errors);
+      PyObject *PyUnicodeUCS2_DecodeMBCS(c_str s, Py_ssize_t length, c_str errors);
       PyObject *PyUnicodeUCS2_AsMBCSString(PyObject *unicode);
-      PyObject *PyUnicodeUCS2_EncodeMBCS(Py_UNICODE *data, Py_ssize_t length, char *errors);
+      PyObject *PyUnicodeUCS2_EncodeMBCS(Py_UNICODE *data, Py_ssize_t length, c_str errors);
     }
 
-    int PyUnicodeUCS2_EncodeDecimal(Py_UNICODE *s, Py_ssize_t length, char *output, char *errors);
+    int PyUnicodeUCS2_EncodeDecimal(Py_UNICODE *s, Py_ssize_t length, c_str output, c_str errors);
 
     PyObject *PyUnicodeUCS2_Concat(PyObject *left, PyObject *right);
     PyObject *PyUnicodeUCS2_Split(PyObject *s, PyObject *sep, Py_ssize_t maxsplit);
@@ -624,7 +630,7 @@ extern (C) {
         PyObject *PyUnicodeUCS2_RPartition(PyObject* s, PyObject* sep);
     }
     PyObject *PyUnicodeUCS2_RSplit(PyObject *s, PyObject *sep, Py_ssize_t maxsplit);
-    PyObject *PyUnicodeUCS2_Translate(PyObject *str, PyObject *table, char *errors);
+    PyObject *PyUnicodeUCS2_Translate(PyObject *str, PyObject *table, c_str errors);
     PyObject *PyUnicodeUCS2_Join(PyObject *separator, PyObject *seq);
     Py_ssize_t PyUnicodeUCS2_Tailmatch(PyObject *str, PyObject *substr,
         Py_ssize_t start, Py_ssize_t end, int direction
@@ -667,7 +673,7 @@ extern (C) {
     Py_UNICODE PyUnicodeUCS4_GetMax();
 
     int PyUnicodeUCS4_Resize(PyObject **unicode, Py_ssize_t length);
-    PyObject *PyUnicodeUCS4_FromEncodedObject(PyObject *obj, char *encoding, char *errors);
+    PyObject *PyUnicodeUCS4_FromEncodedObject(PyObject *obj, c_str encoding, c_str errors);
     PyObject *PyUnicodeUCS4_FromObject(PyObject *obj);
 
     PyObject *PyUnicodeUCS4_FromWideChar(wchar *w, Py_ssize_t size);
@@ -675,72 +681,72 @@ extern (C) {
 
     PyObject *PyUnicodeUCS4_FromOrdinal(int ordinal);
 
-    PyObject *_PyUnicodeUCS4_AsDefaultEncodedString(PyObject *, char *);
+    PyObject *_PyUnicodeUCS4_AsDefaultEncodedString(PyObject *, c_str);
 
-    char *PyUnicodeUCS4_GetDefaultEncoding();
-    int PyUnicodeUCS4_SetDefaultEncoding(char *encoding);
+    c_str PyUnicodeUCS4_GetDefaultEncoding();
+    int PyUnicodeUCS4_SetDefaultEncoding(c_str encoding);
 
-    PyObject *PyUnicodeUCS4_Decode(char *s, Py_ssize_t size, char *encoding, char *errors);
-    PyObject *PyUnicodeUCS4_Encode(Py_UNICODE *s, Py_ssize_t size, char *encoding, char *errors);
-    PyObject *PyUnicodeUCS4_AsEncodedObject(PyObject *unicode, char *encoding, char *errors);
-    PyObject *PyUnicodeUCS4_AsEncodedString(PyObject *unicode, char *encoding, char *errors);
+    PyObject *PyUnicodeUCS4_Decode(c_str s, Py_ssize_t size, c_str encoding, c_str errors);
+    PyObject *PyUnicodeUCS4_Encode(Py_UNICODE *s, Py_ssize_t size, c_str encoding, c_str errors);
+    PyObject *PyUnicodeUCS4_AsEncodedObject(PyObject *unicode, c_str encoding, c_str errors);
+    PyObject *PyUnicodeUCS4_AsEncodedString(PyObject *unicode, c_str encoding, c_str errors);
 
-    PyObject *PyUnicodeUCS4_DecodeUTF7(char *string, Py_ssize_t length, char *errors);
+    PyObject *PyUnicodeUCS4_DecodeUTF7(c_str s, Py_ssize_t length, c_str errors);
     PyObject *PyUnicodeUCS4_EncodeUTF7(Py_UNICODE *data, Py_ssize_t length,
-        int encodeSetO, int encodeWhiteSpace, char *errors
+        int encodeSetO, int encodeWhiteSpace, c_str errors
       );
 
-    PyObject *PyUnicodeUCS4_DecodeUTF8(char *string, Py_ssize_t length, char *errors);
-    PyObject *PyUnicodeUCS4_DecodeUTF8Stateful(char *string, Py_ssize_t length,
-        char *errors, Py_ssize_t *consumed
+    PyObject *PyUnicodeUCS4_DecodeUTF8(c_str s, Py_ssize_t length, c_str errors);
+    PyObject *PyUnicodeUCS4_DecodeUTF8Stateful(c_str string, Py_ssize_t length,
+        c_str errors, Py_ssize_t *consumed
       );
     PyObject *PyUnicodeUCS4_AsUTF8String(PyObject *unicode);
-    PyObject *PyUnicodeUCS4_EncodeUTF8(Py_UNICODE *data, Py_ssize_t length, char *errors);
+    PyObject *PyUnicodeUCS4_EncodeUTF8(Py_UNICODE *data, Py_ssize_t length, c_str errors);
 
-    PyObject *PyUnicodeUCS4_DecodeUTF16(char *string, Py_ssize_t length, char *errors, int *byteorder);
-    PyObject *PyUnicodeUCS4_DecodeUTF16Stateful(char *string, Py_ssize_t length,
-        char *errors, int *byteorder, Py_ssize_t *consumed
+    PyObject *PyUnicodeUCS4_DecodeUTF16(c_str s, Py_ssize_t length, c_str errors, int *byteorder);
+    PyObject *PyUnicodeUCS4_DecodeUTF16Stateful(c_str s, Py_ssize_t length,
+        c_str errors, int *byteorder, Py_ssize_t *consumed
       );
     PyObject *PyUnicodeUCS4_AsUTF16String(PyObject *unicode);
     PyObject *PyUnicodeUCS4_EncodeUTF16(Py_UNICODE *data, Py_ssize_t length,
-        char *errors, int byteorder
+        c_str errors, int byteorder
       );
 
-    PyObject *PyUnicodeUCS4_DecodeUnicodeEscape(char *string, Py_ssize_t length, char *errors);
+    PyObject *PyUnicodeUCS4_DecodeUnicodeEscape(c_str s, Py_ssize_t length, c_str errors);
     PyObject *PyUnicodeUCS4_AsUnicodeEscapeString(PyObject *unicode);
     PyObject *PyUnicodeUCS4_EncodeUnicodeEscape(Py_UNICODE *data, Py_ssize_t length);
-    PyObject *PyUnicodeUCS4_DecodeRawUnicodeEscape(char *string, Py_ssize_t length, char *errors);
+    PyObject *PyUnicodeUCS4_DecodeRawUnicodeEscape(c_str s, Py_ssize_t length, c_str errors);
     PyObject *PyUnicodeUCS4_AsRawUnicodeEscapeString(PyObject *unicode);
     PyObject *PyUnicodeUCS4_EncodeRawUnicodeEscape(Py_UNICODE *data, Py_ssize_t length);
 
-    PyObject *_PyUnicodeUCS4_DecodeUnicodeInternal(char *string, Py_ssize_t length, char *errors);
+    PyObject *_PyUnicodeUCS4_DecodeUnicodeInternal(c_str s, Py_ssize_t length, c_str errors);
 
-    PyObject *PyUnicodeUCS4_DecodeLatin1(char *string, Py_ssize_t length, char *errors);
+    PyObject *PyUnicodeUCS4_DecodeLatin1(c_str s, Py_ssize_t length, c_str errors);
     PyObject *PyUnicodeUCS4_AsLatin1String(PyObject *unicode);
-    PyObject *PyUnicodeUCS4_EncodeLatin1(Py_UNICODE *data, Py_ssize_t length, char *errors);
+    PyObject *PyUnicodeUCS4_EncodeLatin1(Py_UNICODE *data, Py_ssize_t length, c_str errors);
 
-    PyObject *PyUnicodeUCS4_DecodeASCII(char *string, Py_ssize_t length, char *errors);
+    PyObject *PyUnicodeUCS4_DecodeASCII(c_str s, Py_ssize_t length, c_str errors);
     PyObject *PyUnicodeUCS4_AsASCIIString(PyObject *unicode);
-    PyObject *PyUnicodeUCS4_EncodeASCII(Py_UNICODE *data, Py_ssize_t length, char *errors);
+    PyObject *PyUnicodeUCS4_EncodeASCII(Py_UNICODE *data, Py_ssize_t length, c_str errors);
 
-    PyObject *PyUnicodeUCS4_DecodeCharmap(char *string, Py_ssize_t length,
-        PyObject *mapping, char *errors
+    PyObject *PyUnicodeUCS4_DecodeCharmap(c_str s, Py_ssize_t length,
+        PyObject *mapping, c_str errors
       );
     PyObject *PyUnicodeUCS4_AsCharmapString(PyObject *unicode, PyObject *mapping);
     PyObject *PyUnicodeUCS4_EncodeCharmap(Py_UNICODE *data, Py_ssize_t length,
-        PyObject *mapping, char *errors
+        PyObject *mapping, c_str errors
       );
     PyObject *PyUnicodeUCS4_TranslateCharmap(Py_UNICODE *data, Py_ssize_t length,
-        PyObject *table, char *errors
+        PyObject *table, c_str errors
       );
 
     version (Windows) {
-      PyObject *PyUnicodeUCS4_DecodeMBCS(char *string, Py_ssize_t length, char *errors);
+      PyObject *PyUnicodeUCS4_DecodeMBCS(c_str s, Py_ssize_t length, c_str errors);
       PyObject *PyUnicodeUCS4_AsMBCSString(PyObject *unicode);
-      PyObject *PyUnicodeUCS4_EncodeMBCS(Py_UNICODE *data, Py_ssize_t length, char *errors);
+      PyObject *PyUnicodeUCS4_EncodeMBCS(Py_UNICODE *data, Py_ssize_t length, c_str errors);
     }
 
-    int PyUnicodeUCS4_EncodeDecimal(Py_UNICODE *s, Py_ssize_t length, char *output, char *errors);
+    int PyUnicodeUCS4_EncodeDecimal(Py_UNICODE *s, Py_ssize_t length, c_str output, c_str errors);
 
     PyObject *PyUnicodeUCS4_Concat(PyObject *left, PyObject *right);
     PyObject *PyUnicodeUCS4_Split(PyObject *s, PyObject *sep, Py_ssize_t maxsplit);
@@ -750,7 +756,7 @@ extern (C) {
         PyObject *PyUnicodeUCS4_RPartition(PyObject* s, PyObject* sep);
     }
     PyObject *PyUnicodeUCS4_RSplit(PyObject *s, PyObject *sep, Py_ssize_t maxsplit);
-    PyObject *PyUnicodeUCS4_Translate(PyObject *str, PyObject *table, char *errors);
+    PyObject *PyUnicodeUCS4_Translate(PyObject *str, PyObject *table, c_str errors);
     PyObject *PyUnicodeUCS4_Join(PyObject *separator, PyObject *seq);
     Py_ssize_t PyUnicodeUCS4_Tailmatch(PyObject *str, PyObject *substr,
         Py_ssize_t start, Py_ssize_t end, int direction
@@ -1215,18 +1221,18 @@ extern (C) {
     return op.ob_type == PyString_Type_p;
   }
 
-  PyObject * PyString_FromStringAndSize(char *, Py_ssize_t);
-  PyObject * PyString_FromString(char *);
+  PyObject * PyString_FromStringAndSize(c_str, Py_ssize_t);
+  PyObject * PyString_FromString(c_str);
   // PyString_FromFormatV omitted
-  PyObject * PyString_FromFormat(char*, ...);
+  PyObject * PyString_FromFormat(c_str, ...);
   Py_ssize_t PyString_Size(PyObject *);
-  char * PyString_AsString(PyObject *);
+  c_str PyString_AsString(PyObject *);
   /* Use only if you know it's a string */
   int PyString_CHECK_INTERNED(PyObject* op) {
     return (cast(PyStringObject*)op).ob_sstate;
   }
   /* Macro, trading safety for speed */
-  char* PyString_AS_STRING(PyObject* op) {
+  c_str PyString_AS_STRING(PyObject* op) {
     return (cast(PyStringObject*)op).ob_sval;
   }
   Py_ssize_t PyString_GET_SIZE(PyObject* op) {
@@ -1245,11 +1251,11 @@ extern (C) {
   PyObject * _PyString_Join(PyObject *sep, PyObject *x);
 
 
-  PyObject* PyString_Decode(char *s, Py_ssize_t size, char *encoding, char *errors);
-  PyObject* PyString_Encode(char *s, Py_ssize_t size, char *encoding, char *errors);
+  PyObject* PyString_Decode(c_str s, Py_ssize_t size, c_str encoding, c_str errors);
+  PyObject* PyString_Encode(c_str s, Py_ssize_t size, c_str encoding, c_str errors);
 
-  PyObject* PyString_AsEncodedObject(PyObject *str, char *encoding, char *errors);
-  PyObject* PyString_AsDecodedObject(PyObject *str, char *encoding, char *errors);
+  PyObject* PyString_AsEncodedObject(PyObject *str, c_str encoding, c_str errors);
+  PyObject* PyString_AsDecodedObject(PyObject *str, c_str encoding, c_str errors);
 
   // Since no one has legacy Python extensions written in D, the deprecated
   // functions PyString_AsDecodedString and PyString_AsEncodedString were
@@ -1433,9 +1439,9 @@ extern (C) {
   int PyDict_Merge(PyObject *mp, PyObject *other, int override_);
   int PyDict_MergeFromSeq2(PyObject *d, PyObject *seq2, int override_);
 
-  PyObject * PyDict_GetItemString(PyObject *dp, char *key);
-  int PyDict_SetItemString(PyObject *dp, char *key, PyObject *item);
-  int PyDict_DelItemString(PyObject *dp, char *key);
+  PyObject * PyDict_GetItemString(PyObject *dp, c_str key);
+  int PyDict_SetItemString(PyObject *dp, c_str key, PyObject *item);
+  int PyDict_DelItemString(PyObject *dp, c_str key);
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1461,13 +1467,13 @@ extern (C) {
   PyObject * PyCFunction_Call(PyObject *, PyObject *, PyObject *);
 
   struct PyMethodDef {
-    char	*ml_name;
+    c_str	 ml_name;
     PyCFunction  ml_meth;
     int		 ml_flags;
-    char	*ml_doc;
+    c_str	 ml_doc;
   }
 
-  PyObject * Py_FindMethod(PyMethodDef[], PyObject *, char *);
+  PyObject * Py_FindMethod(PyMethodDef[], PyObject *, c_str);
   PyObject * PyCFunction_NewEx(PyMethodDef *, PyObject *,PyObject *);
   PyObject * PyCFunction_New(PyMethodDef* ml, PyObject* self) {
     return PyCFunction_NewEx(ml, self, null);
@@ -1487,7 +1493,7 @@ extern (C) {
     PyMethodChain *link;
   }
 
-  PyObject * Py_FindMethodInChain(PyMethodChain *, PyObject *, char *);
+  PyObject * Py_FindMethodInChain(PyMethodChain *, PyObject *, c_str);
 
   struct PyCFunctionObject {
     mixin PyObject_HEAD;
@@ -1514,40 +1520,45 @@ extern (C) {
     return op.ob_type == PyModule_Type_p;
   }
 
-  PyObject * PyModule_New(char *);
+  PyObject * PyModule_New(c_str);
   PyObject * PyModule_GetDict(PyObject *);
-  char * PyModule_GetName(PyObject *);
-  char * PyModule_GetFilename(PyObject *);
+  c_str PyModule_GetName(PyObject *);
+  c_str PyModule_GetFilename(PyObject *);
   version (Python_2_5_Or_Later) {
       void _PyModule_Clear(PyObject *);
   }
 
   // Python-header-file: Include/modsupport.h:
 
-  const int PYTHON_API_VERSION = 1013;
-  const char[] PYTHON_API_STRING = "1013";
+  version (Python_2_5_Or_Later) {
+    const int PYTHON_API_VERSION = 1013;
+    const char[] PYTHON_API_STRING = "1013";
+  } else {
+    const int PYTHON_API_VERSION = 1012;
+    const char[] PYTHON_API_STRING = "1012";
+  }
 
-  int PyArg_Parse(PyObject *, char *, ...);
-  int PyArg_ParseTuple(PyObject *, char *, ...);
+  int PyArg_Parse(PyObject *, c_str, ...);
+  int PyArg_ParseTuple(PyObject *, c_str, ...);
   int PyArg_ParseTupleAndKeywords(PyObject *, PyObject *,
-                            char *, char **, ...);
-  int PyArg_UnpackTuple(PyObject *, char *, Py_ssize_t, Py_ssize_t, ...);
-  PyObject * Py_BuildValue(char *, ...);
+                            c_str, char **, ...);
+  int PyArg_UnpackTuple(PyObject *, c_str, Py_ssize_t, Py_ssize_t, ...);
+  PyObject * Py_BuildValue(c_str, ...);
 
-  int PyModule_AddObject(PyObject *, char *, PyObject *);
-  int PyModule_AddIntConstant(PyObject *, char *, C_long);
-  int PyModule_AddStringConstant(PyObject *, char *, char *);
+  int PyModule_AddObject(PyObject *, c_str, PyObject *);
+  int PyModule_AddIntConstant(PyObject *, c_str, C_long);
+  int PyModule_AddStringConstant(PyObject *, c_str, c_str);
 
-  PyObject * Py_InitModule4(char *name, PyMethodDef *methods, char *doc,
+  PyObject * Py_InitModule4(c_str name, PyMethodDef *methods, c_str doc,
                             PyObject *self, int apiver);
 
-  PyObject * Py_InitModule(char *name, PyMethodDef *methods)
+  PyObject * Py_InitModule(c_str name, PyMethodDef *methods)
   {
-    return Py_InitModule4(name, methods, cast(char *)(null),
+    return Py_InitModule4(name, methods, cast(c_str)(null),
       cast(PyObject *)(null), PYTHON_API_VERSION);
   }
 
-  PyObject * Py_InitModule3(char *name, PyMethodDef *methods, char *doc) {
+  PyObject * Py_InitModule3(c_str name, PyMethodDef *methods, c_str doc) {
     return Py_InitModule4(name, methods, doc, cast(PyObject *)null,
       PYTHON_API_VERSION);
   }
@@ -1727,7 +1738,7 @@ extern (C) {
 
   PyObject * PyFile_FromString(char *, char *);
   void PyFile_SetBufSize(PyObject *, int);
-  int PyFile_SetEncoding(PyObject *,  char *);
+  int PyFile_SetEncoding(PyObject *,  c_str);
   PyObject * PyFile_FromFile(FILE *, char *, char *,
                          int (*)(FILE *));
   FILE * PyFile_AsFile(PyObject *);
@@ -1735,7 +1746,7 @@ extern (C) {
   PyObject * PyFile_GetLine(PyObject *, int);
   int PyFile_WriteObject(PyObject *, PyObject *, int);
   int PyFile_SoftSpace(PyObject *, int);
-  int PyFile_WriteString(char *, PyObject *);
+  int PyFile_WriteString(c_str, PyObject *);
   int PyObject_AsFileDescriptor(PyObject *);
 
   // We deal with char *Py_FileSystemDefaultEncoding in the global variables
@@ -1766,7 +1777,7 @@ extern (C) {
     void (*destruct)(void*,void*));
   void * PyCObject_AsVoidPtr(PyObject *);
   void * PyCObject_GetDesc(PyObject *);
-  void * PyCObject_Import(char *module_name, char *cobject_name);
+  void * PyCObject_Import(c_str module_name, c_str cobject_name);
   int PyCObject_SetVoidPtr(PyObject *self, void *cobj);
 
 
@@ -1995,20 +2006,20 @@ extern (C) {
   // Python-header-file: Include/codecs.h:
 
   int PyCodec_Register(PyObject *search_function);
-  PyObject * _PyCodec_Lookup(char *encoding);
-  PyObject * PyCodec_Encode(PyObject *object, char *encoding, char *errors);
-  PyObject * PyCodec_Decode(PyObject *object, char *encoding, char *errors);
-  PyObject * PyCodec_Encoder(char *encoding);
-  PyObject * PyCodec_Decoder(char *encoding);
-  PyObject * PyCodec_StreamReader(char *encoding, PyObject *stream, char *errors);
-  PyObject * PyCodec_StreamWriter(char *encoding, PyObject *stream, char *errors);
+  PyObject * _PyCodec_Lookup(c_str encoding);
+  PyObject * PyCodec_Encode(PyObject *object, c_str encoding, c_str errors);
+  PyObject * PyCodec_Decode(PyObject *object, c_str encoding, c_str errors);
+  PyObject * PyCodec_Encoder(c_str encoding);
+  PyObject * PyCodec_Decoder(c_str encoding);
+  PyObject * PyCodec_StreamReader(c_str encoding, PyObject *stream, c_str errors);
+  PyObject * PyCodec_StreamWriter(c_str encoding, PyObject *stream, c_str errors);
 
   /////////////////////////////////////////////////////////////////////////////
   // UNICODE ENCODING INTERFACE
   /////////////////////////////////////////////////////////////////////////////
 
-  int PyCodec_RegisterError(char *name, PyObject *error);
-  PyObject * PyCodec_LookupError(char *name);
+  int PyCodec_RegisterError(c_str name, PyObject *error);
+  PyObject * PyCodec_LookupError(c_str name);
   PyObject * PyCodec_StrictErrors(PyObject *exc);
   PyObject * PyCodec_IgnoreErrors(PyObject *exc);
   PyObject * PyCodec_ReplaceErrors(PyObject *exc);
@@ -2089,7 +2100,7 @@ extern (C) {
 
   void PyErr_SetNone(PyObject *);
   void PyErr_SetObject(PyObject *, PyObject *);
-  void PyErr_SetString(PyObject *, char *);
+  void PyErr_SetString(PyObject *, c_str);
   PyObject * PyErr_Occurred();
   void PyErr_Clear();
   void PyErr_Fetch(PyObject **, PyObject **, PyObject **);
@@ -2109,15 +2120,15 @@ extern (C) {
   PyObject * PyErr_SetFromErrnoWithFilename(PyObject *, char *);
   PyObject * PyErr_SetFromErrnoWithUnicodeFilename(PyObject *, Py_UNICODE *);
 
-  PyObject * PyErr_Format(PyObject *, char *, ...);
+  PyObject * PyErr_Format(PyObject *, c_str, ...);
 
   version (Windows) {
-    PyObject * PyErr_SetFromWindowsErrWithFilenameObject(int,  char *);
-    PyObject * PyErr_SetFromWindowsErrWithFilename(int, char *);
+    PyObject * PyErr_SetFromWindowsErrWithFilenameObject(int,  c_str);
+    PyObject * PyErr_SetFromWindowsErrWithFilename(int, c_str);
     PyObject * PyErr_SetFromWindowsErrWithUnicodeFilename(int, Py_UNICODE *);
     PyObject * PyErr_SetFromWindowsErr(int);
     PyObject * PyErr_SetExcFromWindowsErrWithFilenameObject(PyObject *, int, PyObject *);
-    PyObject * PyErr_SetExcFromWindowsErrWithFilename(PyObject *, int,  char *);
+    PyObject * PyErr_SetExcFromWindowsErrWithFilename(PyObject *, int,  c_str);
     PyObject * PyErr_SetExcFromWindowsErrWithUnicodeFilename(PyObject *, int, Py_UNICODE *);
     PyObject * PyErr_SetExcFromWindowsErr(PyObject *, int);
   }
@@ -2128,26 +2139,26 @@ extern (C) {
   void PyErr_WriteUnraisable(PyObject *);
 
   version (Python_2_5_Or_Later) {
-      int PyErr_WarnEx(PyObject*, char*, Py_ssize_t);
+      int PyErr_WarnEx(PyObject*, c_str, Py_ssize_t);
   } else {
       int PyErr_Warn(PyObject *, char *);
   }
-  int PyErr_WarnExplicit(PyObject *, char *, char *, int, char *, PyObject *);
+  int PyErr_WarnExplicit(PyObject *, c_str, c_str, int, c_str, PyObject *);
 
   int PyErr_CheckSignals();
   void PyErr_SetInterrupt();
 
-  void PyErr_SyntaxLocation(char *, int);
-  PyObject * PyErr_ProgramText(char *, int);
+  void PyErr_SyntaxLocation(c_str, int);
+  PyObject * PyErr_ProgramText(c_str, int);
 
   /////////////////////////////////////////////////////////////////////////////
   // UNICODE ENCODING ERROR HANDLING INTERFACE
   /////////////////////////////////////////////////////////////////////////////
-  PyObject *PyUnicodeDecodeError_Create(char *, char *, Py_ssize_t, Py_ssize_t, Py_ssize_t, char *);
+  PyObject *PyUnicodeDecodeError_Create(c_str, c_str, Py_ssize_t, Py_ssize_t, Py_ssize_t, c_str);
 
-  PyObject *PyUnicodeEncodeError_Create(char *, Py_UNICODE *, Py_ssize_t, Py_ssize_t, Py_ssize_t, char *);
+  PyObject *PyUnicodeEncodeError_Create(c_str, Py_UNICODE *, Py_ssize_t, Py_ssize_t, Py_ssize_t, c_str);
 
-  PyObject *PyUnicodeTranslateError_Create(Py_UNICODE *, Py_ssize_t, Py_ssize_t, Py_ssize_t, char *);
+  PyObject *PyUnicodeTranslateError_Create(Py_UNICODE *, Py_ssize_t, Py_ssize_t, Py_ssize_t, c_str);
 
   PyObject *PyUnicodeEncodeError_GetEncoding(PyObject *);
   PyObject *PyUnicodeDecodeError_GetEncoding(PyObject *);
@@ -2176,11 +2187,11 @@ extern (C) {
   PyObject *PyUnicodeDecodeError_GetReason(PyObject *);
   PyObject *PyUnicodeTranslateError_GetReason(PyObject *);
 
-  int PyUnicodeEncodeError_SetReason(PyObject *, char *);
-  int PyUnicodeDecodeError_SetReason(PyObject *, char *);
-  int PyUnicodeTranslateError_SetReason(PyObject *, char *);
+  int PyUnicodeEncodeError_SetReason(PyObject *, c_str);
+  int PyUnicodeDecodeError_SetReason(PyObject *, c_str);
+  int PyUnicodeTranslateError_SetReason(PyObject *, c_str);
 
-  int PyOS_snprintf(char *str, size_t size, char *format, ...);
+  int PyOS_snprintf(char *str, size_t size, c_str format, ...);
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2280,7 +2291,7 @@ extern (C) {
   }
 
   // Python-header-file: Include/compile.h:
-  PyCodeObject *PyNode_Compile(node *, char *);
+  PyCodeObject *PyNode_Compile(node *, c_str);
   PyCodeObject *PyCode_New(
     int, int, int, int, PyObject *, PyObject *, PyObject *, PyObject *,
     PyObject *, PyObject *, PyObject *, PyObject *, int, PyObject *);
@@ -2299,8 +2310,8 @@ extern (C) {
   }
 
   version (Python_2_5_Or_Later) {} else {
-      PyFutureFeatures *PyNode_Future(node *, char *);
-      PyCodeObject *PyNode_CompileFlags(node *, char *, PyCompilerFlags *);
+      PyFutureFeatures *PyNode_Future(node *, c_str);
+      PyCodeObject *PyNode_CompileFlags(node *, c_str, PyCompilerFlags *);
   }
 
   const char[] FUTURE_NESTED_SCOPES = "nested_scopes";
@@ -2311,11 +2322,11 @@ extern (C) {
       const char[] FUTURE_WITH_STATEMENT = "with_statement";
 
       struct _mod; /* Declare the existence of this type */
-      PyCodeObject * PyAST_Compile(_mod *, char *, PyCompilerFlags *, PyArena *);
-      PyFutureFeatures * PyFuture_FromAST(_mod *, char *);
+      PyCodeObject * PyAST_Compile(_mod *, c_str, PyCompilerFlags *, PyArena *);
+      PyFutureFeatures * PyFuture_FromAST(_mod *, c_str);
 
       // Python-header-file: Include/ast.h
-      _mod* PyAST_FromNode(node*, PyCompilerFlags*, char*, PyArena*);
+      _mod* PyAST_FromNode(node*, PyCompilerFlags*, c_str, PyArena*);
   }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2341,74 +2352,74 @@ extern (C) {
   void Py_EndInterpreter(PyThreadState *);
 
   // These are slightly different in 2.4, but the 2.5 form should still work.
-  int PyRun_AnyFileExFlags(FILE *, char *, int, PyCompilerFlags *);
+  int PyRun_AnyFileExFlags(FILE *, c_str, int, PyCompilerFlags *);
 
-  int PyRun_AnyFile(FILE *fp, char *name) {
+  int PyRun_AnyFile(FILE *fp, c_str name) {
     return PyRun_AnyFileExFlags(fp, name, 0, null);
   }
-  int PyRun_AnyFileEx(FILE *fp, char *name, int closeit) {
+  int PyRun_AnyFileEx(FILE *fp, c_str name, int closeit) {
     return PyRun_AnyFileExFlags(fp, name, closeit, null);
   }
-  int PyRun_AnyFileFlags(FILE *fp, char *name, PyCompilerFlags *flags) {
+  int PyRun_AnyFileFlags(FILE *fp, c_str name, PyCompilerFlags *flags) {
     return PyRun_AnyFileExFlags(fp, name, 0, flags);
   }
 
-  int PyRun_SimpleStringFlags(char *, PyCompilerFlags *);
-  int PyRun_SimpleString(char *s) {
+  int PyRun_SimpleStringFlags(c_str, PyCompilerFlags *);
+  int PyRun_SimpleString(c_str s) {
     return PyRun_SimpleStringFlags(s, null);
   }
 
-  int PyRun_SimpleFileExFlags(FILE *,  char *, int, PyCompilerFlags *);
-  int PyRun_SimpleFile(FILE *f, char *p) {
+  int PyRun_SimpleFileExFlags(FILE *,  c_str, int, PyCompilerFlags *);
+  int PyRun_SimpleFile(FILE *f, c_str p) {
     return PyRun_SimpleFileExFlags(f, p, 0, null);
   }
-  int PyRun_SimpleFileEx(FILE *f, char *p, int c) {
+  int PyRun_SimpleFileEx(FILE *f, c_str p, int c) {
     return PyRun_SimpleFileExFlags(f, p, c, null);
   }
 
-  int PyRun_InteractiveOneFlags(FILE *, char *, PyCompilerFlags *);
-  int PyRun_InteractiveOne(FILE *f, char *p) {
+  int PyRun_InteractiveOneFlags(FILE *, c_str, PyCompilerFlags *);
+  int PyRun_InteractiveOne(FILE *f, c_str p) {
     return PyRun_InteractiveOneFlags(f, p, null);
   }
-  int PyRun_InteractiveLoopFlags(FILE *, char *, PyCompilerFlags *);
-  int PyRun_InteractiveLoop(FILE *f, char *p) {
+  int PyRun_InteractiveLoopFlags(FILE *, c_str, PyCompilerFlags *);
+  int PyRun_InteractiveLoop(FILE *f, c_str p) {
     return PyRun_InteractiveLoopFlags(f, p, null);
   }
 
   version (Python_2_5_Or_Later) {
-    _mod* PyParser_ASTFromString(char *, char *, 
+    _mod* PyParser_ASTFromString(c_str, c_str, 
                         int, PyCompilerFlags *, PyArena *);
-    _mod* PyParser_ASTFromFile(FILE *, char *, int, 
+    _mod* PyParser_ASTFromFile(FILE *, c_str, int, 
                         char *, char *, PyCompilerFlags *, int *, PyArena *);
   }
 
-  node *PyParser_SimpleParseStringFlags(char *, int, int);
-  node *PyParser_SimpleParseString(char *s, int b) {
+  node *PyParser_SimpleParseStringFlags(c_str, int, int);
+  node *PyParser_SimpleParseString(c_str s, int b) {
     return PyParser_SimpleParseStringFlags(s, b, 0);
   }
-  node *PyParser_SimpleParseFileFlags(FILE *, char *,int, int);
-  node *PyParser_SimpleParseFile(FILE *f, char *s, int b) {
+  node *PyParser_SimpleParseFileFlags(FILE *, c_str, int, int);
+  node *PyParser_SimpleParseFile(FILE *f, c_str s, int b) {
     return PyParser_SimpleParseFileFlags(f, s, b, 0);
   }
 //  node *PyParser_SimpleParseStringFlagsFilename(char *, char *, int, int);
 
-  PyObject *PyRun_StringFlags( char *, int, PyObject *, PyObject *, PyCompilerFlags *);
-  PyObject *PyRun_String(char *str, int s, PyObject *g, PyObject *l) {
+  PyObject *PyRun_StringFlags(c_str, int, PyObject *, PyObject *, PyCompilerFlags *);
+  PyObject *PyRun_String(c_str str, int s, PyObject *g, PyObject *l) {
     return PyRun_StringFlags(str, s, g, l, null);
   }
-  PyObject *PyRun_FileExFlags(FILE *, char *, int, PyObject *, PyObject *, int, PyCompilerFlags *);
-  PyObject *PyRun_File(FILE *fp, char *p, int s, PyObject *g, PyObject *l) {
+  PyObject *PyRun_FileExFlags(FILE *, c_str, int, PyObject *, PyObject *, int, PyCompilerFlags *);
+  PyObject *PyRun_File(FILE *fp, c_str p, int s, PyObject *g, PyObject *l) {
     return PyRun_FileExFlags(fp, p, s, g, l, 0, null);
   }
-  PyObject *PyRun_FileEx(FILE *fp, char *p, int s, PyObject *g, PyObject *l, int c) {
+  PyObject *PyRun_FileEx(FILE *fp, c_str p, int s, PyObject *g, PyObject *l, int c) {
     return PyRun_FileExFlags(fp, p, s, g, l, c, null);
   }
-  PyObject *PyRun_FileFlags(FILE *fp, char *p, int s, PyObject *g, PyObject *l, PyCompilerFlags *flags) {
+  PyObject *PyRun_FileFlags(FILE *fp, c_str p, int s, PyObject *g, PyObject *l, PyCompilerFlags *flags) {
     return PyRun_FileExFlags(fp, p, s, g, l, 0, flags);
   }
 
-  PyObject *Py_CompileStringFlags(char *, char *, int, PyCompilerFlags *);
-  PyObject *Py_CompileString(char *str, char *p, int s) {
+  PyObject *Py_CompileStringFlags(c_str, c_str, int, PyCompilerFlags *);
+  PyObject *Py_CompileString(c_str str, c_str p, int s) {
     return Py_CompileStringFlags(str, p, s, null);
   }
   // Py_SymtableString is undocumented, so it's omitted here.
@@ -2421,7 +2432,7 @@ extern (C) {
 
   void Py_Exit(int);
 
-  int Py_FdIsInteractive(FILE *, char *);
+  int Py_FdIsInteractive(FILE *, c_str);
 
 ///////////////////////////////////////////////////////////////////////////////
 // BOOTSTRAPPING INTERFACE (for embedding Python in D)
@@ -2435,15 +2446,15 @@ extern (C) {
   char *Py_GetExecPrefix();
   char *Py_GetPath();
 
-  char *Py_GetVersion();
-  char *Py_GetPlatform();
-  char *Py_GetCopyright();
-  char *Py_GetCompiler();
-  char *Py_GetBuildInfo();
+  c_str Py_GetVersion();
+  c_str Py_GetPlatform();
+  c_str Py_GetCopyright();
+  c_str Py_GetCompiler();
+  c_str Py_GetBuildInfo();
   version (Python_2_5_Or_Later) {
-      char * _Py_svnversion();
-      char * Py_SubversionRevision();
-      char * Py_SubversionShortBranch();
+      c_str  _Py_svnversion();
+      c_str  Py_SubversionRevision();
+      c_str  Py_SubversionShortBranch();
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -2500,8 +2511,8 @@ extern (C) {
   PyObject *PyEval_CallObject(PyObject *func, PyObject *arg) {
     return PyEval_CallObjectWithKeywords(func, arg, null);
   }
-  PyObject *PyEval_CallFunction(PyObject *obj, char *format, ...);
-  PyObject *PyEval_CallMethod(PyObject *obj, char *methodname, char *format, ...);
+  PyObject *PyEval_CallFunction(PyObject *obj, c_str format, ...);
+  PyObject *PyEval_CallMethod(PyObject *obj, c_str methodname, c_str format, ...);
 
   void PyEval_SetProfile(Py_tracefunc, PyObject *);
   void PyEval_SetTrace(Py_tracefunc, PyObject *);
@@ -2527,8 +2538,8 @@ extern (C) {
     // _Py_CheckRecursionLimit
     // _Py_MakeRecCheck
 
-  char *PyEval_GetFuncName(PyObject *);
-  char *PyEval_GetFuncDesc(PyObject *);
+  c_str PyEval_GetFuncName(PyObject *);
+  c_str PyEval_GetFuncDesc(PyObject *);
 
   PyObject *PyEval_GetCallStats(PyObject *);
   PyObject *PyEval_EvalFrame(PyFrameObject *);
@@ -2547,8 +2558,8 @@ extern (C) {
   void PySys_SetArgv(int, char **);
   void PySys_SetPath(char *);
 
-  void PySys_WriteStdout(char *format, ...);
-  void PySys_WriteStderr(char *format, ...);
+  void PySys_WriteStdout(c_str format, ...);
+  void PySys_WriteStderr(c_str format, ...);
 
   void PySys_ResetWarnOptions();
   void PySys_AddWarnOption(char *);
@@ -2752,8 +2763,8 @@ extern (C) {
   PyObject *PyImport_ExecCodeModule(char *name, PyObject *co);
   PyObject *PyImport_ExecCodeModuleEx(char *name, PyObject *co, char *pathname);
   PyObject *PyImport_GetModuleDict();
-  PyObject *PyImport_AddModule(char *name);
-  PyObject *PyImport_ImportModule(char *name);
+  PyObject *PyImport_AddModule(c_str name);
+  PyObject *PyImport_ImportModule(c_str name);
   version (Python_2_5_Or_Later) {
       PyObject *PyImport_ImportModuleLevel(char *name,
         PyObject *globals, PyObject *locals, PyObject *fromlist, int level);
@@ -2800,7 +2811,7 @@ extern (C) {
   // Python-header-file: Include/abstract.h:
 
   // D translations of C macros:
-  int PyObject_DelAttrString(PyObject *o, char *a) {
+  int PyObject_DelAttrString(PyObject *o, c_str a) {
     return PyObject_SetAttrString(o, a, null);
   }
   int PyObject_DelAttr(PyObject *o, PyObject *a) {
@@ -2817,13 +2828,13 @@ extern (C) {
   PyObject *PyObject_Call(PyObject *callable_object, PyObject *args, PyObject *kw);
   PyObject *PyObject_CallObject(PyObject *callable_object, PyObject *args);
   version (Python_2_5_Or_Later) {
-      PyObject *_PyObject_CallFunction_SizeT(PyObject *callable, char *format, ...);
-      PyObject *_PyObject_CallMethod_SizeT(PyObject *o, char *name, char *format, ...);
+      PyObject *_PyObject_CallFunction_SizeT(PyObject *callable, c_str format, ...);
+      PyObject *_PyObject_CallMethod_SizeT(PyObject *o, c_str name, c_str format, ...);
       alias _PyObject_CallFunction_SizeT PyObject_CallFunction;
       alias _PyObject_CallMethod_SizeT PyObject_CallMethod;
   } else {
-      PyObject *PyObject_CallFunction(PyObject *callable_object, char *format, ...);
-      PyObject *PyObject_CallMethod(PyObject *o, char *m, char *format, ...);
+      PyObject *PyObject_CallFunction(PyObject *callable_object, c_str format, ...);
+      PyObject *PyObject_CallMethod(PyObject *o, c_str m, c_str format, ...);
   }
   PyObject *PyObject_CallFunctionObjArgs(PyObject *callable, ...);
   PyObject *PyObject_CallMethodObjArgs(PyObject *o,PyObject *m, ...);
@@ -2846,10 +2857,10 @@ extern (C) {
 
   PyObject *PyObject_GetItem(PyObject *o, PyObject *key);
   int PyObject_SetItem(PyObject *o, PyObject *key, PyObject *v);
-  int PyObject_DelItemString(PyObject *o, char *key);
+  int PyObject_DelItemString(PyObject *o, c_str key);
   int PyObject_DelItem(PyObject *o, PyObject *key);
 
-  int PyObject_AsCharBuffer(PyObject *obj, char **buffer, Py_ssize_t *buffer_len);
+  int PyObject_AsCharBuffer(PyObject *obj, c_str *buffer, Py_ssize_t *buffer_len);
   int PyObject_CheckReadBuffer(PyObject *obj);
   int PyObject_AsReadBuffer(PyObject *obj, void **buffer, Py_ssize_t *buffer_len);
   int PyObject_AsWriteBuffer(PyObject *obj, void **buffer, Py_ssize_t *buffer_len);
@@ -2944,7 +2955,7 @@ extern (C) {
   PyObject *PySequence_Tuple(PyObject *o);
   PyObject *PySequence_List(PyObject *o);
 
-  PyObject *PySequence_Fast(PyObject *o,  char* m);
+  PyObject *PySequence_Fast(PyObject *o, c_str m);
   // D translations of C macros:
   Py_ssize_t PySequence_Fast_GET_SIZE(PyObject *o) {
     return PyList_Check(o) ? PyList_GET_SIZE(o) : PyTuple_GET_SIZE(o);
@@ -2993,7 +3004,7 @@ extern (C) {
   }
 
   // D translations of C macros:
-  int PyMapping_DelItemString(PyObject *o, char *k) {
+  int PyMapping_DelItemString(PyObject *o, c_str k) {
     return PyObject_DelItemString(o, k);
   }
   int PyMapping_DelItem(PyObject *o, PyObject *k) {
@@ -3102,7 +3113,7 @@ extern (C) {
   // MISCELANEOUS
   /////////////////////////////////////////////////////////////////////////////
   // Python-header-file: Include/pydebug.h:
-  void Py_FatalError(char *message);
+  void Py_FatalError(c_str message);
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -3123,7 +3134,7 @@ PycStringIO_CAPI *PycString_IMPORT() {
 struct PycStringIO_CAPI {
   int(*cread)(PyObject *, char **, Py_ssize_t);
   int(*creadline)(PyObject *, char **);
-  int(*cwrite)(PyObject *, char *, Py_ssize_t);
+  int(*cwrite)(PyObject *, c_str, Py_ssize_t);
   PyObject *(*cgetvalue)(PyObject *);
   PyObject *(*NewOutput)(int);
   PyObject *(*NewInput)(PyObject *);
@@ -3408,9 +3419,9 @@ PyObject *PyMarshal_ReadObjectFromString(char *, Py_ssize_t);
 ///////////////////////////////////////////////////////////////////////////////
 // Python-header-file: Include/pystrtod.h:
 
-double PyOS_ascii_strtod(char *str, char **ptr);
-double PyOS_ascii_atof(char *str);
-char *PyOS_ascii_formatd(char *buffer, size_t buf_len, char *format, double d);
+double PyOS_ascii_strtod(c_str str, char **ptr);
+double PyOS_ascii_atof(c_str str);
+char *PyOS_ascii_formatd(c_str buffer, size_t buf_len, c_str format, double d);
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -3558,7 +3569,7 @@ const int READ_RESTRICTED = 2;
 const int WRITE_RESTRICTED = 4;
 const int RESTRICTED = (READ_RESTRICTED | WRITE_RESTRICTED);
 
-PyObject *PyMember_GetOne(char *, PyMemberDef *);
+PyObject *PyMember_GetOne(c_str, PyMemberDef *);
 int PyMember_SetOne(char *, PyMemberDef *, PyObject *);
 
 
@@ -3677,7 +3688,7 @@ PyTypeObject* m_PyFrozenSet_Type_p;
 /* YYY: Python's default encoding can actually be changed during program
  * with sys.setdefaultencoding, so perhaps it would be better not to expose
  * this at all: */
-char* m_Py_FileSystemDefaultEncoding;
+c_str m_Py_FileSystemDefaultEncoding;
 
 PyTypeObject* m_PyCObject_Type_p;
 PyTypeObject* m_PyTraceBack_Type_p;
@@ -3743,7 +3754,7 @@ PyObject* m_PyExc_SyntaxWarning;
 PyObject* m_PyExc_RuntimeWarning;
 PyObject* m_PyExc_FutureWarning;
 
-PyObject *eval(char[] code) {
+PyObject *eval(string code) {
     PyObject *pyGlobals = PyEval_GetGlobals(); /* borrowed ref */
     PyObject *res = PyRun_String((code ~ \0).ptr, Py_eval_input,
         pyGlobals, pyGlobals
@@ -3760,7 +3771,7 @@ PyObject* m_builtins, m_types, m_weakref;
 
 // These template functions will lazily-load the various singleton objects,
 // removing the need for a "load" function that does it all at once.
-typeof(Ptr) lazy_sys(alias Ptr, char[] name) () {
+typeof(Ptr) lazy_sys(alias Ptr, string name) () {
     if (Ptr is null) {
         PyObject* sys_modules = PyImport_GetModuleDict();
         Ptr = PyDict_GetItemString(sys_modules, (name ~ \0).ptr);
@@ -3773,7 +3784,7 @@ alias lazy_sys!(m_builtins, "__builtin__") builtins;
 alias lazy_sys!(m_types, "types") types;
 alias lazy_sys!(m_weakref, "weakref") weakref;
 
-typeof(Ptr) lazy_load(alias from, alias Ptr, char[] name) () {
+typeof(Ptr) lazy_load(alias from, alias Ptr, string name) () {
     if (Ptr is null) {
         Ptr = cast(typeof(Ptr)) PyObject_GetAttrString(from(), (name ~ \0).ptr);
     }
@@ -3781,7 +3792,7 @@ typeof(Ptr) lazy_load(alias from, alias Ptr, char[] name) () {
     return Ptr;
 }
 
-typeof(Ptr) lazy_eval(alias Ptr, char[] code) () {
+typeof(Ptr) lazy_eval(alias Ptr, string code) () {
     if (Ptr is null) {
         Ptr = cast(typeof(Ptr)) eval(code);
     }
@@ -3852,7 +3863,7 @@ alias lazy_load!(types, m_PyMethod_Type_p, "MethodType") PyMethod_Type_p;
 
 alias lazy_load!(builtins, m_PyFile_Type_p, "file") PyFile_Type_p;
 
-char* Py_FileSystemDefaultEncoding() {
+c_str Py_FileSystemDefaultEncoding() {
     if (m_Py_FileSystemDefaultEncoding is null) {
         m_Py_FileSystemDefaultEncoding = PyUnicode_GetDefaultEncoding();
         assert (m_Py_FileSystemDefaultEncoding !is null,
