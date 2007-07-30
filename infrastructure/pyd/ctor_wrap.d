@@ -55,7 +55,7 @@ template wrapped_struct_init(T) {
     int init(PyObject* self, PyObject* args, PyObject* kwds) {
         return exception_catcher({
             static if (is(T S : S*)) {
-                pragma(msg, "wrapped_struct_init, S is " ~ prettynameof!(S));
+                pragma(msg, "wrapped_struct_init, S is '" ~ prettynameof!(S) ~ "'");
                 T t = new S;
                 WrapPyObject_SetObj(self, t);
             }

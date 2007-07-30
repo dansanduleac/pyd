@@ -44,12 +44,17 @@ version (Tango) {
     string objToStr(Object o) {
         return o.toString();
     }
-    template symbolnameof(alias symbol) {
-        static if (is(typeof(symbol) == function)) {
-            const char[] symbolnameof = (&symbol).stringof[2 .. $];
-        } else {
-            const char[] symbolnameof = symbol.stringof;
+    version (D_Version2) {
+        // D1 issues?
+        template symbolnameof(alias symbol) {
+            static if (is(typeof(symbol) == function)) {
+                const char[] symbolnameof = (&symbol).stringof[2 .. $];
+            } else {
+                const char[] symbolnameof = symbol.stringof;
+            }
         }
+    } else {
+        public import meta.Nameof : symbolnameof;
     }
     public import meta.Nameof : /*symbolnameof,*/ prettytypeof, prettynameof;
 

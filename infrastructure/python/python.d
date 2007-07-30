@@ -61,7 +61,9 @@ version(Windows) {
 }
 
 version (D_Version2) {
-    alias const(char)* c_str;
+    // Need to define const(char)* in a way which is syntactically valid in a
+    // D 1.0 compiler.
+    mixin("alias const(char)* c_str;");
 } else {
     alias char* c_str;
 }

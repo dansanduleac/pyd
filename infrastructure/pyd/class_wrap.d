@@ -582,7 +582,7 @@ template _wrap_class(_T, string name, Params...) {
 //        alias make_wrapper!(_T, Params).wrapper shim_class;
 //        alias _T T;
     } else {
-        pragma(msg, "wrap_struct: " ~ name);
+        pragma(msg, "wrap_struct: '" ~ name ~ "'");
         alias void shim_class;
         alias _T* T;
     }

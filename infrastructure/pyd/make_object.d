@@ -352,8 +352,8 @@ T d_type(T) (PyObject* o) {
         PyUnicode_AsWideChar(cast(PyUnicodeObject*)o, temp, temp.length);
         return temp;
     +/
-    } else static if (is(string : T)) {
-        const(char)* result;
+    } else static if (is(string : T) || is(char[] : T)) {
+        c_str result;
         PyObject* repr;
         // If it's a string, convert it
         if (PyString_Check(o) || PyUnicode_Check(o)) {
@@ -366,22 +366,15 @@ T d_type(T) (PyObject* o) {
             Py_DECREF(repr);
         }
         if (result is null) handle_exception();
-        return .toString(result);
-    } else static if (is(char[] : T)) {
-        const(char)* result;
-        PyObject* repr;
-        // If it's a string, convert it
-        if (PyString_Check(o) || PyUnicode_Check(o)) {
-            result = PyString_AsString(o);
-        // If it's something else, convert its repr
+        version (D_Version2) {
+            static if (is(string : T)) {
+                return .toString(result);
+            } else {
+                return .toString(result).dup;
+            }
         } else {
-            repr = PyObject_Repr(o);
-            if (repr is null) handle_exception();
-            result = PyString_AsString(repr);
-            Py_DECREF(repr);
+            return .toString(result).dup;
         }
-        if (result is null) handle_exception();
-        return .toString(result).dup;
     } else static if (is(T E : E[])) {
         // Dynamic arrays
         PyObject* iter = PyObject_GetIter(o);
