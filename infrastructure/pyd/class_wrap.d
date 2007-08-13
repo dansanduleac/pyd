@@ -155,6 +155,8 @@ template wrapped_prop_list(T) {
 // STANDARD METHODS //
 //////////////////////
 
+//import std.stdio;
+
 /// Various wrapped methods
 template wrapped_methods(T) {
     alias wrapped_class_object!(T) wrap_object;
@@ -177,7 +179,8 @@ template wrapped_methods(T) {
     extern(C)
     void wrapped_dealloc(PyObject* self) {
         exception_catcher(delegate void() {
-            WrapPyObject_SetObj(self, cast(T)null);
+            //writefln("wrapped_dealloc: T is %s", typeid(T));
+            WrapPyObject_SetObj!(T)(self, cast(T)null);
             self.ob_type.tp_free(self);
         });
     }
@@ -488,11 +491,12 @@ the same number of arguments.
 struct Init(C ...) {
     alias C ctors;
     static const bool needs_shim = true;
-    template call(T) {
-        mixin wrapped_ctors!(param.ctors) Ctors;
+    template call(T, shim) {
+        //mixin wrapped_ctors!(param.ctors) Ctors;
         static void call() {
             wrapped_class_type!(T).tp_init =
-                &Ctors.init_func;
+                //&Ctors.init_func;
+                &wrapped_ctors!(shim, C).init_func;
         }
     }
     template shim_impl(uint i, uint c=0) {
@@ -571,11 +575,12 @@ template _wrap_class(T, Params...) {
     mixin _wrap_class!(T, symbolnameof!(T), Params);
 }
 +/
+//import std.stdio;
 template _wrap_class(_T, string name, Params...) {
     static if (is(_T == class)) {
         pragma(msg, "wrap_class: " ~ name);
-        mixin pyd.make_wrapper.make_wrapper!(_T, Params);
-        alias wrapper shim_class;
+        alias pyd.make_wrapper.make_wrapper!(_T, Params).wrapper shim_class;
+        //alias W.wrapper shim_class;
         alias _T T;
 //    } else static if (is(_T == interface)) {
 //        pragma(msg, "wrap_interface: " ~ name);
@@ -589,17 +594,20 @@ template _wrap_class(_T, string name, Params...) {
 void wrap_class(string docstring="", string modulename="") {
     pragma(msg, "shim.mangleof: " ~ shim_class.mangleof);
     alias wrapped_class_type!(T) type;
+    //writefln("entering wrap_class for %s", typeid(T));
     //pragma(msg, "wrap_class, T is " ~ prettytypeof!(T));
 
     //Params params;
+    //writefln("before params: tp_init is %s", type.tp_init);
     foreach (param; Params) {
         static if (param.needs_shim) {
-            mixin param.call!(T) PCall;
-            PCall.call();
+            //mixin param.call!(T) PCall;
+            param.call!(T, shim_class)();
         } else {
             param.call!(T)();
         }
     }
+    //writefln("after params: tp_init is %s", type.tp_init);
 
     assert(Pyd_Module_p(modulename) !is null, "Must initialize module before wrapping classes.");
     string module_name = toString(python.PyModule_GetName(Pyd_Module_p(modulename)));
@@ -680,6 +688,7 @@ void wrap_class(string docstring="", string modulename="") {
             }
         }
     }
+    //writefln("after default check: tp_init is %s", type.tp_init);
 
     //////////////////
     // Finalization //
@@ -687,6 +696,7 @@ void wrap_class(string docstring="", string modulename="") {
     if (PyType_Ready(&type) < 0) {
         throw new Exception("Couldn't ready wrapped type!");
     }
+    //writefln("after Ready: tp_init is %s", type.tp_init);
     python.Py_INCREF(cast(PyObject*)&type);
     python.PyModule_AddObject(Pyd_Module_p(modulename), (name~\0).ptr, cast(PyObject*)&type);
 
@@ -696,6 +706,7 @@ void wrap_class(string docstring="", string modulename="") {
         wrapped_classes[T.classinfo] = &type;
         wrapped_classes[shim_class.classinfo] = &type;
     }
+    //writefln("leaving wrap_class for %s", typeid(T));
 }
 }
 ////////////////
@@ -783,8 +794,19 @@ T WrapPyObject_AsObject(T) (PyObject* _self) {
     alias wrapped_class_object!(T) wrapped_object;
     alias wrapped_class_type!(T) type;
     wrapped_object* self = cast(wrapped_object*)_self;
-    if (!is_wrapped!(T) || self is null || (is(T : Object) && cast(T)cast(Object)(self.d_obj) is null)) {
-        throw new Exception("Error extracting D object from Python object...");
+    if (!is_wrapped!(T)) {
+        throw new Exception("Error extracting D object: Type " ~ objToStr(typeid(T)) ~ " is not wrapped.");
+    }
+    if (self is null) {
+        throw new Exception("Error extracting D object: 'self' was null!");
+    }
+    static if (is(T == class)) {
+        if (cast(Object)(self.d_obj) is null) {
+            throw new Exception("Error extracting D object: Reference was not castable to Object!");
+        }
+        if (cast(T)cast(Object)(self.d_obj) is null) {
+            throw new Exception("Error extracting D object: Object was not castable to type "~objToStr(typeid(T))~".");
+        }
     }
     return self.d_obj;
 }

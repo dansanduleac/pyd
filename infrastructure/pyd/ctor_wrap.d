@@ -64,10 +64,11 @@ template wrapped_struct_init(T) {
     }
 }
 
+//import std.stdio;
 // This template accepts a tuple of function pointer types, which each describe
 // a ctor of T, and  uses them to wrap a Python tp_init function.
-template wrapped_ctors(/*T,*/ C ...) {
-    alias shim_class T;
+template wrapped_ctors(T, C ...) {
+    //alias shim_class T;
     alias wrapped_class_object!(T) wrap_object;
 
     extern(C)
@@ -75,6 +76,7 @@ template wrapped_ctors(/*T,*/ C ...) {
         int len = PyObject_Length(args);
 
         return exception_catcher({
+            //writefln("in init_func: len=%s, T=%s, C.length=%s", len, typeid(T), C.length);
             // Default ctor
             static if (is(typeof(new T))) {
                 if (len == 0) {
@@ -86,6 +88,7 @@ template wrapped_ctors(/*T,*/ C ...) {
             C c;
             foreach(i, arg; c) {
                 alias ParameterTypeTuple!(typeof(arg)) Ctor;
+                //writefln("  init_func: i=%s, Ctor.length=%s, Ctor=%s", i, Ctor.length, typeid(typeof(arg)));
                 if (Ctor.length == len) {
                     auto fn = &call_ctor!(T, ParameterTypeTuple!(typeof(arg)));
                     if (fn is null) {
@@ -93,7 +96,7 @@ template wrapped_ctors(/*T,*/ C ...) {
                         return -1;
                     }
                     alias typeof(fn) dg_t;
-                    mixin applyPyTupleToDelegate!(dg_t);
+                    //mixin applyPyTupleToDelegate!(dg_t) A;
                     T t = applyPyTupleToDelegate(fn, args);
                     if (t is null) {
                         PyErr_SetString(PyExc_RuntimeError, "Class ctor redirect didn't return a class instance!");
