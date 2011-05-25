@@ -9,7 +9,7 @@ FORBIDDEN_EXTENSIONS = [
   ]
 
 FORBIDDEN_DIRECTORIES = [
-    lambda d: d.lower() in ('.svn', 'cvs', 'build', 'dist'),
+    lambda d: d.lower() in ('.svn', '.git', '.hg', 'cvs', 'build', 'dist'),
     lambda d: d.startswith('__'),
   ]
 
