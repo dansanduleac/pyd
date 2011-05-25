@@ -1551,8 +1551,14 @@ extern (C) {
   int PyModule_AddIntConstant(PyObject *, c_str, C_long);
   int PyModule_AddStringConstant(PyObject *, c_str, c_str);
 
-  PyObject * Py_InitModule4(c_str name, PyMethodDef *methods, c_str doc,
-                            PyObject *self, int apiver);
+  version (X86_64) {
+    PyObject * Py_InitModule4_64(c_str name, PyMethodDef *methods, c_str doc,
+                              PyObject *self, int apiver);
+    alias Py_InitModule4_64 Py_InitModule4;
+  } else {
+    PyObject * Py_InitModule4(c_str name, PyMethodDef *methods, c_str doc,
+                              PyObject *self, int apiver);
+  }
 
   PyObject * Py_InitModule(c_str name, PyMethodDef *methods)
   {

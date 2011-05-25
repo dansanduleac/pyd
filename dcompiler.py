@@ -20,6 +20,7 @@ from distutils.errors import (
 )
 
 _isPlatWin = sys.platform.lower().startswith('win')
+_isPlatMac = sys.platform.lower().startswith('darwin')
 
 _infraDir = os.path.join(os.path.dirname(__file__), 'infrastructure')
 
@@ -224,6 +225,10 @@ class DCompiler(cc.CCompiler):
             boilerplatePath = os.path.join(_infraDir, 'd',
                 'python_dll_windows_boilerplate.d'
             )
+        elif _isPlatMac:
+            boilerplatePath = os.path.join(_infraDir, 'd',
+                'python_so_darwin_boilerplate.d'
+            )
         else:
             boilerplatePath = os.path.join(_infraDir, 'd',
                 'python_so_linux_boilerplate.d'
@@ -252,7 +257,14 @@ class DCompiler(cc.CCompiler):
         #   } else {
         #     // Do it the hard way...
         #   }
-        pythonVersionOpt = self._versionOpt % ('Python_%d_%d_Or_Later' % sys.version_info[:2])
+        ver = sys.version_info[:2]
+        # have to supply a version for each of them
+        # otherwise optimisations for 2.4 onwards might not be applied
+        if (2, 4) < ver < (3, 0):
+            pythonVersionOpts = \
+              [self._versionOpt % ('Python_%d_%d_Or_Later' % (2, subv)) for subv in range(ver[1], 3, -1)]
+        else:
+            [self._versionOpt % ('Python_%d_%d_Or_Later' % ver)]
 
         # Optimization opts
         args = [a.lower() for a in sys.argv[1:]]
@@ -282,7 +294,7 @@ class DCompiler(cc.CCompiler):
             outOpts[-1] = outOpts[-1] % _qp(objName)
             cmdElements = (
                 [binpath] + extra_preargs + compileOpts +
-                [pythonVersionOpt, self._unicodeOpt] + optimizationOpts +
+                pythonVersionOpts + [self._unicodeOpt] + optimizationOpts +
                 includePathOpts + outOpts + userVersionAndDebugOpts +
                 [_qp(source)] + extra_postargs
             )
@@ -506,7 +518,18 @@ class GDCDCompiler(DCompiler):
         self._outputOpts = ['-o', '%s']
         # _linkOpts
         self._linkOpts = ['-fPIC', '-nostartfiles', '-shared']
-        # _includeOpts
+        #if _isPlatMac:
+        #  self._linkOpts += ['-bundle', '-Wl,-undefined,dynamic_lookup']
+
+        # link with the relevant python libraries
+        if _isPlatMac:
+          frameworkSearchPath = sys.prefix[:sys.prefix.find('Python.framework')-1]
+          self._linkOpts += ['-F'+frameworkSearchPath, '-framework', 'Python']
+        else:
+          # TODO only if linux
+          #self._linkOpts = [self.library_option('python')]
+          pass
+
         self._includeOpts = ['-I', '%s']
         # _versionOpt
         self._versionOpt = '-fversion=%s'
@@ -522,7 +545,8 @@ class GDCDCompiler(DCompiler):
         self._st_support = False
 
     def _def_file(self, output_dir, output_filename):
-        return ['-Wl,-soname,' + os.path.basename(output_filename)]
+        argname = (_isPlatMac and '-Wl,-install_name,') or '-Wl,-soname,'
+        return [argname + os.path.basename(output_filename)]
 
     def library_dir_option(self, dir):
         return '-L' + dir

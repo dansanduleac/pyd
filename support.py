@@ -2,7 +2,8 @@ __all__ = ('setup', 'Extension')
 
 from celerid import patch_distutils # Cause distutils to be hot-patched.
 
-from distutils.core import setup, Extension as std_Extension
+#from distutils.core import setup, Extension as std_Extension
+from setuptools import setup, Extension as std_Extension
 from distutils.errors import DistutilsOptionError
 
 class Extension(std_Extension):
