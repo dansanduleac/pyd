@@ -176,9 +176,12 @@ class DCompiler(cc.CCompiler):
         # And Pyd!
         if with_pyd:
             # If we're not using StackThreads, don't use iteration.d in Pyd
+            exclude = set()
             if not with_st or not self._st_support:
-                _pydFiles.remove('iteration.d');
-            for file in _pydFiles:
+                exclude.add('iteration.d');
+            from itertools import ifilter
+            pydFilesCurrent = ifilter(lambda x: x not in exclude, _pydFiles)
+            for file in pydFilesCurrent:
                 filePath = os.path.join(_infraDir, 'pyd', file)
                 if not os.path.isfile(filePath):
                     raise DistutilsPlatformError("Required Pyd source file '%s' is"
