@@ -6,6 +6,7 @@ FORBIDDEN_EXTENSIONS = [
     '.marks', # jEdit bookmark files
     '.map', # Created automatically by the DMD compiler; needn't distribute.
     '.swp', # Vim swap files
+    '~',    # Vim backup files
   ]
 
 FORBIDDEN_DIRECTORIES = [
@@ -20,6 +21,7 @@ INCLUDE_ONLY_IN_SOURCE_DISTRIBUTION = [
 
 EXCLUDE_PATHS = [
     'MANIFEST',
+    '.gitignore',
   ]
 
 
@@ -55,7 +57,7 @@ def listFiles(isForSourceDist):
 
         for f in sorted(files):
             fPath = os.path.join(rootPath, f)
-            if os.path.splitext(f)[1].lower() in FORBIDDEN_EXTENSIONS:
+            if any(f.endswith(ext) for ext in FORBIDDEN_EXTENSIONS):
                 excludedPaths.append(fPath)
             else:
                 includedPaths.append(fPath)
