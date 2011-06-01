@@ -42,7 +42,7 @@ private {
     // We will get the .mangleof for a pointer to this function pointer.
     template rawmanglednameof(alias A)
     {
-      const char [] rawmanglednameof  =
+      const string rawmanglednameof  =
                  typeof(&outer!(A)).mangleof;
     }
 
@@ -90,10 +90,10 @@ template manglednameof(alias A)
 {
     static if (rawmanglednameof!(A).length - pointerstartlength <= 100 + 1) {
         // the length of the template argument requires 2 characters
-        const char [] manglednameof  =
+        const string manglednameof  =
              rawmanglednameof!(A)[ pointerstartlength + 2 .. $ - pointerendlength];
     } else
-        const char [] manglednameof  =
+        const string manglednameof  =
              rawmanglednameof!(A)[ pointerstartlength + 3 .. $ - pointerendlength];
 }
 
@@ -104,7 +104,7 @@ template manglednameof(alias A)
  */
 template prettynameof(alias A)
 {
-  const char [] prettynameof = prettyTemplateArg!(manglednameof!(A), MangledNameType.PrettyName);
+  const string prettynameof = prettyTemplateArg!(manglednameof!(A), MangledNameType.PrettyName);
 }
 
 /** Convert any D type to a human-readable string literal
@@ -113,7 +113,7 @@ template prettynameof(alias A)
  */
 template prettytypeof(A)
 {
-  const char [] prettytypeof = demangleType!(A.mangleof, MangledNameType.PrettyName);
+  const string prettytypeof = demangleType!(A.mangleof, MangledNameType.PrettyName);
 }
 
 /**
@@ -125,7 +125,7 @@ template prettytypeof(A)
  */
 template qualifiednameof(alias A)
 {
-  const char [] qualifiednameof = prettyTemplateArg!(manglednameof!(A), MangledNameType.QualifiedName);
+  const string qualifiednameof = prettyTemplateArg!(manglednameof!(A), MangledNameType.QualifiedName);
 }
 
 /**
@@ -135,7 +135,7 @@ template qualifiednameof(alias A)
  */
 template symbolnameof(alias A)
 {
-  const char [] symbolnameof = prettyTemplateArg!(manglednameof!(A), MangledNameType.SymbolName);
+  const string symbolnameof = prettyTemplateArg!(manglednameof!(A), MangledNameType.SymbolName);
 }
 
 //----------------------------------------------
@@ -173,7 +173,7 @@ enum SomeEnum { ABC = 2 }
 SomeEnum SomeInt;
 
 // remove the ".d" from the end
-const char [] THISFILE = "meta.Nameof";
+const string THISFILE = "meta.Nameof";
 
 static assert( prettytypeof!(real) == "real");
 static assert( prettytypeof!(OuterClass.SomeClass) == "class " ~ THISFILE ~".OuterClass.SomeClass");

@@ -67,7 +67,7 @@ void setWrongArgsError(int gotArgs, uint minArgs, uint maxArgs, string funcName=
     }
 
     char[] argStr(int args) {
-        char[] temp = toString(args) ~ " argument";
+        char[] temp = cast(char[])(toString(args) ~ " argument");
         if (args > 1) {
             temp ~= "s";
         }
@@ -88,7 +88,7 @@ void setWrongArgsError(int gotArgs, uint minArgs, uint maxArgs, string funcName=
     }
     str ~= " (" ~ toString(gotArgs) ~ " given)";
 
-    PyErr_SetString(PyExc_TypeError, (str ~ \0).ptr);
+    PyErr_SetString(PyExc_TypeError, (str ~ "\0").ptr);
 }
 
 // Calls callable alias fn with PyTuple args.

@@ -30,7 +30,7 @@ import pyd.func_wrap;
 import pyd.lib_abstract :
     ReturnType,
     ParameterTypeTuple,
-    ToString
+    toStringNow
 ;
 
 template T(A ...) {
@@ -101,7 +101,7 @@ template OverloadShim() {
         ReturnType!(fn_t) func(T ...) (char[] name, T t) {
             PyObject* _pyobj = this.__pyd_get_pyobj();
             if (_pyobj !is null) {
-                PyObject* method = PyObject_GetAttrString(_pyobj, (name ~ \0).ptr);
+                PyObject* method = PyObject_GetAttrString(_pyobj, (name ~ "\0").ptr);
                 if (method is null) handle_exception();
                 auto pydg = PydCallable_AsDelegate!(fn_to_dg!(fn_t))(method);
                 Py_DECREF(method);
@@ -120,7 +120,7 @@ template OverloadShim() {
                 // If this object's type is not the wrapped class's type (that is,
                 // if this object is actually a Python subclass of the wrapped
                 // class), then call the Python object.
-                PyObject* method = PyObject_GetAttrString(_pyobj, (name ~ \0).ptr);
+                PyObject* method = PyObject_GetAttrString(_pyobj, (name ~ "\0").ptr);
                 if (method is null) handle_exception();
                 auto pydg = PydCallable_AsDelegate!(fn_to_dg!(fn_t))(method);
                 Py_DECREF(method);

@@ -152,7 +152,7 @@ PyObject* _py(T) (T t) {
     } else static if (is(T : cdouble)) {
         return PyComplex_FromDoubles(t.re, t.im);
     } else static if (is(T : string)) {
-        return PyString_FromString((t ~ \0).ptr);
+        return PyString_FromString((t ~ "\0").ptr);
     } else static if (is(T : wchar[])) {
         return PyUnicode_FromWideChar(t, t.length);
     // Converts any array (static or dynamic) to a Python list

@@ -44,22 +44,40 @@ version (Tango) {
     string objToStr(Object o) {
         return o.toString();
     }
+    /*
     version (D_Version2) {
         // D1 issues?
         template symbolnameof(alias symbol) {
             static if (is(typeof(symbol) == function)) {
-                const char[] symbolnameof = (&symbol).stringof[2 .. $];
+                string symbolnameof = (&symbol).stringof[2 .. $];
             } else {
-                const char[] symbolnameof = symbol.stringof;
+                string symbolnameof = symbol.stringof;
             }
         }
     } else {
         public import meta.Nameof : symbolnameof;
-    }
+    }*/
+
+        public import meta.Nameof : symbolnameof;
     public import meta.Nameof : /*symbolnameof,*/ prettytypeof, prettynameof;
 
-    public import std.string : toString;
+    version (D_Version2) {
+      public import std.conv : to;
+      // provide a "wrapper" using the old toString
+      auto toString(T)(T obj) {
+        return to!(string)(obj);
+      }
+    } else {
+      // deprecated in D2
+      public import std.string : toString;
+    }
     public import std.traits : ParameterTypeTuple, ReturnType;
     public import meta.Default : minArgs;
-    public import std.metastrings : ToString;
+    version (D_Version2) {
+      public import std.metastrings : toStringNow;
+    } else {
+      // deprecated in D2
+      public import std.metastrings : ToString;
+      alias ToString toStringNow;
+    }
 }

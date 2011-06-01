@@ -90,7 +90,7 @@ public:
 
     /// Same as _hasattr(this, attr_name) in Python.
     bool hasattr(char[] attr_name) {
-        return PyObject_HasAttrString(m_ptr, (attr_name ~ \0).ptr) == 1;
+        return PyObject_HasAttrString(m_ptr, (attr_name ~ "\0").ptr) == 1;
     }
 
     /// Same as _hasattr(this, attr_name) in Python.
@@ -100,7 +100,7 @@ public:
 
     /// Same as _getattr(this, attr_name) in Python.
     PydObject getattr(char[] attr_name) {
-        return new PydObject(PyObject_GetAttrString(m_ptr, (attr_name ~ \0).ptr));
+        return new PydObject(PyObject_GetAttrString(m_ptr, (attr_name ~ "\0").ptr));
     }
 
     /// Same as _getattr(this, attr_name) in Python.
@@ -112,7 +112,7 @@ public:
      * Same as _setattr(this, attr_name, v) in Python.
      */
     void setattr(char[] attr_name, PydObject v) {
-        if (PyObject_SetAttrString(m_ptr, (attr_name ~ \0).ptr, v.m_ptr) == -1)
+        if (PyObject_SetAttrString(m_ptr, (attr_name ~ "\0").ptr, v.m_ptr) == -1)
             handle_exception();
     }
 
@@ -128,7 +128,7 @@ public:
      * Same as del this.attr_name in Python.
      */
     void delattr(char[] attr_name) {
-        if (PyObject_DelAttrString(m_ptr, (attr_name ~ \0).ptr) == -1)
+        if (PyObject_DelAttrString(m_ptr, (attr_name ~ "\0").ptr) == -1)
             handle_exception();
     }
 
@@ -176,8 +176,8 @@ public:
         }
     } else {
         /// Allows use of PydObject in writef via %s
-        char[] toString() {
-            return d_type!(char[])(m_ptr);
+        string toString() {
+            return d_type!(string)(m_ptr);
         }
     }
     
@@ -245,7 +245,7 @@ public:
      */
     PydObject methodUnpack(char[] name, PydObject args=null) {
         // Get the method PydObject
-        PyObject* m = PyObject_GetAttrString(m_ptr, (name ~ \0).ptr);
+        PyObject* m = PyObject_GetAttrString(m_ptr, (name ~ "\0").ptr);
         PyObject* result;
         // If this method doesn't exist (or other error), throw exception
         if (m is null) handle_exception();
@@ -258,7 +258,7 @@ public:
 
     PydObject methodUnpack(char[] name, PydObject args, PydObject kw) {
         // Get the method PydObject
-        PyObject* m = PyObject_GetAttrString(m_ptr, (name ~ \0).ptr);
+        PyObject* m = PyObject_GetAttrString(m_ptr, (name ~ "\0").ptr);
         PyObject* result;
         // If this method doesn't exist (or other error), throw exception.
         if (m is null) handle_exception();
@@ -273,7 +273,7 @@ public:
      * Calls a method of the object with any convertible D items.
      */
     PydObject method(T ...) (char[] name, T t) {
-        PyObject* mthd = PyObject_GetAttrString(m_ptr, (name ~ \0).ptr);
+        PyObject* mthd = PyObject_GetAttrString(m_ptr, (name ~ "\0").ptr);
         if (mthd is null) handle_exception();
         PyObject* tuple = PyTuple_FromItems(t);
         if (tuple is null) {
@@ -346,7 +346,7 @@ public:
      * mappings.
      */
     PydObject opIndex(char[] key) {
-        return new PydObject(PyMapping_GetItemString(m_ptr, (key ~ \0).ptr));
+        return new PydObject(PyMapping_GetItemString(m_ptr, (key ~ "\0").ptr));
     }
     /// Equivalent to o[_i] in Python; usually only makes sense for sequences.
     PydObject opIndex(int i) {
@@ -363,7 +363,7 @@ public:
      * mappings.
      */
     void opIndexAssign(PydObject value, char[] key) {
-        if (PyMapping_SetItemString(m_ptr, (key ~ \0).ptr, value.m_ptr) == -1)
+        if (PyMapping_SetItemString(m_ptr, (key ~ "\0").ptr, value.m_ptr) == -1)
             handle_exception();
     }
     /**
@@ -385,7 +385,7 @@ public:
      * mappings.
      */
     void delItem(char[] key) {
-        if (PyMapping_DelItemString(m_ptr, (key ~ \0).ptr) == -1)
+        if (PyMapping_DelItemString(m_ptr, (key ~ "\0").ptr) == -1)
             handle_exception();
     }
     /**
@@ -436,7 +436,7 @@ public:
      * sequence, keys in a dictionary, or some other iteration defined for the
      * PydObject's type.
      */
-    int opApply(int delegate(inout PydObject) dg) {
+    int opApply(int delegate(ref PydObject) dg) {
         PyObject* iterator = PyObject_GetIter(m_ptr);
         PyObject* item;
         int result = 0;
@@ -469,7 +469,7 @@ public:
      * with the exception of modifying values. Adding or removing items while
      * iterating through it is an especially bad idea.
      */
-    int opApply(int delegate(inout PydObject, inout PydObject) dg) {
+    int opApply(int delegate(ref PydObject, ref PydObject) dg) {
         PyObject* key, value;
         version(Python_2_5_Or_Later) {
             Py_ssize_t pos = 0;
@@ -757,7 +757,7 @@ public:
     }
     /// Same as opIn_r
     bool hasKey(char[] key) {
-        int result = PyMapping_HasKeyString(m_ptr, (key ~ \0).ptr);
+        int result = PyMapping_HasKeyString(m_ptr, (key ~ "\0").ptr);
         if (result == -1) handle_exception();
         return result == 1;
     }

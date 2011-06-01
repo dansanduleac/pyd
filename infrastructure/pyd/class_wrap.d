@@ -43,7 +43,7 @@ import pyd.lib_abstract :
     ReturnType,
     minArgs,
     objToStr,
-    ToString
+    toStringNow
 ;
 
 //import meta.Default;
@@ -314,10 +314,10 @@ template _Def(alias fn, /*string _realname,*/ string name, fn_t/+, uint MIN_ARGS
         pragma(msg, "class.def: " ~ name);
         static PyMethodDef empty = { null, null, 0, null };
         alias wrapped_method_list!(T) list;
-        list[length-1].ml_name = (name ~ \0).ptr;
+        list[length-1].ml_name = (name ~ "\0").ptr;
         list[length-1].ml_meth = &method_wrap!(T, fn, fn_t).func;
         list[length-1].ml_flags = METH_VARARGS;
-        list[length-1].ml_doc = (docstring~\0).ptr;
+        list[length-1].ml_doc = (docstring~"\0").ptr;
         list ~= empty;
         // It's possible that appending the empty item invalidated the
         // pointer in the type struct, so we renew it here.
@@ -325,9 +325,9 @@ template _Def(alias fn, /*string _realname,*/ string name, fn_t/+, uint MIN_ARGS
     }
     template shim(uint i) {
         const char[] shim =
-            "    alias Params["~ToString!(i)~"] __pyd_p"~ToString!(i)~";\n"
-            "    ReturnType!(__pyd_p"~ToString!(i)~".func_t) "~realname~"(ParameterTypeTuple!(__pyd_p"~ToString!(i)~".func_t) t) {\n"
-            "        return __pyd_get_overload!(\""~realname~"\", __pyd_p"~ToString!(i)~".func_t).func(\""~name~"\", t);\n"
+            "    alias Params["~toStringNow!(i)~"] __pyd_p"~toStringNow!(i)~";\n"
+            "    ReturnType!(__pyd_p"~toStringNow!(i)~".func_t) "~realname~"(ParameterTypeTuple!(__pyd_p"~toStringNow!(i)~".func_t) t) {\n"
+            "        return __pyd_get_overload!(\""~realname~"\", __pyd_p"~toStringNow!(i)~".func_t).func(\""~name~"\", t);\n"
             "    }\n";
     }
 }
@@ -373,10 +373,10 @@ template _StaticDef(alias fn,/+ string _realname,+/ string name, fn_t, uint MIN_
         pragma(msg, "class.static_def: " ~ name);
         static PyMethodDef empty = { null, null, 0, null };
         alias wrapped_method_list!(T) list;
-        list[length-1].ml_name = (name ~ \0).ptr;
+        list[length-1].ml_name = (name ~ "\0").ptr;
         list[length-1].ml_meth = &function_wrap!(fn, MIN_ARGS, fn_t).func;
         list[length-1].ml_flags = METH_VARARGS | METH_STATIC;
-        list[length-1].ml_doc = (docstring~\0).ptr;
+        list[length-1].ml_doc = (docstring~"\0").ptr;
         list ~= empty;
         wrapped_class_type!(T).tp_methods = list;
     }
@@ -427,14 +427,14 @@ template _Property(alias fn, string _realname, string name, bool RO, string docs
     static void call(T) () {
         pragma(msg, "class.prop: " ~ name);
         static PyGetSetDef empty = { null, null, null, null, null };
-        wrapped_prop_list!(T)[length-1].name = (name ~ \0).ptr;
+        wrapped_prop_list!(T)[length-1].name = (name ~ "\0").ptr;
         wrapped_prop_list!(T)[length-1].get =
             &wrapped_get!(T, fn).func;
         static if (!RO) {
             wrapped_prop_list!(T)[length-1].set =
                 &wrapped_set!(T, fn).func;
         }
-        wrapped_prop_list!(T)[length-1].doc = (docstring~\0).ptr;
+        wrapped_prop_list!(T)[length-1].doc = (docstring~"\0").ptr;
         wrapped_prop_list!(T)[length-1].closure = null;
         wrapped_prop_list!(T) ~= empty;
         // It's possible that appending the empty item invalidated the
@@ -447,16 +447,16 @@ template _Property(alias fn, string _realname, string name, bool RO, string docs
             const char[] shim_setter = "";
         } else {
             const char[] shim_setter =
-            "    ReturnType!(__pyd_p"~ToString!(i)~".set_t) "~_realname~"(ParameterTypeTuple!(__pyd_p"~ToString!(i)~".set_t) t) {\n"
-            "        return __pyd_get_overload!(\""~_realname~"\", __pyd_p"~ToString!(i)~".set_t).func(\""~name~"\", t);\n"
+            "    ReturnType!(__pyd_p"~toStringNow!(i)~".set_t) "~_realname~"(ParameterTypeTuple!(__pyd_p"~toStringNow!(i)~".set_t) t) {\n"
+            "        return __pyd_get_overload!(\""~_realname~"\", __pyd_p"~toStringNow!(i)~".set_t).func(\""~name~"\", t);\n"
             "    }\n";
         }
     }
     template shim(uint i) {
         const char[] shim =
-            "    alias Params["~ToString!(i)~"] __pyd_p"~ToString!(i)~";\n"
-            "    ReturnType!(__pyd_p"~ToString!(i)~".get_t) "~_realname~"() {\n"
-            "        return __pyd_get_overload!(\""~_realname~"\", __pyd_p"~ToString!(i)~".get_t).func(\""~name~"\");\n"
+            "    alias Params["~toStringNow!(i)~"] __pyd_p"~toStringNow!(i)~";\n"
+            "    ReturnType!(__pyd_p"~toStringNow!(i)~".get_t) "~_realname~"() {\n"
+            "        return __pyd_get_overload!(\""~_realname~"\", __pyd_p"~toStringNow!(i)~".get_t).func(\""~name~"\");\n"
             "    }\n" ~
             shim_setter!(i);
     }
@@ -502,7 +502,7 @@ struct Init(C ...) {
     template shim_impl(uint i, uint c=0) {
         static if (c < ctors.length) {
             const char[] shim_impl = 
-                "    this(ParameterTypeTuple!(__pyd_c"~ToString!(i)~"["~ToString!(c)~"]) t) {\n"
+                "    this(ParameterTypeTuple!(__pyd_c"~toStringNow!(i)~"["~toStringNow!(c)~"]) t) {\n"
                 "        super(t);\n"
                 "    }\n" ~ shim_impl!(i, c+1);
         } else {
@@ -514,8 +514,8 @@ struct Init(C ...) {
     }
     template shim(uint i) {
         const char[] shim =
-            "    alias Params["~ToString!(i)~"] __pyd_p"~ToString!(i)~";\n"
-            "    alias __pyd_p"~ToString!(i)~".ctors __pyd_c"~ToString!(i)~";\n"~
+            "    alias Params["~toStringNow!(i)~"] __pyd_p"~toStringNow!(i)~";\n"
+            "    alias __pyd_p"~toStringNow!(i)~".ctors __pyd_c"~toStringNow!(i)~";\n"~
             shim_impl!(i);
     }
 }
@@ -554,10 +554,10 @@ struct AltIter(alias fn, string name = symbolnameof!(fn), iter_t = ParameterType
         static PyMethodDef empty = { null, null, 0, null };
         alias wrapped_method_list!(T) list;
         PydStackContext_Ready();
-        list[length-1].ml_name = name ~ \0;
+        list[length-1].ml_name = name ~ "\0";
         list[length-1].ml_meth = cast(PyCFunction)&wrapped_iter!(T, fn, int function(iter_t)).iter;
         list[length-1].ml_flags = METH_VARARGS;
-        list[length-1].ml_doc = "";//(docstring ~ \0).ptr;
+        list[length-1].ml_doc = "";//(docstring ~ "\0").ptr;
         list ~= empty;
         // It's possible that appending the empty item invalidated the
         // pointer in the type struct, so we renew it here.
@@ -617,11 +617,11 @@ void wrap_class(string docstring="", string modulename="") {
     //////////////////
     type.ob_type      = python.PyType_Type_p();
     type.tp_basicsize = (wrapped_class_object!(T)).sizeof;
-    type.tp_doc       = (docstring ~ \0).ptr;
+    type.tp_doc       = (docstring ~ "\0").ptr;
     type.tp_flags     = python.Py_TPFLAGS_DEFAULT | python.Py_TPFLAGS_BASETYPE;
     //type.tp_repr      = &wrapped_repr!(T).repr;
     type.tp_methods   = wrapped_method_list!(T).ptr;
-    type.tp_name      = (module_name ~ "." ~ name ~ \0).ptr;
+    type.tp_name      = (module_name ~ "." ~ name ~ "\0").ptr;
 
     /////////////////
     // Inheritance //
@@ -698,7 +698,7 @@ void wrap_class(string docstring="", string modulename="") {
     }
     //writefln("after Ready: tp_init is %s", type.tp_init);
     python.Py_INCREF(cast(PyObject*)&type);
-    python.PyModule_AddObject(Pyd_Module_p(modulename), (name~\0).ptr, cast(PyObject*)&type);
+    python.PyModule_AddObject(Pyd_Module_p(modulename), (name~"\0").ptr, cast(PyObject*)&type);
 
     is_wrapped!(T) = true;
     static if (is(T == class)) {

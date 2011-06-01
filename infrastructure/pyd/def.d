@@ -84,6 +84,7 @@ PyObject* Pyd_Module_p(string modulename="") {
  *>>> print testdll.foo(20)
  *It's greater than 10!)
  */
+
 void def(alias fn, string name = symbolnameof!(fn), fn_t=typeof(&fn), uint MIN_ARGS = minArgs!(fn, fn_t)) (string docstring="") {
     def!("", fn, name, fn_t, MIN_ARGS)(docstring);
 }
@@ -94,10 +95,11 @@ void def(string modulename, alias fn, string name = symbolnameof!(fn), fn_t=type
     ready_module_methods(modulename);
     PyMethodDef[]* list = &module_methods[modulename];
 
-    (*list)[length-1].ml_name = (name ~ \0).ptr;
-    (*list)[length-1].ml_meth = &function_wrap!(fn, MIN_ARGS, fn_t).func;
-    (*list)[length-1].ml_flags = METH_VARARGS;
-    (*list)[length-1].ml_doc = (docstring ~ \0).ptr;
+    // was: length-1
+    (*list)[$-1].ml_name = (name ~ "\0").ptr;
+    (*list)[$-1].ml_meth = &function_wrap!(fn, MIN_ARGS, fn_t).func;
+    (*list)[$-1].ml_flags = METH_VARARGS;
+    (*list)[$-1].ml_doc = (docstring ~ "\0").ptr;
     (*list) ~= empty;
 }
 
@@ -110,7 +112,7 @@ PyObject* module_init(string docstring="") {
     //_loadPythonSupport();
     string name = pyd_module_name;
     ready_module_methods("");
-    pyd_modules[""] = Py_InitModule3((name ~ \0).ptr, module_methods[""].ptr, (docstring ~ \0).ptr);
+    pyd_modules[""] = Py_InitModule3((name ~ "\0").ptr, module_methods[""].ptr, (docstring ~ "\0").ptr);
     return pyd_modules[""];
 }
 
@@ -119,7 +121,7 @@ PyObject* module_init(string docstring="") {
  */
 PyObject* add_module(string name, string docstring="") {
     ready_module_methods(name);
-    pyd_modules[name] = Py_InitModule3((name ~ \0).ptr, module_methods[name].ptr, (docstring ~ \0).ptr);
+    pyd_modules[name] = Py_InitModule3((name ~ "\0").ptr, module_methods[name].ptr, (docstring ~ "\0").ptr);
     return pyd_modules[name];
 }
 

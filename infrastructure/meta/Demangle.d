@@ -10,7 +10,7 @@
 module meta.Demangle;
 /*
  Implementation is via pairs of metafunctions:
- a 'demangle' metafunction, which returns a const char [],
+ a 'demangle' metafunction, which returns a const string,
  and a 'Consumed' metafunction, which returns an integer, the number of characters which
  are used.
 */
@@ -34,73 +34,73 @@ template demangleType(string str, MangledNameType wantQualifiedNames = MangledNa
         // There are only a few types where symbolnameof!(), qualifiednameof!()
         // make sense.
         static if (str[0]=='C' || str[0]=='S' || str[0]=='E' || str[0]=='T')
-            const char [] demangleType = prettyLname!(str[1..$], wantQualifiedNames);
+            const string demangleType = prettyLname!(str[1..$], wantQualifiedNames);
         else {
             static assert(0, "Demangle error: type '" ~ str ~ "' does not contain a qualified name");
         }
     } else static if (str[0] == 'A') // dynamic array
-        const char [] demangleType = demangleType!(str[1..$], wantQualifiedNames) ~ "[]";
+        const string demangleType = demangleType!(str[1..$], wantQualifiedNames) ~ "[]";
     else static if (str[0] == 'H')   // associative array
-        const char [] demangleType
+        const string demangleType
             = demangleType!(str[1+demangleTypeConsumed!(str[1..$])..$], wantQualifiedNames)
             ~ "[" ~ demangleType!(str[1..1+(demangleTypeConsumed!(str[1..$]))], wantQualifiedNames) ~ "]";
     else static if (str[0] == 'G') // static array
-        const char [] demangleType
+        const string demangleType
             = demangleType!(str[1+countLeadingDigits!(str[1..$])..$], wantQualifiedNames)
             ~ "[" ~ str[1..1+countLeadingDigits!(str[1..$]) ] ~ "]";
     else static if (str[0]=='C')
-        const char [] demangleType = "class " ~ prettyLname!(str[1..$], wantQualifiedNames);
+        const string demangleType = "class " ~ prettyLname!(str[1..$], wantQualifiedNames);
     else static if (str[0]=='S')
-        const char [] demangleType = "struct " ~ prettyLname!(str[1..$], wantQualifiedNames);
+        const string demangleType = "struct " ~ prettyLname!(str[1..$], wantQualifiedNames);
     else static if (str[0]=='E')
-        const char [] demangleType = "enum " ~ prettyLname!(str[1..$], wantQualifiedNames);
+        const string demangleType = "enum " ~ prettyLname!(str[1..$], wantQualifiedNames);
     else static if (str[0]=='T')
-        const char [] demangleType = "typedef " ~ prettyLname!(str[1..$], wantQualifiedNames);
+        const string demangleType = "typedef " ~ prettyLname!(str[1..$], wantQualifiedNames);
     else static if (str[0]=='D' && str.length>2 && isMangledFunction!(( str[1] )) ) // delegate
-        const char [] demangleType = demangleFunctionOrDelegate!(str[1..$], "delegate ", wantQualifiedNames);
+        const string demangleType = demangleFunctionOrDelegate!(str[1..$], "delegate ", wantQualifiedNames);
     else static if (str[0]=='P' && str.length>2 && isMangledFunction!(( str[1] )) ) // function pointer
-        const char [] demangleType = demangleFunctionOrDelegate!(str[1..$], "function ", wantQualifiedNames);
+        const string demangleType = demangleFunctionOrDelegate!(str[1..$], "function ", wantQualifiedNames);
     else static if (str[0]=='P') // only after we've dealt with function pointers
-        const char [] demangleType = demangleType!(str[1..$], wantQualifiedNames) ~ "*";
+        const string demangleType = demangleType!(str[1..$], wantQualifiedNames) ~ "*";
     else static if (str[0]=='F')
-        const char [] demangleType = demangleFunctionOrDelegate!(str, "", wantQualifiedNames);
-    else const char [] demangleType = demangleBasicType!(str);
+        const string demangleType = demangleFunctionOrDelegate!(str, "", wantQualifiedNames);
+    else const string demangleType = demangleBasicType!(str);
 }
 
 // split these off because they're numerous and simple
 // Note: For portability, could replace "v" with void.mangleof, etc.
 template demangleBasicType(string str)
 {
-         static if (str == "v") const char [] demangleBasicType = "void";
-    else static if (str == "b") const char [] demangleBasicType = "bool";
+         static if (str == "v") const string demangleBasicType = "void";
+    else static if (str == "b") const string demangleBasicType = "bool";
     // possibly a bug in the D name mangling algorithm?
-    else static if (str == "x") const char [] demangleBasicType = "bool";
+    else static if (str == "x") const string demangleBasicType = "bool";
 
     // integral types
-    else static if (str == "g") const char [] demangleBasicType = "byte";
-    else static if (str == "h") const char [] demangleBasicType = "ubyte";
-    else static if (str == "s") const char [] demangleBasicType = "short";
-    else static if (str == "t") const char [] demangleBasicType = "ushort";
-    else static if (str == "i") const char [] demangleBasicType = "int";
-    else static if (str == "k") const char [] demangleBasicType = "uint";
-    else static if (str == "l") const char [] demangleBasicType = "long";
-    else static if (str == "m") const char [] demangleBasicType = "ulong";
+    else static if (str == "g") const string demangleBasicType = "byte";
+    else static if (str == "h") const string demangleBasicType = "ubyte";
+    else static if (str == "s") const string demangleBasicType = "short";
+    else static if (str == "t") const string demangleBasicType = "ushort";
+    else static if (str == "i") const string demangleBasicType = "int";
+    else static if (str == "k") const string demangleBasicType = "uint";
+    else static if (str == "l") const string demangleBasicType = "long";
+    else static if (str == "m") const string demangleBasicType = "ulong";
     // floating point
-    else static if (str == "e") const char [] demangleBasicType = "real";
-    else static if (str == "d") const char [] demangleBasicType = "double";
-    else static if (str == "f") const char [] demangleBasicType = "float";
+    else static if (str == "e") const string demangleBasicType = "real";
+    else static if (str == "d") const string demangleBasicType = "double";
+    else static if (str == "f") const string demangleBasicType = "float";
 
-    else static if (str == "j") const char [] demangleBasicType = "ireal";
-    else static if (str == "p") const char [] demangleBasicType = "idouble";
-    else static if (str == "o") const char [] demangleBasicType = "ifloat";
+    else static if (str == "j") const string demangleBasicType = "ireal";
+    else static if (str == "p") const string demangleBasicType = "idouble";
+    else static if (str == "o") const string demangleBasicType = "ifloat";
 
-    else static if (str == "c") const char [] demangleBasicType = "creal";
-    else static if (str == "r") const char [] demangleBasicType = "cdouble";
-    else static if (str == "q") const char [] demangleBasicType = "cfloat";
+    else static if (str == "c") const string demangleBasicType = "creal";
+    else static if (str == "r") const string demangleBasicType = "cdouble";
+    else static if (str == "q") const string demangleBasicType = "cfloat";
     // Char types
-    else static if (str == "a") const char [] demangleBasicType = "char";
-    else static if (str == "u") const char [] demangleBasicType = "wchar";
-    else static if (str == "w") const char [] demangleBasicType = "dchar";
+    else static if (str == "a") const string demangleBasicType = "char";
+    else static if (str == "u") const string demangleBasicType = "wchar";
+    else static if (str == "w") const string demangleBasicType = "dchar";
 
     else static assert(0, "Demangle Error: '" ~ str ~ "' is not a recognised basic type");
 }
@@ -149,14 +149,14 @@ template countLeadingDigits(string str)
 template getLname(string str)
 {
     static if (str.length <= 9+1 || !beginsWithDigit!(str[1..$]) )
-        const char [] getLname = str[1..(str[0]-'0' + 1)];
+        const string getLname = str[1..(str[0]-'0' + 1)];
     else static if (str.length <= 99+2 || !beginsWithDigit!(str[2..$]) )
-        const char [] getLname = str[2..((str[0]-'0')*10 + str[1]-'0'+ 2)];
+        const string getLname = str[2..((str[0]-'0')*10 + str[1]-'0'+ 2)];
     else static if (str.length <= 999+3 || !beginsWithDigit!(str[3..$]) )
-        const char [] getLname =
+        const string getLname =
             str[3..((str[0]-'0')*100 + (str[1]-'0')*10 + str[2]-'0' + 3)];
     else
-        const char [] getLname =
+        const string getLname =
             str[4..((str[0]-'0')*1000 + (str[1]-'0')*100 + (str[2]-'0')*10 + (str[3]-'0') + 4)];
 }
 
@@ -165,15 +165,15 @@ template getLname(string str)
 template pretty_Dname(string str, int dotnameconsumed, MangledNameType wantQualifiedNames)
 {
     static if ( isMangledFunction!( (str[2+dotnameconsumed]))) {
-        const char [] pretty_Dname = pretty_Dfunction!(str, dotnameconsumed,
+        const string pretty_Dname = pretty_Dfunction!(str, dotnameconsumed,
             demangleParamListAndRetValConsumed!(str[3+dotnameconsumed..$]), wantQualifiedNames);
     } else {
         static if (wantQualifiedNames == MangledNameType.PrettyName) {
-            const char [] pretty_Dname =
+            const string pretty_Dname =
                 demangleType!(str[2+dotnameconsumed..$], wantQualifiedNames)
                 ~ " " ~ getQualifiedName!(str[2..$], wantQualifiedNames);
         } else {
-            const char [] pretty_Dname = getQualifiedName!(str[2..$], wantQualifiedNames);
+            const string pretty_Dname = getQualifiedName!(str[2..$], wantQualifiedNames);
         }
     }
 }
@@ -184,19 +184,19 @@ template pretty_Dfunction(string str, int dotnameconsumed, int paramlistconsumed
     MangledNameType wantQualifiedNames)
 {
     static if (wantQualifiedNames == MangledNameType.PrettyName) {
-        const char [] pretty_Dfunction =
+        const string pretty_Dfunction =
             demangleFunctionOrDelegate!(str[2 + dotnameconsumed .. 3 + dotnameconsumed + paramlistconsumed],
                 getQualifiedName!(str[2..2+dotnameconsumed], wantQualifiedNames), wantQualifiedNames)
                 // BUG: This shouldn't be necessary, the string length is wrong somewhere
             ~ getQualifiedName!(str[3 + dotnameconsumed + paramlistconsumed .. $], wantQualifiedNames, ".");
     } else static if (wantQualifiedNames == MangledNameType.QualifiedName) {
         // Qualified name
-        const char [] pretty_Dfunction = getQualifiedName!(str[2..2+dotnameconsumed], wantQualifiedNames)
+        const string pretty_Dfunction = getQualifiedName!(str[2..2+dotnameconsumed], wantQualifiedNames)
             ~ getQualifiedName!(str[3 + dotnameconsumed + paramlistconsumed .. $], wantQualifiedNames, ".");
     } else { // symbol name
         static if (3 + dotnameconsumed + paramlistconsumed == str.length)
-            const char [] pretty_Dfunction = getQualifiedName!(str[2..2+dotnameconsumed], wantQualifiedNames);
-        else const char [] pretty_Dfunction = getQualifiedName!(
+            const string pretty_Dfunction = getQualifiedName!(str[2..2+dotnameconsumed], wantQualifiedNames);
+        else const string pretty_Dfunction = getQualifiedName!(
             str[3 + dotnameconsumed + paramlistconsumed .. $], wantQualifiedNames);
     }
  }
@@ -213,19 +213,19 @@ template prettyLname(string str, MangledNameType wantQualifiedNames)
 {
     static if (str.length>3 && str[0..3] == "__T") // Template instance name
         static if (wantQualifiedNames == MangledNameType.PrettyName) {
-            const char [] prettyLname =
+            const string prettyLname =
                 prettyLname!(str[3..$], wantQualifiedNames) ~ "!("
                 ~ prettyTemplateArgList!(str[3+getQualifiedNameConsumed!(str[3..$])..$], wantQualifiedNames)
                 ~ ")";
         } else {
-            const char [] prettyLname =
+            const string prettyLname =
                 prettyLname!(str[3..$], wantQualifiedNames);
         }
     else static if (str.length>2 && str[0..2] == "_D") {
-        const char [] prettyLname = pretty_Dname!(str, getQualifiedNameConsumed!(str[2..$]), wantQualifiedNames);
+        const string prettyLname = pretty_Dname!(str, getQualifiedNameConsumed!(str[2..$]), wantQualifiedNames);
     } else static if ( beginsWithDigit!( str ) )
-        const char [] prettyLname = getQualifiedName!(str[0..getQualifiedNameConsumed!(str)], wantQualifiedNames);
-    else const char [] prettyLname = str;
+        const string prettyLname = getQualifiedName!(str[0..getQualifiedNameConsumed!(str)], wantQualifiedNames);
+    else const string prettyLname = str;
 }
 
 // str must start with an lname: first chars give the length
@@ -246,24 +246,24 @@ template getLnameConsumed(string str)
 
 template getQualifiedName(string str, MangledNameType wantQualifiedNames, string dotstr = "")
 {
-    static if (str.length==0) const char [] getQualifiedName="";
+    static if (str.length==0) const string getQualifiedName="";
 //    else static if (str.length>2 && str[0]=='_' && str[1]=='D')
-//        const char [] getDotName = getQualifiedName!(str[2..$], wantQualifiedNames);
+//        const string getDotName = getQualifiedName!(str[2..$], wantQualifiedNames);
     else {
         static assert (beginsWithDigit!(str));
         static if ( getLnameConsumed!(str) < str.length && beginsWithDigit!(str[getLnameConsumed!(str)..$]) ) {
             static if (wantQualifiedNames == MangledNameType.SymbolName) {
                 // For symbol names, only display the last symbol
-                const char [] getQualifiedName =
+                const string getQualifiedName =
                     getQualifiedName!(str[getLnameConsumed!(str) .. $], wantQualifiedNames, "");
             } else {
                 // Qualified and pretty names display everything
-                const char [] getQualifiedName = dotstr
+                const string getQualifiedName = dotstr
                     ~ prettyLname!(getLname!(str), wantQualifiedNames)
                     ~ getQualifiedName!(str[getLnameConsumed!(str) .. $], wantQualifiedNames, ".");
             }
         } else {
-            const char [] getQualifiedName = dotstr ~ prettyLname!(getLname!(str), wantQualifiedNames);
+            const string getQualifiedName = dotstr ~ prettyLname!(getLname!(str), wantQualifiedNames);
         }
     }
 }
@@ -291,7 +291,7 @@ template getQualifiedNameConsumed (string str)
 */
 template demangleFunctionOrDelegate(string str, string funcOrDelegStr, MangledNameType wantQualifiedNames)
 {
-    const char [] demangleFunctionOrDelegate = demangleExtern!(( str[0] ))
+    const string demangleFunctionOrDelegate = demangleExtern!(( str[0] ))
         ~ demangleReturnValue!(str[1..$], wantQualifiedNames)
         ~ " " ~ funcOrDelegStr ~ "("
         ~ demangleParamList!(str[1..1+demangleParamListAndRetValConsumed!(str[1..$])], wantQualifiedNames)
@@ -303,12 +303,12 @@ template demangleFunctionOrDelegate(string str, string funcOrDelegStr, MangledNa
 template demangleFunctionParamType(string str, MangledNameType wantQualifiedNames)
 {
     static if (str[0]=='L')
-        const char [] demangleFunctionParamType = "lazy " ~ demangleType!(str[1..$], wantQualifiedNames);
+        const string demangleFunctionParamType = "lazy " ~ demangleType!(str[1..$], wantQualifiedNames);
     else static if (str[0]=='K')
-        const char [] demangleFunctionParamType = "inout " ~ demangleType!(str[1..$], wantQualifiedNames);
+        const string demangleFunctionParamType = "inout " ~ demangleType!(str[1..$], wantQualifiedNames);
     else static if (str[0]=='J')
-        const char [] demangleFunctionParamType = "out " ~ demangleType!(str[1..$], wantQualifiedNames);
-    else const char [] demangleFunctionParamType = demangleType!(str, wantQualifiedNames);
+        const string demangleFunctionParamType = "out " ~ demangleType!(str[1..$], wantQualifiedNames);
+    else const string demangleFunctionParamType = demangleType!(str, wantQualifiedNames);
 }
 
 // Deal with 'out' and 'inout' parameters
@@ -327,11 +327,11 @@ template isMangledFunction(char c)
 
 template demangleExtern(char c)
 {
-    static if (c=='F') const char [] demangleExtern = "";
-    else static if (c=='U') const char [] demangleExtern = "extern (C) ";
-    else static if (c=='W') const char [] demangleExtern = "extern (Windows) ";
-    else static if (c=='V') const char [] demangleExtern = "extern (Pascal) ";
-    else static if (c=='R') const char [] demangleExtern = "extern (C++) ";
+    static if (c=='F') const string demangleExtern = "";
+    else static if (c=='U') const string demangleExtern = "extern (C) ";
+    else static if (c=='W') const string demangleExtern = "extern (Windows) ";
+    else static if (c=='V') const string demangleExtern = "extern (Pascal) ";
+    else static if (c=='R') const string demangleExtern = "extern (C++) ";
     else static assert(0, "Unrecognized extern function.");
 }
 
@@ -342,20 +342,20 @@ template demangleReturnValue(string str, MangledNameType wantQualifiedNames)
     static assert(str.length>=1, "Demangle error(Function): No return value found");
     static if (str[0]=='Z' || str[0]=='Y' || str[0]=='X')
         const char[] demangleReturnValue = demangleType!(str[1..$], wantQualifiedNames);
-    else const char [] demangleReturnValue = demangleReturnValue!(str[demangleFunctionParamTypeConsumed!(str)..$], wantQualifiedNames);
+    else const string demangleReturnValue = demangleReturnValue!(str[demangleFunctionParamTypeConsumed!(str)..$], wantQualifiedNames);
 }
 
 // Stop when we get to the return value
 template demangleParamList(string str, MangledNameType wantQualifiedNames, string commastr = "")
 {
     static if (str[0] == 'Z')
-        const char [] demangleParamList = "";
+        const string demangleParamList = "";
     else static if (str[0] == 'Y')
-        const char [] demangleParamList = commastr ~ "...";
+        const string demangleParamList = commastr ~ "...";
     else static if (str[0]=='X') // lazy ...
         const char[] demangleParamList = commastr ~ "...";
     else
-        const char [] demangleParamList =  commastr ~
+        const string demangleParamList =  commastr ~
             demangleFunctionParamType!(str[0..demangleFunctionParamTypeConsumed!(str)], wantQualifiedNames)
             ~ demangleParamList!(str[demangleFunctionParamTypeConsumed!(str)..$], wantQualifiedNames, ", ");
 }
@@ -388,25 +388,25 @@ template templateValueArgConsumed(string str)
 // pretty-print a template value argument.
 template prettyValueArg(string str)
 {
-    static if (str[0]=='n') const char [] prettyValueArg = "null";
-    else static if (beginsWithDigit!(str)) const char [] prettyValueArg = str;
-    else static if ( str[0]=='N') const char [] prettyValueArg = "-" ~ str[1..$];
-    else static if ( str[0]=='e') const char [] prettyValueArg = "0x" ~ str[1..$];
-    else static if ( str[0]=='c') const char [] prettyValueArg = "0x" ~ str[1..22] ~ " + 0x" ~ str[21..41] ~ "i";
-    else const char [] prettyValueArg = "Value arg {" ~ str[0..$] ~ "}";
+    static if (str[0]=='n') const string prettyValueArg = "null";
+    else static if (beginsWithDigit!(str)) const string prettyValueArg = str;
+    else static if ( str[0]=='N') const string prettyValueArg = "-" ~ str[1..$];
+    else static if ( str[0]=='e') const string prettyValueArg = "0x" ~ str[1..$];
+    else static if ( str[0]=='c') const string prettyValueArg = "0x" ~ str[1..22] ~ " + 0x" ~ str[21..41] ~ "i";
+    else const string prettyValueArg = "Value arg {" ~ str[0..$] ~ "}";
 }
 
 // Pretty-print a template argument
 template prettyTemplateArg(string str, MangledNameType wantQualifiedNames)
 {
     static if (str[0]=='S') // symbol name
-        const char [] prettyTemplateArg = prettyLname!(str[1..$], wantQualifiedNames);
+        const string prettyTemplateArg = prettyLname!(str[1..$], wantQualifiedNames);
     else static if (str[0]=='V') // value
-        const char [] prettyTemplateArg =
+        const string prettyTemplateArg =
             demangleType!(str[1..1+demangleTypeConsumed!(str[1..$])], wantQualifiedNames)
             ~ " = " ~ prettyValueArg!(str[1+demangleTypeConsumed!(str[1..$])..$]);
     else static if (str[0]=='T') // type
-        const char [] prettyTemplateArg = demangleType!(str[1..$], wantQualifiedNames);
+        const string prettyTemplateArg = demangleType!(str[1..$], wantQualifiedNames);
     else static assert(0, "Unrecognised template argument type: {" ~ str ~ "}");
 }
 
@@ -429,7 +429,7 @@ template prettyTemplateArgList(string str, MangledNameType wantQualifiedNames, s
     static if (str[0]=='Z')
         const char[] prettyTemplateArgList = "";
     else
-       const char [] prettyTemplateArgList = commastr
+       const string prettyTemplateArgList = commastr
             ~ prettyTemplateArg!(str[0..templateArgConsumed!(str)], wantQualifiedNames)
             ~ prettyTemplateArgList!(str[templateArgConsumed!(str)..$], wantQualifiedNames, ", ");
 }
@@ -468,7 +468,7 @@ debug(UnitTest){
 
 private {
 
-const char [] THISFILE = "meta.Demangle";
+const string THISFILE = "meta.Demangle";
 
 ireal SomeFunc(ushort u) { return -3i; }
 idouble SomeFunc2(inout ushort u, ubyte w) { return -3i; }

@@ -29,6 +29,9 @@ import pyd.lib_abstract :
 ;
 //import meta.Nameof;
 //import std.string;
+version (D_Version2) {
+  import std.conv : to;
+}
 
 /**
  * This function first checks if a Python exception is set, and then (if one
@@ -69,6 +72,9 @@ T error_code(T) () {
  *})
  */
 T exception_catcher(T) (T delegate() dg) {
+    version (D_Version2) {} else {
+      alias Object Throwable;
+    }
     try {
         return dg();
     }
@@ -81,12 +87,12 @@ T exception_catcher(T) (T delegate() dg) {
     // A D exception was raised and should be translated into a meaningful
     // Python exception.
     catch (Exception e) {
-        PyErr_SetString(PyExc_RuntimeError, ("D Exception: " ~ e.classinfo.name ~ ": " ~ e.msg ~ \0).ptr);
+        PyErr_SetString(PyExc_RuntimeError, ("D Exception: " ~ e.classinfo.name ~ ": " ~ e.msg ~ "\0").ptr);
         return error_code!(T)();
     }
     // Some other D object was thrown. Deal with it.
-    catch (Object o) {
-        PyErr_SetString(PyExc_RuntimeError, ("thrown D Object: " ~ o.classinfo.name ~ ": " ~ objToStr(o) ~ \0).ptr);
+    catch (Throwable o) {
+        PyErr_SetString(PyExc_RuntimeError, ("thrown D Object: " ~ o.classinfo.name ~ ": " ~ objToStr(o) ~ "\0").ptr);
         return error_code!(T)();
     }
 }
@@ -103,7 +109,11 @@ protected:
     PyObject* m_type, m_value, m_trace;
 public:
     this(PyObject* type, PyObject* value, PyObject* traceback) {
-        super(.toString(PyString_AsString(value)));
+        version (D_Version2) {
+          super(.to!(string)(PyString_AsString(value)));
+        } else {
+          super(.toString(PyString_AsString(value)));
+        }
         m_type = type;
         m_value = value;
         m_trace = traceback;
