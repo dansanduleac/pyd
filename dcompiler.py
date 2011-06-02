@@ -438,6 +438,16 @@ class DMDDCompiler(DCompiler):
         # StackThreads support
         self._st_support = True
 
+        # link with the relevant python libraries
+        if _isPlatMac:
+          frameworkSearchPath = sys.prefix[:sys.prefix.find('Python.framework')-1]
+          self._linkOpts += ['-L-F'+frameworkSearchPath, '-L-framework', '-LPython']
+          pass
+        else:
+          # TODO only if linux
+          #self._linkOpts = [self.library_option('python')]
+          pass
+
     #def link_opts(self, 
 
     def _def_file(self, output_dir, output_filename):
