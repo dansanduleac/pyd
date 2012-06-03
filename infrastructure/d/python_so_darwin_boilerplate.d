@@ -1,10 +1,10 @@
 extern(C) { 
 
-extern (C) void gc_init(); 
-extern (C) void gc_term(); 
-extern (C) void _moduleCtor(); 
-extern (C) void _moduleDtor(); 
-extern (C) void _moduleUnitTests(); 
+void gc_init(); 
+void gc_term(); 
+void _moduleCtor(); 
+void _moduleDtor(); 
+void _moduleUnitTests(); 
 
 
 version(GNU) { pragma(attribute, constructor) }
